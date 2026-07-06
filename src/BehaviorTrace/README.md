@@ -1,6 +1,6 @@
 # BehaviorTrace Module (Operational Activity)
 
-**Project:** maatify/admin-control-panel
+**Project:** maatify/event-logging
 **Module:** BehaviorTrace
 **Namespace:** `Maatify\EventLogging\BehaviorTrace`
 

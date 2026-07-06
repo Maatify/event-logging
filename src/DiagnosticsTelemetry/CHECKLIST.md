@@ -22,7 +22,7 @@
     - [x] `DiagnosticsTelemetryQueryMysqlRepository` (PDO Read Implementation)
     - [x] `DiagnosticsTelemetryStorageException` (Domain Exception)
     - [x] Append-only behavior
-    - [x] Schema artifact present (`Database/schema.diagnostics_telemetry.sql`)
+    - [x] Schema artifact present (`Database/schema.maa_event_logging_diagnostics_telemetry.sql`)
 - [x] **Context & Timing**:
     - [x] `ClockInterface` & `SystemClock`
     - [x] UTC enforcement (via `DateTimeZone('UTC')`)

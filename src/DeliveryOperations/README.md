@@ -56,7 +56,7 @@ DeliveryOperationsLoggerMysqlRepository (Infrastructure)
 
 The module requires the `maa_event_logging_delivery_operations` table. A canonical schema definition is provided within the module:
 
-`src/DeliveryOperations/Database/schema.delivery_operations.sql`
+`src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql`
 
 This file should be used to initialize the database table.
 
