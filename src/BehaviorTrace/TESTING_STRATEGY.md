@@ -24,7 +24,7 @@ This document defines how the module must be tested to ensure compliance with th
 **Environment:** Real MySQL Database (or SQLite in-memory if compatible).
 
 ### Test Cases:
-1.  **Persistence**: `write()` inserts a row into `operational_activity`.
+1.  **Persistence**: `write()` inserts a row into `maa_event_logging_behavior_trace`.
 2.  **Round-Trip**: `write()` then `read()` returns the same data (DTO equality).
 3.  **Serialization**: Metadata array is correctly JSON encoded on write and decoded on read.
 4.  **Constraints**: Attempting to write NULL to non-nullable fields throws `BehaviorTraceStorageException`.

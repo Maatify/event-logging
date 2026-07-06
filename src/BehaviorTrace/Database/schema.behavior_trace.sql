@@ -1,4 +1,4 @@
-CREATE TABLE operational_activity (
+CREATE TABLE maa_event_logging_behavior_trace (
                                       id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
                                       event_id CHAR(36) NOT NULL,
@@ -25,20 +25,20 @@ CREATE TABLE operational_activity (
 
                                       occurred_at DATETIME(6) NOT NULL,
 
-                                      UNIQUE KEY uq_operational_activity_event_id (event_id),
+                                      UNIQUE KEY uq_el_behavior_trace_event_id (event_id),
 
     -- Cursor index for stable paging / future batch processing
-                                      INDEX idx_operational_activity_time (occurred_at, id),
+                                      INDEX idx_el_behavior_trace_time (occurred_at, id),
 
     -- Required search dimensions
-                                      INDEX idx_operational_activity_actor_time (actor_type, actor_id, occurred_at),
-                                      INDEX idx_operational_activity_action_time (action, occurred_at),
+                                      INDEX idx_el_behavior_trace_actor_time (actor_type, actor_id, occurred_at),
+                                      INDEX idx_el_behavior_trace_action_time (action, occurred_at),
 
     -- Deep investigations
-                                      INDEX idx_operational_activity_entity_time (entity_type, entity_id, occurred_at),
+                                      INDEX idx_el_behavior_trace_entity_time (entity_type, entity_id, occurred_at),
 
     -- Correlation helpers
-                                      INDEX idx_operational_activity_correlation_time (correlation_id, occurred_at),
-                                      INDEX idx_operational_activity_request_time (request_id, occurred_at)
+                                      INDEX idx_el_behavior_trace_corr_time (correlation_id, occurred_at),
+                                      INDEX idx_el_behavior_trace_request_time (request_id, occurred_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    COMMENT='Operational activity for mutations only. Searchable by actor+time and action+time. Views/reads are NOT allowed (use audit_trail).';
+    COMMENT='Operational activity for mutations only. Searchable by actor+time and action+time. Views/reads are NOT allowed (use maa_event_logging_audit_trail).';

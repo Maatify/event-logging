@@ -1,4 +1,4 @@
-CREATE TABLE diagnostics_telemetry (
+CREATE TABLE maa_event_logging_diagnostics_telemetry (
                                        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
                                        event_id CHAR(36) NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE diagnostics_telemetry (
 
                                        occurred_at DATETIME(6) NOT NULL,
 
-                                       UNIQUE KEY uq_diagnostics_telemetry_event_id (event_id),
+                                       UNIQUE KEY uq_el_diag_telemetry_event_id (event_id),
 
     -- Cursor index for stable paging / future batch processing
                                        INDEX idx_diag_telemetry_time (occurred_at, id),

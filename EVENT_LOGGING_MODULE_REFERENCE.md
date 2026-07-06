@@ -76,6 +76,16 @@ The standard expects a package-level `schema/` directory. This package keeps the
 
 The package-level `schema/README.md` indexes those locations instead of duplicating SQL files. This preserves domain ownership and prevents duplicate schema copies from drifting.
 
+Canonical table names use the package prefix required by the module convention:
+
+- `maa_event_logging_authoritative_audit_outbox`
+- `maa_event_logging_authoritative_audit_log`
+- `maa_event_logging_audit_trail`
+- `maa_event_logging_security_signals`
+- `maa_event_logging_behavior_trace`
+- `maa_event_logging_diagnostics_telemetry`
+- `maa_event_logging_delivery_operations`
+
 
 ## Command, DTO, recorder, and writer roles
 

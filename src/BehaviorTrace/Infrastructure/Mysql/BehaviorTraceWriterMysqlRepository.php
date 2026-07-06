@@ -13,7 +13,7 @@ use JsonException;
 
 class BehaviorTraceWriterMysqlRepository implements BehaviorTraceWriterInterface
 {
-    private const TABLE_NAME = 'operational_activity';
+    private const TABLE_NAME = 'maa_event_logging_behavior_trace';
 
     public function __construct(
         private readonly PDO $pdo

@@ -68,7 +68,7 @@ class AuditTrailQueryMysqlRepository implements AuditTrailQueryInterface
 
         $sql = <<<SQL
             SELECT *
-            FROM audit_trail
+            FROM maa_event_logging_audit_trail
             {$whereClause}
             ORDER BY occurred_at DESC, id DESC
             LIMIT {$limit}

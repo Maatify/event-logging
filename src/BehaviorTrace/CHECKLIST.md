@@ -24,7 +24,7 @@ This checklist certifies that the module adheres to the Canonical Logging Standa
 ## 4. DTO Strictness
 - [x] **Immutable**: All properties are `readonly`.
 - [x] **Typed**: No `mixed` types (except metadata array content).
-- [x] **Canonical**: Maps 1:1 to `operational_activity` table.
+- [x] **Canonical**: Maps 1:1 to `maa_event_logging_behavior_trace` table.
 
 ## 5. Storage (Infrastructure)
 - [x] **Interface Bound**: Implements `BehaviorTraceWriterInterface`.

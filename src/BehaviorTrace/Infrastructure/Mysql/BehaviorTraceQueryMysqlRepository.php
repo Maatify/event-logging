@@ -20,7 +20,7 @@ use JsonException;
 
 class BehaviorTraceQueryMysqlRepository implements BehaviorTraceQueryInterface
 {
-    private const TABLE_NAME = 'operational_activity';
+    private const TABLE_NAME = 'maa_event_logging_behavior_trace';
 
     private readonly BehaviorTracePolicyInterface $policy;
 

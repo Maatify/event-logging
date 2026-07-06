@@ -68,9 +68,9 @@ The module is designed to be isolated.
 
 ## Database Schema
 
-The module requires the `diagnostics_telemetry` table. A canonical schema definition is provided within the module:
+The module requires the `maa_event_logging_diagnostics_telemetry` table. A canonical schema definition is provided within the module:
 
-`app/Modules/DiagnosticsTelemetry/Database/schema.diagnostics_telemetry.sql`
+`src/DiagnosticsTelemetry/Database/schema.diagnostics_telemetry.sql`
 
 This file should be used to initialize the database table.
 

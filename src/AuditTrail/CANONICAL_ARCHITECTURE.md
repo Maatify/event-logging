@@ -32,7 +32,7 @@ It DOES NOT cover:
 - **Behavior**: Fail-closed (throws StorageException).
 
 ## 3. Database Schema
-- **Table**: `audit_trail`
+- **Table**: `maa_event_logging_audit_trail`
 - **Key Columns**:
   - `event_id` (UUID)
   - `actor_type` / `actor_id`

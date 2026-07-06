@@ -21,7 +21,7 @@ class SecuritySignalsLoggerMysqlRepository implements SecuritySignalsLoggerInter
     public function write(SecuritySignalRecordDTO $record): void
     {
         $sql = <<<SQL
-            INSERT INTO security_signals (
+            INSERT INTO maa_event_logging_security_signals (
                 event_id,
                 actor_type,
                 actor_id,
