@@ -35,9 +35,13 @@ Completed updates:
 * `schema/README.md` continues to index the domain-local schema files.
 * Public/internal documentation with table-name references was updated where needed.
 
-Phase 2 — Documentation Cleanup
+Phase 2 — Documentation Cleanup & Schema Artifact Alignment
 
 Status: Completed.
+
+Actions taken:
+* Schema SQL artifact filenames were renamed to match canonical `maa_event_logging_*` table names.
+* Confirmed no PHP runtime code changed in Phase 2; this was a documentation/schema artifact alignment only.
 
 Cleaned files:
 * README.md
