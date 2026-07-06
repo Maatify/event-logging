@@ -31,13 +31,13 @@ The `maatify/event-logging` package has been successfully structured as a standa
 ## Blockers
 Phase 1 has resolved the database table naming blocker identified in this audit. The schema tables now use the required `maa_event_logging_*` prefix:
 
-- `maa_event_logging_behavior_trace` (in `schema.behavior_trace.sql`)
-- `maa_event_logging_audit_trail` (in `schema.audit_trail.sql`)
-- `maa_event_logging_security_signals` (in `schema.security_signals.sql`)
-- `maa_event_logging_delivery_operations` (in `schema.delivery_operations.sql`)
-- `maa_event_logging_authoritative_audit_outbox` (in `schema.authoritative_audit.sql`)
-- `maa_event_logging_authoritative_audit_log` (in `schema.authoritative_audit.sql`)
-- `maa_event_logging_diagnostics_telemetry` (in `schema.diagnostics_telemetry.sql`)
+- `maa_event_logging_behavior_trace` (in `schema.maa_event_logging_behavior_trace.sql`)
+- `maa_event_logging_audit_trail` (in `schema.maa_event_logging_audit_trail.sql`)
+- `maa_event_logging_security_signals` (in `schema.maa_event_logging_security_signals.sql`)
+- `maa_event_logging_delivery_operations` (in `schema.maa_event_logging_delivery_operations.sql`)
+- `maa_event_logging_authoritative_audit_outbox` (in `schema.maa_event_logging_authoritative_audit.sql`)
+- `maa_event_logging_authoritative_audit_log` (in `schema.maa_event_logging_authoritative_audit.sql`)
+- `maa_event_logging_diagnostics_telemetry` (in `schema.maa_event_logging_diagnostics_telemetry.sql`)
 
 ## Required fixes
 - Phase 1 database naming fixes are complete. Continue with the roadmap's documentation cleanup, code consistency review, validation gate, and final release audit before changing the overall release verdict.
@@ -52,13 +52,13 @@ Phase 1 has resolved the database table naming blocker identified in this audit.
 
 | Domain | File | Current Table Name | Expected Table Prefix | Status |
 |--------|------|---------------------|-----------------------|--------|
-| BehaviorTrace | `schema.behavior_trace.sql` | `maa_event_logging_behavior_trace` | `maa_event_logging_*` | PASS |
-| AuditTrail | `schema.audit_trail.sql` | `maa_event_logging_audit_trail` | `maa_event_logging_*` | PASS |
-| SecuritySignals | `schema.security_signals.sql` | `maa_event_logging_security_signals` | `maa_event_logging_*` | PASS |
-| DeliveryOperations | `schema.delivery_operations.sql` | `maa_event_logging_delivery_operations` | `maa_event_logging_*` | PASS |
-| AuthoritativeAudit | `schema.authoritative_audit.sql` | `maa_event_logging_authoritative_audit_outbox` | `maa_event_logging_*` | PASS |
-| AuthoritativeAudit | `schema.authoritative_audit.sql` | `maa_event_logging_authoritative_audit_log` | `maa_event_logging_*` | PASS |
-| DiagnosticsTelemetry | `schema.diagnostics_telemetry.sql` | `maa_event_logging_diagnostics_telemetry` | `maa_event_logging_*` | PASS |
+| BehaviorTrace | `schema.maa_event_logging_behavior_trace.sql` | `maa_event_logging_behavior_trace` | `maa_event_logging_*` | PASS |
+| AuditTrail | `schema.maa_event_logging_audit_trail.sql` | `maa_event_logging_audit_trail` | `maa_event_logging_*` | PASS |
+| SecuritySignals | `schema.maa_event_logging_security_signals.sql` | `maa_event_logging_security_signals` | `maa_event_logging_*` | PASS |
+| DeliveryOperations | `schema.maa_event_logging_delivery_operations.sql` | `maa_event_logging_delivery_operations` | `maa_event_logging_*` | PASS |
+| AuthoritativeAudit | `schema.maa_event_logging_authoritative_audit.sql` | `maa_event_logging_authoritative_audit_outbox` | `maa_event_logging_*` | PASS |
+| AuthoritativeAudit | `schema.maa_event_logging_authoritative_audit.sql` | `maa_event_logging_authoritative_audit_log` | `maa_event_logging_*` | PASS |
+| DiagnosticsTelemetry | `schema.maa_event_logging_diagnostics_telemetry.sql` | `maa_event_logging_diagnostics_telemetry` | `maa_event_logging_*` | PASS |
 
 ## Documentation consistency audit
 - Outdated or incorrect claims: None found. The package documentation properly reflects its standalone and decoupled nature.

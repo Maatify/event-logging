@@ -1,6 +1,6 @@
 # AuthoritativeAudit Module (Compliance & Governance)
 
-**Project:** maatify/admin-control-panel
+**Project:** maatify/event-logging
 **Module:** AuthoritativeAudit
 **Namespace:** `Maatify\EventLogging\AuthoritativeAudit`
 

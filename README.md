@@ -22,7 +22,7 @@ Recorders accept domain-specific command objects through `recordCommand()` and a
 
 ## Continuous Integration
 
-This package uses GitHub Actions for continuous integration. The PHPStan workflow runs on pushes and pull requests that modify PHP source files, Composer files, phpstan.neon, or the workflow definition.
+This package uses GitHub Actions for continuous integration. PHPStan workflow is path-filtered and runs only when PHP source, Composer files, phpstan.neon, or workflow files change.
 
 ## Installation
 

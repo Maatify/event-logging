@@ -67,12 +67,12 @@ Optional package-provided bindings may be added later only if they remain framew
 
 The standard expects a package-level `schema/` directory. This package keeps the authoritative SQL files under each owning domain:
 
-- `src/AuthoritativeAudit/Database/schema.authoritative_audit.sql`
-- `src/AuditTrail/Database/schema.audit_trail.sql`
-- `src/SecuritySignals/Database/schema.security_signals.sql`
-- `src/BehaviorTrace/Database/schema.behavior_trace.sql`
-- `src/DiagnosticsTelemetry/Database/schema.diagnostics_telemetry.sql`
-- `src/DeliveryOperations/Database/schema.delivery_operations.sql`
+- `src/AuthoritativeAudit/Database/schema.maa_event_logging_authoritative_audit.sql`
+- `src/AuditTrail/Database/schema.maa_event_logging_audit_trail.sql`
+- `src/SecuritySignals/Database/schema.maa_event_logging_security_signals.sql`
+- `src/BehaviorTrace/Database/schema.maa_event_logging_behavior_trace.sql`
+- `src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql`
+- `src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql`
 
 The package-level `schema/README.md` indexes those locations instead of duplicating SQL files. This preserves domain ownership and prevents duplicate schema copies from drifting.
 

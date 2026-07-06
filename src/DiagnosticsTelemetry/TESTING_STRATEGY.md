@@ -34,7 +34,7 @@ Note: Integration tests validate storage correctness, not query expressiveness.
 **Target:** `Infrastructure\Mysql\**Repository`.
 
 - **Setup:**
-  - Use `Database/schema.diagnostics_telemetry.sql` to create the table in a test DB (MySQL/SQLite).
+  - Use `Database/schema.maa_event_logging_diagnostics_telemetry.sql` to create the table in a test DB (MySQL/SQLite).
 
 - **Write Test:**
   - Instantiate `DiagnosticsTelemetryLoggerMysqlRepository` with a real PDO.

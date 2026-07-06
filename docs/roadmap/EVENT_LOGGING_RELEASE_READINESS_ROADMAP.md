@@ -35,23 +35,36 @@ Completed updates:
 * `schema/README.md` continues to index the domain-local schema files.
 * Public/internal documentation with table-name references was updated where needed.
 
-Phase 2 — Documentation Cleanup
+Phase 2 — Documentation Cleanup & Schema Artifact Alignment
 
-Review and fix:
+Status: Completed.
 
+Actions taken:
+* Schema SQL artifact filenames were renamed to match canonical `maa_event_logging_*` table names.
+* Confirmed no PHP runtime code changed in Phase 2; this was a documentation/schema artifact alignment only.
+
+Cleaned files:
 * README.md
 * PUBLIC_API.md
 * EVENT_LOGGING_MODULE_REFERENCE.md
 * TESTING_STRATEGY.md
 * CHANGELOG.md
-* docs/audits/*
+* docs/audits/FULL_ARCHITECTURE_AUDIT.md
+* docs/audits/AUDIT_REPORT.md
 * schema/README.md
-* domain README files if present
+* src/DeliveryOperations/README.md
+* src/DiagnosticsTelemetry/CHECKLIST.md
+* src/DiagnosticsTelemetry/TESTING_STRATEGY.md
+* src/DiagnosticsTelemetry/README.md
+* src/AuthoritativeAudit/README.md
+* src/BehaviorTrace/README.md
+* src/AuditTrail/README.md
+* src/SecuritySignals/README.md
 
 Rules:
 
 * No incorrect dependency claims.
-* No Athar Admin extraction history.
+* No host application history.
 * No outdated table names.
 * CI wording must match actual workflow behavior.
 * Public docs must be suitable for release.
@@ -66,7 +79,7 @@ Verify:
 * AuthoritativeAudit remains fail-closed.
 * No GenericLogger / GenericDTO / GenericRecorder.
 * Common contains primitives only.
-* No App\, Slim, or host-project dependencies.
+* No App\ or host-project dependencies.
 * Repositories only persist/query and do not apply policy.
 
 Phase 4 — Validation Gate
