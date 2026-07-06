@@ -8,9 +8,9 @@
 **Authority Alignment:**
 This document MUST align with:
 
-* `unified-logging-system.ar.md`
-* `unified-logging-system.en.md`
-* `UNIFIED_LOGGING_DESIGN.md`
+* `../../architecture/logging/unified-logging-system.ar.md`
+* `../../architecture/logging/unified-logging-system.en.md`
+* `../../architecture/logging/UNIFIED_LOGGING_DESIGN.md`
 
 If a conflict exists, the **Unified Logging System documents win**.
 
