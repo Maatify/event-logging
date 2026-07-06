@@ -1,6 +1,6 @@
 # CANONICAL_LOGGER_DESIGN_STANDARD
 
-> **Project:** maatify/admin-control-panel
+> **Project:** maatify/event-logging
 > **Status:** CANONICAL (Binding — Subordinate to unified-logging-system.*)
 > **Scope:** Defines the **mandatory design standard** for building any logging domain as a standalone, extractable library.
 > **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`

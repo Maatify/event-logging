@@ -1,10 +1,10 @@
 # LOGGING_LIBRARY_STRUCTURE_CANONICAL
 
-> **Project:** maatify/admin-control-panel
-> **Status:** CANONICAL (Structural blueprint for logging modules as future standalone libraries)
+> **Project:** maatify/event-logging
+> **Status:** NON-BINDING (Structural blueprint for logging modules as future standalone libraries)
 > **Scope:** Defines the required folder structure, module boundaries, shared primitives, and extraction-ready layout for the six logging domains.
-> **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
-> **Design Standard Source of Truth:** `docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md`
+> **Terminology Source of Truth:** `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+> **Design Standard Source of Truth:** `../../architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md`
 
 ---
 
@@ -36,7 +36,7 @@ The system has exactly six logging domains:
 
 Definitions are canonical in:
 
-* `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+* `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
 
 ---
 
@@ -62,13 +62,13 @@ Definitions are canonical in:
 All domain modules live under:
 
 ```
-app/Modules/
+src/
 ```
 
 Required structure:
 
 ```
-app/Modules/<DomainName>/
+src/<DomainName>/
 Contract/
 DTO/
 Enum/
@@ -79,7 +79,7 @@ Infrastructure/
 Exception/
 
 ┌──────────────────────────────────────────────────────────────┐
-│                      app/Modules/                            │
+│                      src/                            │
 └──────────────────────────────────────────────────────────────┘
               |
               v
@@ -126,7 +126,7 @@ Notes:
 **Storage:** MySQL only (outbox + materialized audit log).
 
 ```
-app/Modules/AuthoritativeAudit/
+src/AuthoritativeAudit/
     Contract/
         AuthoritativeAuditOutboxWriterInterface.php
         AuthoritativeAuditLogReaderInterface.php
@@ -180,7 +180,7 @@ Hard rule:
 **Storage:** MySQL hot + Mongo archive.
 
 ```
-app/Modules/AuditTrail/
+src/AuditTrail/
     Contract/
         AuditTrailLoggerInterface.php
         AuditTrailQueryInterface.php
@@ -215,7 +215,7 @@ Hard rule:
 **Storage:** MySQL hot + Mongo archive.
 
 ```
-app/Modules/SecuritySignals/
+src/SecuritySignals/
     Contract/
         SecuritySignalsLoggerInterface.php
         SecuritySignalsQueryInterface.php
@@ -252,10 +252,10 @@ Hard rule:
 
 > **Library / Module Name:** BehaviorTrace  
 > **Domain Classification:** Operational Activity  
-> **Authoritative Source:** LOG_DOMAINS_OVERVIEW.md
+> **Authoritative Source:** ../../architecture/logging/LOG_DOMAINS_OVERVIEW.md
 
 ```
-app/Modules/BehaviorTrace/
+src/BehaviorTrace/
     Contract/
         BehaviorTraceLoggerInterface.php
         BehaviorTraceQueryInterface.php
@@ -290,7 +290,7 @@ Hard rule:
 **Storage:** MySQL hot + Mongo archive.
 
 ```
-app/Modules/DiagnosticsTelemetry/
+src/DiagnosticsTelemetry/
     Contract/
         DiagnosticsTelemetryLoggerInterface.php
         DiagnosticsTelemetryQueryInterface.php
@@ -325,7 +325,7 @@ Hard rule:
 **Storage:** MySQL hot + Mongo archive.
 
 ```
-app/Modules/DeliveryOperations/
+src/DeliveryOperations/
     Contract/
         DeliveryOperationsLoggerInterface.php
         DeliveryOperationsQueryInterface.php
@@ -362,7 +362,7 @@ Hard rule:
 A small shared module is allowed ONLY for generic primitives that do not encode domain meaning:
 
 ```
-app/Modules/LoggingCommon/
+src/LoggingCommon/
     Correlation/
         CorrelationId.php
         RequestId.php

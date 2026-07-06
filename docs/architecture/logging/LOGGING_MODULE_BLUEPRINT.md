@@ -193,7 +193,7 @@ Even if the application uses a separate UI reader, the module MUST be independen
 The Host Application often needs rich filtering (search, page numbers) that the Module's Primitive Reader does not support.
 
 ### Implementation Guidelines
-1.  **Location:** `App\Http\Controllers` or `App\Domain`.
+1.  **Location:** The host application's controller or domain layer.
 2.  **Access:** The Host MAY query the module's storage table directly (Read-Only).
 3.  **Pipeline:**
     - **Input:** UI Request.
