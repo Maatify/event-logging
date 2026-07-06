@@ -1,10 +1,10 @@
 # LOGGING_LIBRARY_STRUCTURE_CANONICAL
 
 > **Project:** maatify/event-logging
-> **Status:** CANONICAL (Structural blueprint for logging modules as future standalone libraries)
+> **Status:** NON-BINDING (Structural blueprint for logging modules as future standalone libraries)
 > **Scope:** Defines the required folder structure, module boundaries, shared primitives, and extraction-ready layout for the six logging domains.
-> **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
-> **Design Standard Source of Truth:** `docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md`
+> **Terminology Source of Truth:** `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+> **Design Standard Source of Truth:** `../../architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md`
 
 ---
 
@@ -36,7 +36,7 @@ The system has exactly six logging domains:
 
 Definitions are canonical in:
 
-* `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+* `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
 
 ---
 
@@ -252,7 +252,7 @@ Hard rule:
 
 > **Library / Module Name:** BehaviorTrace  
 > **Domain Classification:** Operational Activity  
-> **Authoritative Source:** LOG_DOMAINS_OVERVIEW.md
+> **Authoritative Source:** ../../architecture/logging/LOG_DOMAINS_OVERVIEW.md
 
 ```
 src/BehaviorTrace/

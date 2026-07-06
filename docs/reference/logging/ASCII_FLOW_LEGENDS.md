@@ -3,7 +3,7 @@
 ## Canonical ASCII Flow Language
 
 **Project:** maatify/event-logging
-**Status:** CANONICAL (Binding — Reference Language)
+**Status:** NON-BINDING (Reference Language)
 **Scope:** All architecture, execution, storage, and logging diagrams
 **Authority Alignment:**
 This document MUST align with:

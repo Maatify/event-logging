@@ -61,13 +61,13 @@ and future library extraction.
 They are **not authoritative** and have been moved to `docs/reference/logging/`.
 
 - **Logging ASCII Overview**
-    - [`../reference/logging/LOGGING_ASCII_OVERVIEW.md`](../reference/logging/LOGGING_ASCII_OVERVIEW.md)
+    - [`../../reference/logging/LOGGING_ASCII_OVERVIEW.md`](../../reference/logging/LOGGING_ASCII_OVERVIEW.md)
 
 - **ASCII Flow Legends**
-    - [`../reference/logging/ASCII_FLOW_LEGENDS.md`](../reference/logging/ASCII_FLOW_LEGENDS.md)
+    - [`../../reference/logging/ASCII_FLOW_LEGENDS.md`](../../reference/logging/ASCII_FLOW_LEGENDS.md)
 
 - **Logging Library Structure (Canonical Reference)**
-    - [`../reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md`](../reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md)
+    - [`../../reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md`](../../reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md)
 
 ---
 
@@ -84,7 +84,7 @@ that all logging modules MUST follow:
 
 ### Reference Implementation
 
-A full, production-grade reference implementation of this blueprint exists within the core domains of this package.
+Reference implementations of this blueprint exist within the core domains of this package.
 
 
 ---

@@ -1,10 +1,10 @@
 # LOGGING_ASCII_OVERVIEW
 
 > **Project:** maatify/event-logging
-> **Status:** CANONICAL (ASCII overview of unified logging architecture)
-> **Legend Source of Truth:** `docs/architecture/logging/ASCII_FLOW_LEGENDS.md`
-> **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
-> **Storage Source of Truth:** `docs/architecture/logging/LOG_STORAGE_AND_ARCHIVING.md`
+> **Status:** NON-BINDING (ASCII overview of unified logging architecture)
+> **Legend Source of Truth:** `ASCII_FLOW_LEGENDS.md`
+> **Terminology Source of Truth:** `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+> **Storage Source of Truth:** `../../architecture/logging/LOG_STORAGE_AND_ARCHIVING.md`
 
 ---
 
@@ -19,10 +19,10 @@ This file is an **ASCII-only visual overview** of the unified logging system.
 If any mismatch is found between this file and:
 
 * `ASCII_FLOW_LEGENDS.md`
-* `LOG_DOMAINS_OVERVIEW.md`
-* `LOG_STORAGE_AND_ARCHIVING.md`
-* `GLOBAL_LOGGING_RULES.md`
-* `UNIFIED_LOGGING_DESIGN.md`
+* `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+* `../../architecture/logging/LOG_STORAGE_AND_ARCHIVING.md`
+* `../../architecture/logging/GLOBAL_LOGGING_RULES.md`
+* `../../architecture/logging/UNIFIED_LOGGING_DESIGN.md`
 
 Then this file MUST be updated to match them.
 
@@ -76,7 +76,7 @@ Only **policy strictness** and **failure semantics** differ by domain.
 
 ## 2) Domains (6) and Storage Targets
 
-Canonical meanings are defined in `LOG_DOMAINS_OVERVIEW.md`.
+Canonical meanings are defined in `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`.
 
 ### 2.1 Authoritative Audit (MySQL ONLY)
 
@@ -122,7 +122,7 @@ These domains are **baseline-first** (MySQL) and **optionally archiveable**:
 Note:
 This diagram illustrates Mode A (MySQL → Mongo) for visualization purposes.
 Mode B (MySQL → MySQL archive tables) is equally canonical and defined in
-LOG_STORAGE_AND_ARCHIVING.md, but omitted here for visual simplicity.
+../../architecture/logging/LOG_STORAGE_AND_ARCHIVING.md, but omitted here for visual simplicity.
 
 ```
 
@@ -414,8 +414,8 @@ This file is a **visual index**, not a rulebook.
 
 All authority remains with:
 
-* `LOG_DOMAINS_OVERVIEW.md`
-* `GLOBAL_LOGGING_RULES.md`
-* `UNIFIED_LOGGING_DESIGN.md`
+* `../../architecture/logging/LOG_DOMAINS_OVERVIEW.md`
+* `../../architecture/logging/GLOBAL_LOGGING_RULES.md`
+* `../../architecture/logging/UNIFIED_LOGGING_DESIGN.md`
 
 **END OF FILE**
