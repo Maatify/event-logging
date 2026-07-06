@@ -4,6 +4,10 @@ Current Status
 
 The package is not ready for release until the remaining roadmap phases complete.
 
+Phase 3 and 4 status:
+
+* Completed. All validation commands and code consistency passed.
+
 Phase 1 status:
 
 * Completed on 2026-07-06.
@@ -71,6 +75,8 @@ Rules:
 
 Phase 3 — Code Consistency Review
 
+Status: Completed.
+
 Verify:
 
 * Commands are public input contracts.
@@ -83,6 +89,8 @@ Verify:
 * Repositories only persist/query and do not apply policy.
 
 Phase 4 — Validation Gate
+
+Status: Completed.
 
 Required commands:
 
