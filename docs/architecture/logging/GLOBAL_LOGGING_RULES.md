@@ -1,6 +1,6 @@
 # 🌐 Global Logging Rules
 
-**Project:** maatify/admin-control-panel
+**Project:** maatify/event-logging
 **Status:** CANONICAL (Binding — Subordinate to unified-logging-system.*)
 **Audience:** Backend Developers, Security Reviewers, Auditors
 **Last Updated:** 2026-01

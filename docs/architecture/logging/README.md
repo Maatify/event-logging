@@ -58,16 +58,16 @@ If any inconsistency exists, the **Source of Truth documents override them**.
 
 These documents are provided for understanding, visualization,
 and future library extraction.
-They are **not authoritative**.
+They are **not authoritative** and have been moved to `docs/reference/logging/`.
 
 - **Logging ASCII Overview**
-    - [`LOGGING_ASCII_OVERVIEW.md`](./LOGGING_ASCII_OVERVIEW.md)
+    - [`../reference/logging/LOGGING_ASCII_OVERVIEW.md`](../reference/logging/LOGGING_ASCII_OVERVIEW.md)
 
 - **ASCII Flow Legends**
-    - [`ASCII_FLOW_LEGENDS.md`](./ASCII_FLOW_LEGENDS.md)
+    - [`../reference/logging/ASCII_FLOW_LEGENDS.md`](../reference/logging/ASCII_FLOW_LEGENDS.md)
 
 - **Logging Library Structure (Canonical Reference)**
-    - [`LOGGING_LIBRARY_STRUCTURE_CANONICAL.md`](./LOGGING_LIBRARY_STRUCTURE_CANONICAL.md)
+    - [`../reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md`](../reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md)
 
 ---
 
@@ -84,11 +84,7 @@ that all logging modules MUST follow:
 
 ### Reference Implementation
 
-A full, production-grade reference implementation of this blueprint exists:
-
-- `app/Modules/DiagnosticsTelemetry`
-  - See: `CANONICAL_ARCHITECTURE.md`
-  - Status: Fully compliant / Library-ready
+A full, production-grade reference implementation of this blueprint exists within the core domains of this package.
 
 
 ---

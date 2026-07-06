@@ -1,6 +1,6 @@
 # LOGGING_ASCII_OVERVIEW
 
-> **Project:** maatify/admin-control-panel
+> **Project:** maatify/event-logging
 > **Status:** CANONICAL (ASCII overview of unified logging architecture)
 > **Legend Source of Truth:** `docs/architecture/logging/ASCII_FLOW_LEGENDS.md`
 > **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`

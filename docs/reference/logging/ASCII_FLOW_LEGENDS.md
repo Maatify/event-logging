@@ -2,7 +2,7 @@
 
 ## Canonical ASCII Flow Language
 
-**Project:** maatify/admin-control-panel
+**Project:** maatify/event-logging
 **Status:** CANONICAL (Binding — Reference Language)
 **Scope:** All architecture, execution, storage, and logging diagrams
 **Authority Alignment:**

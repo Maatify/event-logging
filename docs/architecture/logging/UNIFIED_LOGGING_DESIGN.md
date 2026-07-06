@@ -1,6 +1,6 @@
 # UNIFIED_LOGGING_DESIGN
 
-> **Project:** maatify/admin-control-panel
+> **Project:** maatify/event-logging
 > **Status:** CANONICAL (Unified Design + Enforcement Rules)
 > **Scope:** Defines the unified logging architecture, layering, authority boundaries, storage semantics, and forbidden patterns.
 > **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
