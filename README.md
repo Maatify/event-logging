@@ -20,6 +20,10 @@ Shared primitives live only under `Maatify\EventLogging\Common` and are limited 
 
 Recorders accept domain-specific command objects through `recordCommand()` and also keep primitive `record()` convenience methods that construct the command internally. Host applications should not construct write DTOs for normal recording; write DTOs are internal recorder-to-writer transfer objects.
 
+## Continuous Integration
+
+This package uses GitHub Actions for continuous integration. The PHPStan workflow runs on pushes and pull requests that modify PHP source files, Composer files, phpstan.neon, or the workflow definition.
+
 ## Installation
 
 ```bash
