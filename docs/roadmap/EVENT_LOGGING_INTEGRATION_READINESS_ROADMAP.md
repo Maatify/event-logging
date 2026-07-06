@@ -18,7 +18,7 @@ Previous release audit passed for the extracted core, but additional integration
 - **Required root files:** Deferred to Phase 4
 - **Namespace/package boundaries:** Applicable now (Phase 1)
 - **Schema rules:** Deferred to Phase 4
-- **Exception rules:** Not applicable to event-logging (fail-open logging does not use standard domain validation exceptions)
+- **Exception rules:** Mostly not applicable to fail-open write paths; verify existing package exception policy and any read/query exceptions during Phase 3 and Final Audit.
 - **Command/DTO rules:** Deferred to Phase 3
 - **Repository/read rules:** Deferred to Phase 3
 - **Bootstrap/DI rules:** Applicable now (Phase 1)
