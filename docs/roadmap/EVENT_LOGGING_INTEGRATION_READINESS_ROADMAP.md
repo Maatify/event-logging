@@ -12,6 +12,21 @@ Previous release audit passed for the extracted core, but additional integration
 * Primitive read/admin viewing support must be verified and completed.
 * Integration documentation is still incomplete.
 
+
+## Module Building Standard Alignment
+
+- **Required root files:** Deferred to Phase 4
+- **Namespace/package boundaries:** Applicable now (Phase 1)
+- **Schema rules:** Deferred to Phase 4
+- **Exception rules:** Not applicable to event-logging (fail-open logging does not use standard domain validation exceptions)
+- **Command/DTO rules:** Deferred to Phase 3
+- **Repository/read rules:** Deferred to Phase 3
+- **Bootstrap/DI rules:** Applicable now (Phase 1)
+- **PHPStan max:** Deferred to Phase 5
+- **Public contracts/interfaces:** Applicable now (Phase 1)
+- **Documentation completeness:** Deferred to Phase 4
+- **Final “module is not done until” checklist:** Deferred to Phase 6
+
 ⸻
 
 Phase 0 — Logging Architecture Docs Cleanup
@@ -72,6 +87,13 @@ Rules:
 * No PHP-DI-specific bindings
 * No framework-specific service provider
 * No host app runtime assumptions
+
+Checkpoints (Module Building Standard):
+* Explicitly cover: Whether Bootstrap/DI belongs in this package
+* Explicitly cover: Whether optional bindings are framework-agnostic
+* Explicitly cover: Which public services/repositories need contracts
+* Explicitly cover: Whether EventLoggingManager is needed or avoided
+* Verify: Namespace/package boundaries
 
 Expected design artifacts:
 
@@ -145,6 +167,16 @@ Expected docs:
 
 docs/architecture/ADMIN_READ_SUPPORT.md
 
+Checkpoints (Module Building Standard):
+* Explicitly cover: Reader contracts
+* Explicitly cover: Query DTOs
+* Explicitly cover: Cursor DTOs
+* Explicitly cover: View DTOs
+* Explicitly cover: MySQL query repositories
+* Explicitly cover: Pagination style decision
+* Verify: Command/DTO rules
+* Verify: Repository/read rules
+
 Expected code if missing:
 
 * Reader interfaces
@@ -182,6 +214,11 @@ Must explain:
 * reader/query usage
 * what the host app must implement itself
 
+Checkpoints (Module Building Standard):
+* Verify: Required root files
+* Verify: Schema rules
+* Verify: Documentation completeness
+
 ⸻
 
 Phase 5 — Validation Gate
@@ -197,6 +234,9 @@ vendor/bin/phpstan analyse -c phpstan.neon
 
 If code was added, CI must pass.
 
+Checkpoints (Module Building Standard):
+* Verify: PHPStan max
+
 ⸻
 
 Phase 6 — Final Integration Release Audit
@@ -210,5 +250,9 @@ docs/audits/FINAL_INTEGRATION_RELEASE_AUDIT.md
 Required verdict:
 
 * PASS
+
+Checkpoints (Module Building Standard):
+* Final audit against docs/standards/MODULE_BUILDING_STANDARD.md
+* Verify: Final "module is not done until" checklist
 
 Release remains blocked until this audit passes with no blockers.
