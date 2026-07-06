@@ -20,6 +20,10 @@ Shared primitives live only under `Maatify\EventLogging\Common` and are limited 
 
 Recorders accept domain-specific command objects through `recordCommand()` and also keep primitive `record()` convenience methods that construct the command internally. Host applications should not construct write DTOs for normal recording; write DTOs are internal recorder-to-writer transfer objects.
 
+## Continuous Integration
+
+This package uses GitHub Actions for continuous integration. Our workflows perform static analysis via PHPStan, syntax checks, and validation on every push and pull request.
+
 ## Installation
 
 ```bash
