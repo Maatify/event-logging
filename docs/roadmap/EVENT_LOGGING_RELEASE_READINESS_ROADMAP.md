@@ -2,34 +2,38 @@ Event Logging Release Readiness Roadmap
 
 Current Status
 
-The package is not ready for release.
+The package is not ready for release until the remaining roadmap phases complete.
 
-Current blocker:
+Phase 1 status:
 
-* Database table names do not follow the Maatify module naming convention.
+* Completed on 2026-07-06.
+* Database table names now follow the Maatify module naming convention.
 * Required table prefix: maa_event_logging_*
 
 Phase 1 — Fix Database Naming
 
-Rename all schema tables:
+Status: Completed.
 
-Current	Required
-authoritative_audit_outbox	maa_event_logging_authoritative_audit_outbox
-authoritative_audit_log	maa_event_logging_authoritative_audit_log
-audit_trail	maa_event_logging_audit_trail
-security_signals	maa_event_logging_security_signals
-operational_activity	maa_event_logging_behavior_trace
-diagnostics_telemetry	maa_event_logging_diagnostics_telemetry
-delivery_operations	maa_event_logging_delivery_operations
+Applied table renames:
 
-Also update:
+| Previous table | Current table |
+| --- | --- |
+| `authoritative_audit_outbox` | `maa_event_logging_authoritative_audit_outbox` |
+| `authoritative_audit_log` | `maa_event_logging_authoritative_audit_log` |
+| `audit_trail` | `maa_event_logging_audit_trail` |
+| `security_signals` | `maa_event_logging_security_signals` |
+| `operational_activity` | `maa_event_logging_behavior_trace` |
+| `diagnostics_telemetry` | `maa_event_logging_diagnostics_telemetry` |
+| `delivery_operations` | `maa_event_logging_delivery_operations` |
 
-* SQL schema files
-* MySQL repositories
-* index names if needed
-* schema comments
-* schema/README.md
-* package docs/examples
+Completed updates:
+
+* SQL schema files now create the prefixed tables.
+* MySQL repositories now insert into/query the prefixed tables.
+* Index names were shortened and made event-logging-specific where needed to stay under MySQL identifier limits and avoid ambiguity.
+* Schema comments were reviewed for outdated cross-table references.
+* `schema/README.md` continues to index the domain-local schema files.
+* Public/internal documentation with table-name references was updated where needed.
 
 Phase 2 — Documentation Cleanup
 

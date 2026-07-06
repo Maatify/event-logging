@@ -20,7 +20,7 @@ use JsonException;
 
 class DiagnosticsTelemetryQueryMysqlRepository implements DiagnosticsTelemetryQueryInterface
 {
-    private const TABLE_NAME = 'diagnostics_telemetry';
+    private const TABLE_NAME = 'maa_event_logging_diagnostics_telemetry';
 
     private readonly DiagnosticsTelemetryPolicyInterface $policy;
 

@@ -49,14 +49,14 @@ DeliveryOperationsLoggerInterface::log(DTO)
 DeliveryOperationsLoggerMysqlRepository (Infrastructure)
   - Serializes Metadata (JSON)
   - Formats Dates (UTC)
-  - Executes INSERT SQL (delivery_operations)
+  - Executes INSERT SQL (maa_event_logging_delivery_operations)
 ```
 
 ## Database Schema
 
-The module requires the `delivery_operations` table. A canonical schema definition is provided within the module:
+The module requires the `maa_event_logging_delivery_operations` table. A canonical schema definition is provided within the module:
 
-`app/Modules/DeliveryOperations/Database/schema.delivery_operations.sql`
+`src/DeliveryOperations/Database/schema.delivery_operations.sql`
 
 This file should be used to initialize the database table.
 

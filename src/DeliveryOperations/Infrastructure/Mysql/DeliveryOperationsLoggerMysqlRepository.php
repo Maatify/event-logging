@@ -22,7 +22,7 @@ class DeliveryOperationsLoggerMysqlRepository implements DeliveryOperationsLogge
     public function log(DeliveryOperationRecordDTO $dto): void
     {
         $sql = <<<SQL
-            INSERT INTO delivery_operations (
+            INSERT INTO maa_event_logging_delivery_operations (
                 event_id,
                 channel,
                 operation_type,

@@ -5,7 +5,7 @@
 -- MUST NOT affect control-flow. MUST tolerate failure.
 -- ==========================================================
 
-CREATE TABLE security_signals (
+CREATE TABLE maa_event_logging_security_signals (
                                   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
     -- UUID per signal/event (portable)
@@ -35,20 +35,20 @@ CREATE TABLE security_signals (
 
                                   occurred_at DATETIME(6) NOT NULL,
 
-                                  UNIQUE KEY uq_security_signals_event_id (event_id),
+                                  UNIQUE KEY uq_el_security_signals_event_id (event_id),
 
     -- Cursor index for stable paging / future batch processing
-                                  INDEX idx_security_signals_time (occurred_at, id),
+                                  INDEX idx_el_security_signals_time (occurred_at, id),
 
     -- Required search dimensions
-                                  INDEX idx_security_signals_actor_time (actor_type, actor_id, occurred_at),
-                                  INDEX idx_security_signals_type_time (signal_type, occurred_at),
+                                  INDEX idx_el_security_signals_actor_time (actor_type, actor_id, occurred_at),
+                                  INDEX idx_el_security_signals_type_time (signal_type, occurred_at),
 
     -- Dashboards / alerting
-                                  INDEX idx_security_signals_severity_time (severity, occurred_at),
+                                  INDEX idx_el_security_signals_severity_time (severity, occurred_at),
 
     -- Correlation helpers
-                                  INDEX idx_security_signals_correlation_time (correlation_id, occurred_at),
-                                  INDEX idx_security_signals_request_time (request_id, occurred_at)
+                                  INDEX idx_el_security_signals_corr_time (correlation_id, occurred_at),
+                                  INDEX idx_el_security_signals_request_time (request_id, occurred_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='Security signals for detection/alerting (non-authoritative). Best-effort; MUST NOT block user actions. Metadata MUST NOT contain secrets (passwords, OTP codes, tokens).';

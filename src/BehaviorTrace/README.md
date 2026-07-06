@@ -64,9 +64,9 @@ The module is designed to be isolated.
 
 ## Database Schema
 
-The module requires the `operational_activity` table. A canonical schema definition is provided within the module:
+The module requires the `maa_event_logging_behavior_trace` table. A canonical schema definition is provided within the module:
 
-`app/Modules/BehaviorTrace/Database/schema.behavior_trace.sql`
+`src/BehaviorTrace/Database/schema.behavior_trace.sql`
 
 This file should be used to initialize the database table.
 

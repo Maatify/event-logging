@@ -31,7 +31,7 @@ It DOES NOT cover:
 - **Behavior**: Fail-closed (throws StorageException).
 
 ## 3. Database Schema
-- **Table**: `security_signals`
+- **Table**: `maa_event_logging_security_signals`
 - **Key Columns**:
   - `event_id` (UUID)
   - `actor_type` / `actor_id`

@@ -1,4 +1,4 @@
-CREATE TABLE authoritative_audit_outbox (
+CREATE TABLE maa_event_logging_authoritative_audit_outbox (
                                             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
     -- UUID string for idempotency / tracing across systems (portable, no BINARY dependency)
@@ -42,7 +42,7 @@ CREATE TABLE authoritative_audit_outbox (
     COMMENT='Authoritative audit outbox (source of truth). Transactional + fail-closed. Written ONLY inside business transactions. Payload MUST NOT contain secrets (tokens/OTPs/passwords).';
 
 
-CREATE TABLE authoritative_audit_log (
+CREATE TABLE maa_event_logging_authoritative_audit_log (
                                          id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
     -- Same event_id from outbox (idempotency & cross-reference)

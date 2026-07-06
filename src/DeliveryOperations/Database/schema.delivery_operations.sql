@@ -1,4 +1,4 @@
-CREATE TABLE delivery_operations (
+CREATE TABLE maa_event_logging_delivery_operations (
                                      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
                                      event_id CHAR(36) NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE delivery_operations (
 
                                      occurred_at DATETIME(6) NOT NULL,
 
-                                     UNIQUE KEY uq_delivery_operations_event_id (event_id),
+                                     UNIQUE KEY uq_el_delivery_ops_event_id (event_id),
 
     -- Cursor index for stable paging / future batch processing
                                      INDEX idx_delivery_ops_time (occurred_at, id),

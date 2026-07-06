@@ -6,7 +6,7 @@
 -- This is NOT authoritative state change.
 -- ==========================================================
 
-CREATE TABLE audit_trail (
+CREATE TABLE maa_event_logging_audit_trail (
                              id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
     -- UUID per row/event (portable)
@@ -46,21 +46,21 @@ CREATE TABLE audit_trail (
 
                              occurred_at DATETIME(6) NOT NULL,
 
-                             UNIQUE KEY uq_audit_trail_event_id (event_id),
+                             UNIQUE KEY uq_el_audit_trail_event_id (event_id),
 
     -- Cursor index for stable paging / future batch processing
-                             INDEX idx_audit_trail_time (occurred_at, id),
+                             INDEX idx_el_audit_trail_time (occurred_at, id),
 
     -- Common investigations (two required search dimensions: actor+time and key+time)
-                             INDEX idx_audit_trail_actor_time (actor_type, actor_id, occurred_at),
-                             INDEX idx_audit_trail_event_time (event_key, occurred_at),
+                             INDEX idx_el_audit_trail_actor_time (actor_type, actor_id, occurred_at),
+                             INDEX idx_el_audit_trail_event_time (event_key, occurred_at),
 
     -- Deep investigations
-                             INDEX idx_audit_trail_entity_time (entity_type, entity_id, occurred_at),
-                             INDEX idx_audit_trail_subject_time (subject_type, subject_id, occurred_at),
+                             INDEX idx_el_audit_trail_entity_time (entity_type, entity_id, occurred_at),
+                             INDEX idx_el_audit_trail_subject_time (subject_type, subject_id, occurred_at),
 
     -- Correlation helpers
-                             INDEX idx_audit_trail_correlation_time (correlation_id, occurred_at),
-                             INDEX idx_audit_trail_request_time (request_id, occurred_at)
+                             INDEX idx_el_audit_trail_corr_time (correlation_id, occurred_at),
+                             INDEX idx_el_audit_trail_request_time (request_id, occurred_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     COMMENT='Audit Trail: records data exposure/navigation/views/exports. Searchable by actor+time and event_key+time. Store sanitized referrer_path (no tokens/OTP/query secrets).';

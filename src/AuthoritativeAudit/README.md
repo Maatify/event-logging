@@ -10,7 +10,7 @@ This module provides a standalone, isolated logging mechanism for **Authoritativ
 **Key Characteristics:**
 - **Fail-Closed:** If writing to the outbox fails, the operation MUST fail.
 - **Transactional:** Writes must occur within the business transaction.
-- **Outbox Pattern:** The `authoritative_audit_outbox` is the source of truth.
+- **Outbox Pattern:** The `maa_event_logging_authoritative_audit_outbox` is the source of truth.
 
 ## Architecture
 
@@ -56,7 +56,7 @@ AuthoritativeAuditOutboxWriterInterface::write(DTO)
 AuthoritativeAuditOutboxWriterMysqlRepository (Infrastructure)
   - Serializes Payload (JSON)
   - Formats Dates (UTC)
-  - Executes INSERT SQL (authoritative_audit_outbox)
+  - Executes INSERT SQL (maa_event_logging_authoritative_audit_outbox)
   |
   v
 Commit Transaction
@@ -64,9 +64,9 @@ Commit Transaction
 
 ## Database Schema
 
-The module requires the `authoritative_audit_outbox` (and `authoritative_audit_log` for consumers) table. A canonical schema definition is provided within the module:
+The module requires the `maa_event_logging_authoritative_audit_outbox` (and `maa_event_logging_authoritative_audit_log` for consumers) table. A canonical schema definition is provided within the module:
 
-`app/Modules/AuthoritativeAudit/Database/schema.authoritative_audit.sql`
+`src/AuthoritativeAudit/Database/schema.authoritative_audit.sql`
 
 This file should be used to initialize the database table.
 

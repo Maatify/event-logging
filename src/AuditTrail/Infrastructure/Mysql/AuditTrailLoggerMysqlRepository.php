@@ -22,7 +22,7 @@ class AuditTrailLoggerMysqlRepository implements AuditTrailLoggerInterface
     public function write(AuditTrailRecordDTO $record): void
     {
         $sql = <<<SQL
-            INSERT INTO audit_trail (
+            INSERT INTO maa_event_logging_audit_trail (
                 event_id,
                 actor_type,
                 actor_id,

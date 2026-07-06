@@ -13,7 +13,7 @@ use JsonException;
 
 class DiagnosticsTelemetryLoggerMysqlRepository implements DiagnosticsTelemetryLoggerInterface
 {
-    private const TABLE_NAME = 'diagnostics_telemetry';
+    private const TABLE_NAME = 'maa_event_logging_diagnostics_telemetry';
 
     public function __construct(
         private readonly PDO $pdo

@@ -21,7 +21,7 @@ class AuthoritativeAuditOutboxWriterMysqlRepository implements AuthoritativeAudi
     public function write(AuthoritativeAuditOutboxWriteDTO $dto): void
     {
         $sql = <<<SQL
-            INSERT INTO authoritative_audit_outbox (
+            INSERT INTO maa_event_logging_authoritative_audit_outbox (
                 event_id,
                 actor_type,
                 actor_id,
