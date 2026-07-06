@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maatify\EventLogging\AuthoritativeAudit\Recorder;
 
 use BackedEnum;
+use Maatify\EventLogging\AuthoritativeAudit\Command\RecordAuthoritativeAuditCommand;
 use Maatify\EventLogging\Common\ClockInterface;
 use UnitEnum;
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditOutboxWriterInterface;
@@ -29,14 +30,7 @@ class AuthoritativeAuditRecorder
     }
 
     /**
-     * @param string $action
-     * @param string $targetType
-     * @param int|null $targetId
-     * @param AuthoritativeAuditRiskLevelEnum|string $riskLevel
-     * @param AuthoritativeAuditActorTypeInterface|string $actorType
-     * @param int|null $actorId
      * @param array<mixed> $payload
-     * @param string $correlationId
      * @throws AuthoritativeAuditStorageException
      * @throws InvalidArgumentException
      */
@@ -50,34 +44,41 @@ class AuthoritativeAuditRecorder
         array $payload,
         string $correlationId
     ): void {
-        // No Try-Catch block here (Fail-Closed)
+        $this->recordCommand(new RecordAuthoritativeAuditCommand(
+            action: $action,
+            targetType: $targetType,
+            targetId: $targetId,
+            riskLevel: $riskLevel,
+            actorType: $actorType,
+            actorId: $actorId,
+            payload: $payload,
+            correlationId: $correlationId
+        ));
+    }
 
-        // Validate Payload
-        if (!$this->policy->validatePayload($payload)) {
+    /**
+     * @throws AuthoritativeAuditStorageException
+     * @throws InvalidArgumentException
+     */
+    public function recordCommand(RecordAuthoritativeAuditCommand $command): void
+    {
+        if (!$this->policy->validatePayload($command->payload)) {
             throw new InvalidArgumentException('AuthoritativeAudit payload validation failed: Secrets detected or invalid content.');
         }
 
-        // Normalize Enums
-        $riskLevelStr = $this->enumToString($riskLevel);
-
-        // Normalize Actor Type
-        $normalizedActorType = $this->policy->normalizeActorType($actorType);
-
-        // Truncate strings (DB safety)
-        $action = $this->truncateString($action, 128);
-        $targetType = $this->truncateString($targetType, 64);
-        $correlationId = $this->truncateString($correlationId, 36);
+        $riskLevelStr = $this->enumToString($command->riskLevel);
+        $normalizedActorType = $this->policy->normalizeActorType($command->actorType);
 
         $dto = new AuthoritativeAuditOutboxWriteDTO(
             eventId: Uuid::uuid4()->toString(),
             actorType: $normalizedActorType,
-            actorId: $actorId,
-            action: $action,
-            targetType: $targetType,
-            targetId: $targetId,
+            actorId: $command->actorId,
+            action: $this->truncateString($command->action, 128),
+            targetType: $this->truncateString($command->targetType, 64),
+            targetId: $command->targetId,
             riskLevel: $riskLevelStr,
-            payload: $payload,
-            correlationId: $correlationId,
+            payload: $command->payload,
+            correlationId: $this->truncateString($command->correlationId, 36),
             createdAt: $this->clock->now()
         );
 

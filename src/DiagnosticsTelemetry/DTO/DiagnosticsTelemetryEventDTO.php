@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\DiagnosticsTelemetry\DTO;
 
 use Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface;
 
-readonly class DiagnosticsTelemetryEventDTO
+final readonly class DiagnosticsTelemetryEventDTO implements \JsonSerializable
 {
     /**
      * @param string $eventId UUID
@@ -25,4 +25,19 @@ readonly class DiagnosticsTelemetryEventDTO
         public ?array $metadata
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'eventId' => $this->eventId,
+            'eventKey' => $this->eventKey,
+            'severity' => $this->severity->value(),
+            'context' => $this->context->jsonSerialize(),
+            'durationMs' => $this->durationMs,
+            'metadata' => $this->metadata,
+        ];
+    }
+
 }

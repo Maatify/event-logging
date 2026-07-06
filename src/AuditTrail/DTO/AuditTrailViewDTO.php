@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\AuditTrail\DTO;
 
 use DateTimeImmutable;
 
-readonly class AuditTrailViewDTO
+final readonly class AuditTrailViewDTO implements \JsonSerializable
 {
     /**
      * @param array<string, mixed>|null $metadata
@@ -33,4 +33,32 @@ readonly class AuditTrailViewDTO
         public DateTimeImmutable $occurredAt
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'id' => $this->id,
+            'eventId' => $this->eventId,
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'eventKey' => $this->eventKey,
+            'entityType' => $this->entityType,
+            'entityId' => $this->entityId,
+            'subjectType' => $this->subjectType,
+            'subjectId' => $this->subjectId,
+            'referrerRouteName' => $this->referrerRouteName,
+            'referrerPath' => $this->referrerPath,
+            'referrerHost' => $this->referrerHost,
+            'correlationId' => $this->correlationId,
+            'requestId' => $this->requestId,
+            'routeName' => $this->routeName,
+            'ipAddress' => $this->ipAddress,
+            'userAgent' => $this->userAgent,
+            'metadata' => $this->metadata,
+            'occurredAt' => $this->occurredAt->format(DATE_ATOM),
+        ];
+    }
+
 }

@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\AuditTrail\DTO;
 
 use DateTimeImmutable;
 
-readonly class AuditTrailQueryDTO
+final readonly class AuditTrailQueryDTO implements \JsonSerializable
 {
     public function __construct(
         public ?string $actorType = null,
@@ -20,4 +20,22 @@ readonly class AuditTrailQueryDTO
         public int $limit = 50
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'eventKey' => $this->eventKey,
+            'correlationId' => $this->correlationId,
+            'after' => $this->after?->format(DATE_ATOM),
+            'before' => $this->before?->format(DATE_ATOM),
+            'cursorOccurredAt' => $this->cursorOccurredAt?->format(DATE_ATOM),
+            'cursorId' => $this->cursorId,
+            'limit' => $this->limit,
+        ];
+    }
+
 }

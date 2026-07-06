@@ -1,6 +1,6 @@
 # Maatify Event Logging
 
-`maatify/event-logging` is a standalone Composer library extracted by copy from the Athar Admin logging modules. It is intentionally not wired into Athar Admin during this phase, so the existing application runtime remains unchanged.
+`maatify/event-logging` is a standalone Composer library for isolated Maatify event logging domains. It is framework-agnostic and is wired by host applications through their own dependency setup.
 
 ## Logging domains
 
@@ -15,6 +15,11 @@ The package preserves six isolated event logging domains:
 
 Shared primitives live only under `Maatify\EventLogging\Common` and are limited to cross-domain utilities such as clocks and sanitizers. The package does not provide a generic logger, generic DTO, generic recorder, or shared generic log table.
 
+
+## Recording API shape
+
+Recorders accept domain-specific command objects through `recordCommand()` and also keep primitive `record()` convenience methods that construct the command internally. Host applications should not construct write DTOs for normal recording; write DTOs are internal recorder-to-writer transfer objects.
+
 ## Installation
 
 ```bash
@@ -24,3 +29,11 @@ composer require maatify/event-logging
 ## Autoloading
 
 The package exposes the `Maatify\EventLogging\` namespace via PSR-4 autoloading.
+
+
+## Package documentation
+
+- [Changelog](CHANGELOG.md)
+- [Event Logging Module Reference](EVENT_LOGGING_MODULE_REFERENCE.md)
+- [Testing Strategy](TESTING_STRATEGY.md)
+- [Schema Layout](schema/README.md)

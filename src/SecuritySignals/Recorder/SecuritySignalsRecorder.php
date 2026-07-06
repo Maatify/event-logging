@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\SecuritySignals\Recorder;
 
+use Maatify\EventLogging\SecuritySignals\Command\RecordSecuritySignalCommand;
 use Maatify\EventLogging\SecuritySignals\Contract\SecuritySignalsLoggerInterface;
 use Maatify\EventLogging\SecuritySignals\Contract\SecuritySignalsPolicyInterface;
 use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalRecordDTO;
@@ -29,16 +30,7 @@ class SecuritySignalsRecorder
     }
 
     /**
-     * @param string $signalType
-     * @param string|SecuritySignalSeverityEnum $severity
-     * @param string|SecuritySignalActorTypeEnum $actorType
-     * @param int|null $actorId
      * @param array<string, mixed>|null $metadata
-     * @param string|null $correlationId
-     * @param string|null $requestId
-     * @param string|null $routeName
-     * @param string|null $ipAddress
-     * @param string|null $userAgent
      */
     public function record(
         string $signalType,
@@ -53,45 +45,59 @@ class SecuritySignalsRecorder
         ?string $userAgent = null
     ): void {
         try {
-            // 1. Normalize inputs via policy
-            $normalizedActorType = $this->policy->normalizeActorType($actorType);
-            $normalizedSeverity = $this->policy->normalizeSeverity($severity);
+                $this->recordCommand(new RecordSecuritySignalCommand(
+                    signalType: $signalType,
+                    severity: $severity,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    metadata: $metadata,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    routeName: $routeName,
+                    ipAddress: $ipAddress,
+                    userAgent: $userAgent
+                ));
+            } catch (Throwable $e) {
+            $this->reportFailure('SecuritySignals logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
 
-            // 2. Sanitize strings to DB limits
-            $safeSignalType = substr($signalType, 0, 100);
+    public function recordCommand(RecordSecuritySignalCommand $command): void
+    {
+        try {
+            $normalizedActorType = $this->policy->normalizeActorType($command->actorType);
+            $normalizedSeverity = $this->policy->normalizeSeverity($command->severity);
+
+            $safeSignalType = substr($command->signalType, 0, 100);
             $safeActorType = substr($normalizedActorType, 0, 32);
             $safeSeverity = substr($normalizedSeverity, 0, 16);
-            $safeCorrelationId = $correlationId ? substr($correlationId, 0, 36) : null;
-            $safeRequestId = $requestId ? substr($requestId, 0, 64) : null;
-            $safeRouteName = $routeName ? substr($routeName, 0, 255) : null;
-            $safeIpAddress = $ipAddress ? substr($ipAddress, 0, 45) : null;
-            $safeUserAgent = $userAgent ? substr($userAgent, 0, 512) : null;
+            $safeCorrelationId = $command->correlationId ? substr($command->correlationId, 0, 36) : null;
+            $safeRequestId = $command->requestId ? substr($command->requestId, 0, 64) : null;
+            $safeRouteName = $command->routeName ? substr($command->routeName, 0, 255) : null;
+            $safeIpAddress = $command->ipAddress ? substr($command->ipAddress, 0, 45) : null;
+            $safeUserAgent = $command->userAgent ? substr($command->userAgent, 0, 512) : null;
+            $metadata = $command->metadata;
 
-            // 3. Handle Metadata
             if ($metadata !== null) {
                 try {
                     $json = json_encode($metadata, JSON_THROW_ON_ERROR);
                     if (!$this->policy->validateMetadataSize($json)) {
                         if ($this->fallbackLogger) {
-                            $this->fallbackLogger->warning(
-                                'SecuritySignals metadata exceeded limit. Dropping metadata.',
-                                [
-                                    'signal_type' => $safeSignalType,
-                                    'size' => strlen($json),
-                                ]
-                            );
+                            $this->fallbackLogger->warning('SecuritySignals metadata exceeded limit. Dropping metadata.', [
+                                'signal_type' => $safeSignalType,
+                                'size' => strlen($json),
+                            ]);
                         }
                         $metadata = ['error' => 'Metadata dropped due to size limit'];
                     }
                 } catch (JsonException $e) {
                     if ($this->fallbackLogger) {
-                        $this->fallbackLogger->warning(
-                            'SecuritySignals metadata JSON encoding failed.',
-                            [
-                                'signal_type' => $safeSignalType,
-                                'error' => $e->getMessage(),
-                            ]
-                        );
+                        $this->fallbackLogger->warning('SecuritySignals metadata JSON encoding failed.', [
+                            'signal_type' => $safeSignalType,
+                            'error' => $e->getMessage(),
+                        ]);
                     }
                     $metadata = ['error' => 'Metadata dropped due to encoding error'];
                 }
@@ -99,11 +105,10 @@ class SecuritySignalsRecorder
                 $metadata = [];
             }
 
-            // 4. Construct DTO
             $recordDTO = new SecuritySignalRecordDTO(
                 eventId: Uuid::uuid4()->toString(),
                 actorType: $safeActorType,
-                actorId: $actorId,
+                actorId: $command->actorId,
                 signalType: $safeSignalType,
                 severity: $safeSeverity,
                 correlationId: $safeCorrelationId,
@@ -115,20 +120,28 @@ class SecuritySignalsRecorder
                 occurredAt: $this->clock->now()
             );
 
-            // 5. Persist
             $this->logger->write($recordDTO);
-
         } catch (Throwable $e) {
-            // Fail-open: swallow exception
-            if ($this->fallbackLogger) {
-                $this->fallbackLogger->error(
-                    'SecuritySignals logging failed',
-                    [
-                        'signal_type' => substr($signalType, 0, 100), // best effort log
-                        'exception' => $e->getMessage(),
-                    ]
-                );
-            }
+            $this->reportFailure('SecuritySignals logging failed', [
+                'signal_type' => substr($command->signalType, 0, 100),
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function reportFailure(string $message, array $context = []): void
+    {
+        if ($this->fallbackLogger === null) {
+            return;
+        }
+
+        try {
+            $this->fallbackLogger->error($message, $context);
+        } catch (Throwable) {
+            // Fail-open logging must not throw if fallback logging fails.
+        }
+    }
+
 }

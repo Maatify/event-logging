@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\DiagnosticsTelemetry\Recorder;
 
+use Maatify\EventLogging\DiagnosticsTelemetry\Command\RecordDiagnosticsTelemetryCommand;
 use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryPolicyInterface;
 use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryLoggerInterface;
 use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryContextDTO;
@@ -30,16 +31,6 @@ class DiagnosticsTelemetryRecorder
     }
 
     /**
-     * @param string $eventKey
-     * @param DiagnosticsTelemetrySeverityInterface|string $severity
-     * @param DiagnosticsTelemetryActorTypeInterface|string $actorType
-     * @param int|null $actorId
-     * @param string|null $correlationId
-     * @param string|null $requestId
-     * @param string|null $routeName
-     * @param string|null $ipAddress
-     * @param string|null $userAgent
-     * @param int|null $durationMs
      * @param array<mixed>|null $metadata
      */
     public function record(
@@ -55,81 +46,103 @@ class DiagnosticsTelemetryRecorder
         ?int $durationMs = null,
         ?array $metadata = null
     ): void {
-        // Enforce DB Constraints (Fail-open/Truncate)
-        $eventKey = $this->truncateString($eventKey, 255);
-        $correlationId = $this->truncate($correlationId, 36);
-        $requestId = $this->truncate($requestId, 64);
-        $routeName = $this->truncate($routeName, 255);
-        $ipAddress = $this->truncate($ipAddress, 45);
-        $userAgent = $this->truncate($userAgent, 512);
-
-        // Normalize duration (INT UNSIGNED)
-        if ($durationMs !== null && $durationMs < 0) {
-            $durationMs = 0;
-        }
-
-        // Normalize Severity via Policy
-        $normalizedSeverity = $this->policy->normalizeSeverity($severity);
-
-        // Normalize Actor Type via Policy
-        $normalizedActorType = $this->policy->normalizeActorType($actorType);
-
-        // Validate Metadata Size and Encoding
-        if ($metadata !== null) {
-            try {
-                $json = json_encode($metadata, JSON_THROW_ON_ERROR);
-                if (!$this->policy->validateMetadataSize($json)) {
-                    if ($this->fallbackLogger) {
-                        $this->fallbackLogger->warning('Telemetry metadata exceeded limit. Dropping metadata.', [
-                            'event_key' => $eventKey,
-                            'size' => strlen($json)
-                        ]);
-                    }
-                    $metadata = ['error' => 'Metadata dropped due to size limit'];
-                }
-            } catch (JsonException $e) {
-                 if ($this->fallbackLogger) {
-                        $this->fallbackLogger->warning('Telemetry metadata JSON encoding failed.', [
-                            'event_key' => $eventKey,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                 $metadata = ['error' => 'Metadata dropped due to encoding error'];
-            }
-        }
-
-        // Construct Context DTO
-        $context = new DiagnosticsTelemetryContextDTO(
-            actorType: $normalizedActorType,
-            actorId: $actorId,
-            correlationId: $correlationId,
-            requestId: $requestId,
-            routeName: $routeName,
-            ipAddress: $ipAddress,
-            userAgent: $userAgent,
-            occurredAt: $this->clock->now()
-        );
-
-        // Construct Event DTO
-        $dto = new DiagnosticsTelemetryEventDTO(
-            eventId: Uuid::uuid4()->toString(),
-            eventKey: $eventKey,
-            severity: $normalizedSeverity,
-            context: $context,
-            durationMs: $durationMs,
-            metadata: $metadata
-        );
-
         try {
-            $this->writer->write($dto);
-        } catch (Throwable $e) {
-            // Best-effort: swallow exception but log to fallback
-            if ($this->fallbackLogger) {
-                $this->fallbackLogger->error('Telemetry logging failed', [
-                    'exception' => $e->getMessage(),
-                    'event_key' => $eventKey,
-                ]);
-            }
+                $this->recordCommand(new RecordDiagnosticsTelemetryCommand(
+                    eventKey: $eventKey,
+                    severity: $severity,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    routeName: $routeName,
+                    ipAddress: $ipAddress,
+                    userAgent: $userAgent,
+                    durationMs: $durationMs,
+                    metadata: $metadata
+                ));
+            } catch (Throwable $e) {
+            $this->reportFailure('Telemetry logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function recordCommand(RecordDiagnosticsTelemetryCommand $command): void
+    {
+        try {
+                $eventKey = $this->truncateString($command->eventKey, 255);
+                $correlationId = $this->truncate($command->correlationId, 36);
+                $requestId = $this->truncate($command->requestId, 64);
+                $routeName = $this->truncate($command->routeName, 255);
+                $ipAddress = $this->truncate($command->ipAddress, 45);
+                $userAgent = $this->truncate($command->userAgent, 512);
+                $durationMs = $command->durationMs;
+
+                if ($durationMs !== null && $durationMs < 0) {
+                    $durationMs = 0;
+                }
+
+                $normalizedSeverity = $this->policy->normalizeSeverity($command->severity);
+                $normalizedActorType = $this->policy->normalizeActorType($command->actorType);
+                $metadata = $command->metadata;
+
+                if ($metadata !== null) {
+                    try {
+                        $json = json_encode($metadata, JSON_THROW_ON_ERROR);
+                        if (!$this->policy->validateMetadataSize($json)) {
+                            if ($this->fallbackLogger) {
+                                $this->fallbackLogger->warning('Telemetry metadata exceeded limit. Dropping metadata.', [
+                                    'event_key' => $eventKey,
+                                    'size' => strlen($json)
+                                ]);
+                            }
+                            $metadata = ['error' => 'Metadata dropped due to size limit'];
+                        }
+                    } catch (JsonException $e) {
+                        if ($this->fallbackLogger) {
+                            $this->fallbackLogger->warning('Telemetry metadata JSON encoding failed.', [
+                                'event_key' => $eventKey,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                        $metadata = ['error' => 'Metadata dropped due to encoding error'];
+                    }
+                }
+
+                $context = new DiagnosticsTelemetryContextDTO(
+                    actorType: $normalizedActorType,
+                    actorId: $command->actorId,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    routeName: $routeName,
+                    ipAddress: $ipAddress,
+                    userAgent: $userAgent,
+                    occurredAt: $this->clock->now()
+                );
+
+                $dto = new DiagnosticsTelemetryEventDTO(
+                    eventId: Uuid::uuid4()->toString(),
+                    eventKey: $eventKey,
+                    severity: $normalizedSeverity,
+                    context: $context,
+                    durationMs: $durationMs,
+                    metadata: $metadata
+                );
+
+                try {
+                    $this->writer->write($dto);
+                } catch (Throwable $e) {
+                    if ($this->fallbackLogger) {
+                        $this->fallbackLogger->error('Telemetry logging failed', [
+                            'exception' => $e->getMessage(),
+                            'event_key' => $eventKey,
+                        ]);
+                    }
+                }
+            } catch (Throwable $e) {
+            $this->reportFailure('Telemetry logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -155,4 +168,20 @@ class DiagnosticsTelemetryRecorder
         }
         return $value;
     }
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function reportFailure(string $message, array $context = []): void
+    {
+        if ($this->fallbackLogger === null) {
+            return;
+        }
+
+        try {
+            $this->fallbackLogger->error($message, $context);
+        } catch (Throwable) {
+            // Fail-open logging must not throw if fallback logging fails.
+        }
+    }
+
 }

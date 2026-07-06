@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\BehaviorTrace\Recorder;
 
+use Maatify\EventLogging\BehaviorTrace\Command\RecordBehaviorTraceCommand;
 use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTracePolicyInterface;
 use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTraceWriterInterface;
 use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceContextDTO;
@@ -29,16 +30,6 @@ class BehaviorTraceRecorder
     }
 
     /**
-     * @param string $action
-     * @param BehaviorTraceActorTypeInterface|string $actorType
-     * @param int|null $actorId
-     * @param string|null $entityType
-     * @param int|null $entityId
-     * @param string|null $correlationId
-     * @param string|null $requestId
-     * @param string|null $routeName
-     * @param string|null $ipAddress
-     * @param string|null $userAgent
      * @param array<mixed>|null $metadata
      */
     public function record(
@@ -54,74 +45,97 @@ class BehaviorTraceRecorder
         ?string $userAgent = null,
         ?array $metadata = null
     ): void {
-        // Enforce DB Constraints (Fail-open/Truncate)
-        $action = $this->truncateString($action, 128);
-        $entityType = $this->truncate($entityType, 64);
-        $correlationId = $this->truncate($correlationId, 36);
-        $requestId = $this->truncate($requestId, 64);
-        $routeName = $this->truncate($routeName, 255);
-        $ipAddress = $this->truncate($ipAddress, 45);
-        $userAgent = $this->truncate($userAgent, 512);
-
-        // Normalize Actor Type via Policy
-        $normalizedActorType = $this->policy->normalizeActorType($actorType);
-
-        // Validate Metadata Size and Encoding
-        if ($metadata !== null) {
-            try {
-                $json = json_encode($metadata, JSON_THROW_ON_ERROR);
-                if (!$this->policy->validateMetadataSize($json)) {
-                    if ($this->fallbackLogger) {
-                        $this->fallbackLogger->warning('Behavior trace metadata exceeded limit. Dropping metadata.', [
-                            'action' => $action,
-                            'size' => strlen($json)
-                        ]);
-                    }
-                    $metadata = ['error' => 'Metadata dropped due to size limit'];
-                }
-            } catch (JsonException $e) {
-                 if ($this->fallbackLogger) {
-                        $this->fallbackLogger->warning('Behavior trace metadata JSON encoding failed.', [
-                            'action' => $action,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                 $metadata = ['error' => 'Metadata dropped due to encoding error'];
-            }
-        }
-
-        // Construct Context DTO
-        $context = new BehaviorTraceContextDTO(
-            actorType: $normalizedActorType,
-            actorId: $actorId,
-            correlationId: $correlationId,
-            requestId: $requestId,
-            routeName: $routeName,
-            ipAddress: $ipAddress,
-            userAgent: $userAgent,
-            occurredAt: $this->clock->now()
-        );
-
-        // Construct Event DTO
-        $dto = new BehaviorTraceEventDTO(
-            eventId: Uuid::uuid4()->toString(),
-            action: $action,
-            entityType: $entityType,
-            entityId: $entityId,
-            context: $context,
-            metadata: $metadata
-        );
-
         try {
-            $this->writer->write($dto);
-        } catch (Throwable $e) {
-            // Best-effort: swallow exception but log to fallback
-            if ($this->fallbackLogger) {
-                $this->fallbackLogger->error('Behavior trace logging failed', [
-                    'exception' => $e->getMessage(),
-                    'action' => $action,
-                ]);
-            }
+                $this->recordCommand(new RecordBehaviorTraceCommand(
+                    action: $action,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    entityType: $entityType,
+                    entityId: $entityId,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    routeName: $routeName,
+                    ipAddress: $ipAddress,
+                    userAgent: $userAgent,
+                    metadata: $metadata
+                ));
+            } catch (Throwable $e) {
+            $this->reportFailure('Behavior trace logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function recordCommand(RecordBehaviorTraceCommand $command): void
+    {
+        try {
+                $action = $this->truncateString($command->action, 128);
+                $entityType = $this->truncate($command->entityType, 64);
+                $correlationId = $this->truncate($command->correlationId, 36);
+                $requestId = $this->truncate($command->requestId, 64);
+                $routeName = $this->truncate($command->routeName, 255);
+                $ipAddress = $this->truncate($command->ipAddress, 45);
+                $userAgent = $this->truncate($command->userAgent, 512);
+                $normalizedActorType = $this->policy->normalizeActorType($command->actorType);
+                $metadata = $command->metadata;
+
+                if ($metadata !== null) {
+                    try {
+                        $json = json_encode($metadata, JSON_THROW_ON_ERROR);
+                        if (!$this->policy->validateMetadataSize($json)) {
+                            if ($this->fallbackLogger) {
+                                $this->fallbackLogger->warning('Behavior trace metadata exceeded limit. Dropping metadata.', [
+                                    'action' => $action,
+                                    'size' => strlen($json)
+                                ]);
+                            }
+                            $metadata = ['error' => 'Metadata dropped due to size limit'];
+                        }
+                    } catch (JsonException $e) {
+                        if ($this->fallbackLogger) {
+                            $this->fallbackLogger->warning('Behavior trace metadata JSON encoding failed.', [
+                                'action' => $action,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                        $metadata = ['error' => 'Metadata dropped due to encoding error'];
+                    }
+                }
+
+                $context = new BehaviorTraceContextDTO(
+                    actorType: $normalizedActorType,
+                    actorId: $command->actorId,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    routeName: $routeName,
+                    ipAddress: $ipAddress,
+                    userAgent: $userAgent,
+                    occurredAt: $this->clock->now()
+                );
+
+                $dto = new BehaviorTraceEventDTO(
+                    eventId: Uuid::uuid4()->toString(),
+                    action: $action,
+                    entityType: $entityType,
+                    entityId: $command->entityId,
+                    context: $context,
+                    metadata: $metadata
+                );
+
+                try {
+                    $this->writer->write($dto);
+                } catch (Throwable $e) {
+                    if ($this->fallbackLogger) {
+                        $this->fallbackLogger->error('Behavior trace logging failed', [
+                            'exception' => $e->getMessage(),
+                            'action' => $action,
+                        ]);
+                    }
+                }
+            } catch (Throwable $e) {
+            $this->reportFailure('Behavior trace logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -147,4 +161,20 @@ class BehaviorTraceRecorder
         }
         return $value;
     }
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function reportFailure(string $message, array $context = []): void
+    {
+        if ($this->fallbackLogger === null) {
+            return;
+        }
+
+        try {
+            $this->fallbackLogger->error($message, $context);
+        } catch (Throwable) {
+            // Fail-open logging must not throw if fallback logging fails.
+        }
+    }
+
 }

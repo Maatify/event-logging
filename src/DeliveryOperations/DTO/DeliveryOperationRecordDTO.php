@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\DeliveryOperations\DTO;
 
 use DateTimeImmutable;
 
-readonly class DeliveryOperationRecordDTO
+final readonly class DeliveryOperationRecordDTO implements \JsonSerializable
 {
     /**
      * @param string $eventId
@@ -51,4 +51,32 @@ readonly class DeliveryOperationRecordDTO
         public DateTimeImmutable $occurredAt
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'eventId' => $this->eventId,
+            'channel' => $this->channel,
+            'operationType' => $this->operationType,
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'targetType' => $this->targetType,
+            'targetId' => $this->targetId,
+            'status' => $this->status,
+            'attemptNo' => $this->attemptNo,
+            'scheduledAt' => $this->scheduledAt?->format(DATE_ATOM),
+            'completedAt' => $this->completedAt?->format(DATE_ATOM),
+            'correlationId' => $this->correlationId,
+            'requestId' => $this->requestId,
+            'provider' => $this->provider,
+            'providerMessageId' => $this->providerMessageId,
+            'errorCode' => $this->errorCode,
+            'errorMessage' => $this->errorMessage,
+            'metadata' => $this->metadata,
+            'occurredAt' => $this->occurredAt->format(DATE_ATOM),
+        ];
+    }
+
 }

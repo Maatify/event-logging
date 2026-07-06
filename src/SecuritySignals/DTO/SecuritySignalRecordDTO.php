@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\SecuritySignals\DTO;
 
 use DateTimeImmutable;
 
-readonly class SecuritySignalRecordDTO
+final readonly class SecuritySignalRecordDTO implements \JsonSerializable
 {
     /**
      * @param array<string, mixed> $metadata
@@ -26,4 +26,25 @@ readonly class SecuritySignalRecordDTO
         public DateTimeImmutable $occurredAt
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'eventId' => $this->eventId,
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'signalType' => $this->signalType,
+            'severity' => $this->severity,
+            'correlationId' => $this->correlationId,
+            'requestId' => $this->requestId,
+            'routeName' => $this->routeName,
+            'ipAddress' => $this->ipAddress,
+            'userAgent' => $this->userAgent,
+            'metadata' => $this->metadata,
+            'occurredAt' => $this->occurredAt->format(DATE_ATOM),
+        ];
+    }
+
 }

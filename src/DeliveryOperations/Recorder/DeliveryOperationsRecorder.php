@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maatify\EventLogging\DeliveryOperations\Recorder;
 
 use BackedEnum;
+use Maatify\EventLogging\DeliveryOperations\Command\RecordDeliveryOperationCommand;
 use Maatify\EventLogging\Common\ClockInterface;
 use UnitEnum;
 use DateTimeImmutable;
@@ -34,22 +35,6 @@ class DeliveryOperationsRecorder
     }
 
     /**
-     * @param DeliveryChannelEnum|string $channel
-     * @param DeliveryOperationTypeEnum|string $operationType
-     * @param DeliveryStatusEnum|string $status
-     * @param int $attemptNo
-     * @param DeliveryActorTypeInterface|string|null $actorType
-     * @param int|null $actorId
-     * @param string|null $targetType
-     * @param int|null $targetId
-     * @param DateTimeImmutable|null $scheduledAt
-     * @param DateTimeImmutable|null $completedAt
-     * @param string|null $correlationId
-     * @param string|null $requestId
-     * @param string|null $provider
-     * @param string|null $providerMessageId
-     * @param string|null $errorCode
-     * @param string|null $errorMessage
      * @param array<mixed>|null $metadata
      */
     public function record(
@@ -72,31 +57,55 @@ class DeliveryOperationsRecorder
         ?array $metadata = null
     ): void {
         try {
-            // Normalize Enums
-            $channelStr = $this->enumToString($channel);
-            $operationTypeStr = $this->enumToString($operationType);
-            $statusStr = $this->enumToString($status);
+                $this->recordCommand(new RecordDeliveryOperationCommand(
+                    channel: $channel,
+                    operationType: $operationType,
+                    status: $status,
+                    attemptNo: $attemptNo,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    targetType: $targetType,
+                    targetId: $targetId,
+                    scheduledAt: $scheduledAt,
+                    completedAt: $completedAt,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    provider: $provider,
+                    providerMessageId: $providerMessageId,
+                    errorCode: $errorCode,
+                    errorMessage: $errorMessage,
+                    metadata: $metadata
+                ));
+            } catch (Throwable $e) {
+            $this->reportFailure('DeliveryOperations logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
 
-            // Normalize Actor Type
+    public function recordCommand(RecordDeliveryOperationCommand $command): void
+    {
+        try {
+            $channelStr = $this->enumToString($command->channel);
+            $operationTypeStr = $this->enumToString($command->operationType);
+            $statusStr = $this->enumToString($command->status);
+
             $normalizedActorType = null;
-            if ($actorType !== null) {
-                $normalizedActorType = $this->policy->normalizeActorType($actorType);
+            if ($command->actorType !== null) {
+                $normalizedActorType = $this->policy->normalizeActorType($command->actorType);
             }
 
-            // Truncate fields
             $channelStr = $this->truncateString($channelStr, 32);
             $operationTypeStr = $this->truncateString($operationTypeStr, 64);
             $statusStr = $this->truncateString($statusStr, 32);
-            $targetType = $this->truncate($targetType, 64);
-            $correlationId = $this->truncate($correlationId, 36);
-            $requestId = $this->truncate($requestId, 64);
-            $provider = $this->truncate($provider, 64);
-            $providerMessageId = $this->truncate($providerMessageId, 128);
-            $errorCode = $this->truncate($errorCode, 64);
-            // errorMessage is TEXT, usually big enough, but let's be safe if we want strictly robust? No limit defined in schema (TEXT = 64KB)
-            // But let's not aggressively truncate TEXT unless needed.
+            $targetType = $this->truncate($command->targetType, 64);
+            $correlationId = $this->truncate($command->correlationId, 36);
+            $requestId = $this->truncate($command->requestId, 64);
+            $provider = $this->truncate($command->provider, 64);
+            $providerMessageId = $this->truncate($command->providerMessageId, 128);
+            $errorCode = $this->truncate($command->errorCode, 64);
+            $metadata = $command->metadata;
 
-            // Validate Metadata
             if ($metadata !== null) {
                 try {
                     $json = json_encode($metadata, JSON_THROW_ON_ERROR);
@@ -107,13 +116,13 @@ class DeliveryOperationsRecorder
                         $metadata = ['error' => 'Metadata dropped: too large'];
                     }
                 } catch (JsonException $e) {
-                     if ($this->fallbackLogger) {
-                            $this->fallbackLogger->warning('DeliveryOperations metadata encoding failed', ['error' => $e->getMessage()]);
-                        }
-                     $metadata = ['error' => 'Metadata dropped: encoding error'];
+                    if ($this->fallbackLogger) {
+                        $this->fallbackLogger->warning('DeliveryOperations metadata encoding failed', ['error' => $e->getMessage()]);
+                    }
+                    $metadata = ['error' => 'Metadata dropped: encoding error'];
                 }
             } else {
-                $metadata = []; // Ensure not null for DTO/DB if needed, though DTO allows null but DB is JSON NOT NULL. Logic in Repo handles null->[]
+                $metadata = [];
             }
 
             $dto = new DeliveryOperationRecordDTO(
@@ -121,33 +130,29 @@ class DeliveryOperationsRecorder
                 channel: $channelStr,
                 operationType: $operationTypeStr,
                 actorType: $normalizedActorType,
-                actorId: $actorId,
+                actorId: $command->actorId,
                 targetType: $targetType,
-                targetId: $targetId,
+                targetId: $command->targetId,
                 status: $statusStr,
-                attemptNo: $attemptNo,
-                scheduledAt: $scheduledAt,
-                completedAt: $completedAt,
+                attemptNo: $command->attemptNo,
+                scheduledAt: $command->scheduledAt,
+                completedAt: $command->completedAt,
                 correlationId: $correlationId,
                 requestId: $requestId,
                 provider: $provider,
                 providerMessageId: $providerMessageId,
                 errorCode: $errorCode,
-                errorMessage: $errorMessage,
+                errorMessage: $command->errorMessage,
                 metadata: $metadata,
                 occurredAt: $this->clock->now()
             );
 
             $this->writer->log($dto);
-
         } catch (Throwable $e) {
-            // Fail-open: swallow exception
-            if ($this->fallbackLogger) {
-                $this->fallbackLogger->error('DeliveryOperations logging failed', [
-                    'exception' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
+            $this->reportFailure('DeliveryOperations logging failed', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 
@@ -189,4 +194,20 @@ class DeliveryOperationsRecorder
         }
         return $value;
     }
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function reportFailure(string $message, array $context = []): void
+    {
+        if ($this->fallbackLogger === null) {
+            return;
+        }
+
+        try {
+            $this->fallbackLogger->error($message, $context);
+        } catch (Throwable) {
+            // Fail-open logging must not throw if fallback logging fails.
+        }
+    }
+
 }

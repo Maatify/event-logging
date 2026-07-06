@@ -7,7 +7,7 @@ namespace Maatify\EventLogging\BehaviorTrace\DTO;
 use Maatify\EventLogging\BehaviorTrace\Enum\BehaviorTraceActorTypeInterface;
 use DateTimeImmutable;
 
-readonly class BehaviorTraceContextDTO
+final readonly class BehaviorTraceContextDTO implements \JsonSerializable
 {
     public function __construct(
         public BehaviorTraceActorTypeInterface $actorType,
@@ -20,4 +20,21 @@ readonly class BehaviorTraceContextDTO
         public DateTimeImmutable $occurredAt
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'actorType' => $this->actorType->value(),
+            'actorId' => $this->actorId,
+            'correlationId' => $this->correlationId,
+            'requestId' => $this->requestId,
+            'routeName' => $this->routeName,
+            'ipAddress' => $this->ipAddress,
+            'userAgent' => $this->userAgent,
+            'occurredAt' => $this->occurredAt->format(DATE_ATOM),
+        ];
+    }
+
 }

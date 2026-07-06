@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\AuthoritativeAudit\DTO;
 
 use DateTimeImmutable;
 
-readonly class AuthoritativeAuditOutboxWriteDTO
+final readonly class AuthoritativeAuditOutboxWriteDTO implements \JsonSerializable
 {
     /**
      * @param string $eventId
@@ -33,4 +33,23 @@ readonly class AuthoritativeAuditOutboxWriteDTO
         public DateTimeImmutable $createdAt
     ) {
     }
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'eventId' => $this->eventId,
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'action' => $this->action,
+            'targetType' => $this->targetType,
+            'targetId' => $this->targetId,
+            'riskLevel' => $this->riskLevel,
+            'payload' => $this->payload,
+            'correlationId' => $this->correlationId,
+            'createdAt' => $this->createdAt->format(DATE_ATOM),
+        ];
+    }
+
 }

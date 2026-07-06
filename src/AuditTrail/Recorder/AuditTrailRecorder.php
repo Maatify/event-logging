@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\AuditTrail\Recorder;
 
+use Maatify\EventLogging\AuditTrail\Command\RecordAuditTrailCommand;
 use Maatify\EventLogging\AuditTrail\Contract\AuditTrailLoggerInterface;
 use Maatify\EventLogging\AuditTrail\Contract\AuditTrailPolicyInterface;
 use Maatify\EventLogging\AuditTrail\DTO\AuditTrailRecordDTO;
@@ -28,22 +29,7 @@ class AuditTrailRecorder
     }
 
     /**
-     * @param string $eventKey
-     * @param string|AuditTrailActorTypeEnum $actorType
-     * @param int|null $actorId
-     * @param string $entityType
-     * @param int|null $entityId
-     * @param string|null $subjectType
-     * @param int|null $subjectId
      * @param array<string, mixed>|null $metadata
-     * @param string|null $referrerRouteName
-     * @param string|null $referrerPath
-     * @param string|null $referrerHost
-     * @param string|null $correlationId
-     * @param string|null $requestId
-     * @param string|null $routeName
-     * @param string|null $ipAddress
-     * @param string|null $userAgent
      */
     public function record(
         string $eventKey,
@@ -63,84 +49,122 @@ class AuditTrailRecorder
         ?string $ipAddress = null,
         ?string $userAgent = null
     ): void {
-        // 0. Sanitize referrer path (NO query strings)
-        if ($referrerPath !== null) {
-            $parsed = parse_url($referrerPath, PHP_URL_PATH);
-            $referrerPath = is_string($parsed)
-                ? $parsed
-                : explode('?', $referrerPath)[0];
-        }
-
-        // 1. Normalize actor type via policy
-        $normalizedActorType = $this->policy->normalizeActorType($actorType);
-
-        // 2. Validate metadata size & encoding
-        if ($metadata !== null) {
-            try {
-                $json = json_encode($metadata, JSON_THROW_ON_ERROR);
-                if (!$this->policy->validateMetadataSize($json)) {
-                    if ($this->fallbackLogger) {
-                        $this->fallbackLogger->warning(
-                            'AuditTrail metadata exceeded limit. Dropping metadata.',
-                            [
-                                'event_key' => $eventKey,
-                                'size' => strlen($json),
-                            ]
-                        );
-                    }
-                    $metadata = ['error' => 'Metadata dropped due to size limit'];
-                }
-            } catch (JsonException $e) {
-                if ($this->fallbackLogger) {
-                    $this->fallbackLogger->warning(
-                        'AuditTrail metadata JSON encoding failed.',
-                        [
-                            'event_key' => $eventKey,
-                            'error' => $e->getMessage(),
-                        ]
-                    );
-                }
-                $metadata = ['error' => 'Metadata dropped due to encoding error'];
-            }
-        } else {
-            $metadata = [];
-        }
-
-        // 3. Construct DTO
-        $recordDTO = new AuditTrailRecordDTO(
-            eventId: Uuid::uuid4()->toString(),
-            actorType: $normalizedActorType,
-            actorId: $actorId,
-            eventKey: $eventKey,
-            entityType: $entityType,
-            entityId: $entityId,
-            subjectType: $subjectType,
-            subjectId: $subjectId,
-            referrerRouteName: $referrerRouteName,
-            referrerPath: $referrerPath,
-            referrerHost: $referrerHost,
-            correlationId: $correlationId,
-            requestId: $requestId,
-            routeName: $routeName,
-            ipAddress: $ipAddress,
-            userAgent: $userAgent,
-            metadata: $metadata,
-            occurredAt: $this->clock->now()
-        );
-
-        // 4. Persist (Fail-Open on storage only)
         try {
-            $this->logger->write($recordDTO);
-        } catch (Throwable $e) {
-            if ($this->fallbackLogger) {
-                $this->fallbackLogger->error(
-                    'AuditTrail logging failed',
-                    [
-                        'event_key' => $eventKey,
-                        'exception' => $e->getMessage(),
-                    ]
-                );
-            }
+                $this->recordCommand(new RecordAuditTrailCommand(
+                    eventKey: $eventKey,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    entityType: $entityType,
+                    entityId: $entityId,
+                    subjectType: $subjectType,
+                    subjectId: $subjectId,
+                    metadata: $metadata,
+                    referrerRouteName: $referrerRouteName,
+                    referrerPath: $referrerPath,
+                    referrerHost: $referrerHost,
+                    correlationId: $correlationId,
+                    requestId: $requestId,
+                    routeName: $routeName,
+                    ipAddress: $ipAddress,
+                    userAgent: $userAgent
+                ));
+            } catch (Throwable $e) {
+            $this->reportFailure('AuditTrail logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
+
+    public function recordCommand(RecordAuditTrailCommand $command): void
+    {
+        try {
+                $referrerPath = $command->referrerPath;
+                if ($referrerPath !== null) {
+                    $parsed = parse_url($referrerPath, PHP_URL_PATH);
+                    $referrerPath = is_string($parsed)
+                        ? $parsed
+                        : explode('?', $referrerPath)[0];
+                }
+
+                $normalizedActorType = $this->policy->normalizeActorType($command->actorType);
+                $metadata = $command->metadata;
+
+                if ($metadata !== null) {
+                    try {
+                        $json = json_encode($metadata, JSON_THROW_ON_ERROR);
+                        if (!$this->policy->validateMetadataSize($json)) {
+                            if ($this->fallbackLogger) {
+                                $this->fallbackLogger->warning('AuditTrail metadata exceeded limit. Dropping metadata.', [
+                                    'event_key' => $command->eventKey,
+                                    'size' => strlen($json),
+                                ]);
+                            }
+                            $metadata = ['error' => 'Metadata dropped due to size limit'];
+                        }
+                    } catch (JsonException $e) {
+                        if ($this->fallbackLogger) {
+                            $this->fallbackLogger->warning('AuditTrail metadata JSON encoding failed.', [
+                                'event_key' => $command->eventKey,
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                        $metadata = ['error' => 'Metadata dropped due to encoding error'];
+                    }
+                } else {
+                    $metadata = [];
+                }
+
+                $recordDTO = new AuditTrailRecordDTO(
+                    eventId: Uuid::uuid4()->toString(),
+                    actorType: $normalizedActorType,
+                    actorId: $command->actorId,
+                    eventKey: $command->eventKey,
+                    entityType: $command->entityType,
+                    entityId: $command->entityId,
+                    subjectType: $command->subjectType,
+                    subjectId: $command->subjectId,
+                    referrerRouteName: $command->referrerRouteName,
+                    referrerPath: $referrerPath,
+                    referrerHost: $command->referrerHost,
+                    correlationId: $command->correlationId,
+                    requestId: $command->requestId,
+                    routeName: $command->routeName,
+                    ipAddress: $command->ipAddress,
+                    userAgent: $command->userAgent,
+                    metadata: $metadata,
+                    occurredAt: $this->clock->now()
+                );
+
+                try {
+                    $this->logger->write($recordDTO);
+                } catch (Throwable $e) {
+                    if ($this->fallbackLogger) {
+                        $this->fallbackLogger->error('AuditTrail logging failed', [
+                            'event_key' => $command->eventKey,
+                            'exception' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            } catch (Throwable $e) {
+            $this->reportFailure('AuditTrail logging failed', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function reportFailure(string $message, array $context = []): void
+    {
+        if ($this->fallbackLogger === null) {
+            return;
+        }
+
+        try {
+            $this->fallbackLogger->error($message, $context);
+        } catch (Throwable) {
+            // Fail-open logging must not throw if fallback logging fails.
+        }
+    }
+
 }
