@@ -81,6 +81,7 @@ SQL;
 
             $results = [];
             foreach ($rows as $row) {
+                /** @var array<string, mixed> $row */
                 $results[] = $this->mapRowToDTO($row);
             }
 
@@ -115,6 +116,7 @@ SQL;
             try {
                 $decoded = json_decode($row['metadata'], true, 512, JSON_THROW_ON_ERROR);
                 if (is_array($decoded)) {
+                    /** @var array<string, mixed> $decoded */
                     $metadata = $decoded;
                 }
             } catch (Exception) {
