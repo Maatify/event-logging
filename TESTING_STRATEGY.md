@@ -9,4 +9,15 @@ Recommended validation for `maatify/event-logging`:
 5. Add regression tests proving domains stay isolated and no generic logger/DTO/recorder/table is introduced.
 6. Add static analysis after package dependencies and CI are finalized.
 
+## Running Tests
+
+To run the local test suite, ensure dependencies are installed and use PHPUnit:
+
+```bash
+composer install
+composer test
+composer test:unit
+vendor/bin/phpunit
+```
+
 This phase does not wire the package into host application runtime behavior.
