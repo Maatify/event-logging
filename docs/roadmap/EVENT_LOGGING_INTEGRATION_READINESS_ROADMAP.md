@@ -176,6 +176,12 @@ Checkpoints (Module Building Standard):
 * Explicitly cover: Pagination style decision
 * Verify: Command/DTO rules
 * Verify: Repository/read rules
+* Verify existing domain-specific exception classes.
+* Verify fail-open swallowing exists only at the Recorder boundary.
+* Verify repositories/infrastructure do not swallow Throwable.
+* Verify AuthoritativeAudit remains fail-closed.
+* Verify read/query exceptions follow MODULE_BUILDING_STANDARD where applicable.
+* Verify named constructors and RuntimeException inheritance where exceptions are created directly.
 
 Expected code if missing:
 
