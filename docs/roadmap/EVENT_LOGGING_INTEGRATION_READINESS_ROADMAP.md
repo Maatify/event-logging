@@ -209,6 +209,7 @@ Expected code if missing:
 Phase 4 — Integration Documentation
 
 Owner: Jules
+Status: Complete
 
 Goal:
 
@@ -216,10 +217,10 @@ Document how to actually use the package.
 
 Required docs:
 
-docs/usage/INSTALLATION.md
-docs/usage/FACTORY_USAGE.md
-docs/usage/MANUAL_WIRING.md
-docs/usage/ADMIN_READ_USAGE.md
+docs/integration/INSTALLATION.md
+docs/integration/FACTORY_USAGE.md
+docs/integration/MANUAL_WIRING.md
+docs/integration/ADMIN_READ_USAGE.md
 
 Must explain:
 

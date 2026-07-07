@@ -43,6 +43,13 @@ The package exposes the `Maatify\EventLogging\` namespace via PSR-4 autoloading.
 
 ## Package documentation
 
+### Integration Usage Guides
+- [Installation](docs/integration/INSTALLATION.md)
+- [Factory Usage](docs/integration/FACTORY_USAGE.md)
+- [Manual Wiring](docs/integration/MANUAL_WIRING.md)
+- [Admin Read Usage](docs/integration/ADMIN_READ_USAGE.md)
+
+### Reference
 - [Changelog](CHANGELOG.md)
 - [Event Logging Module Reference](EVENT_LOGGING_MODULE_REFERENCE.md)
 - [Testing Strategy](TESTING_STRATEGY.md)
