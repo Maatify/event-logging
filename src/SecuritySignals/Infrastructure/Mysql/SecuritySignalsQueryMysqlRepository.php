@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql;
+
+use DateTimeImmutable;
+use DateTimeZone;
+use JsonException;
+use Maatify\EventLogging\SecuritySignals\Contract\SecuritySignalsQueryInterface;
+use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsQueryDTO;
+use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsViewDTO;
+use Maatify\EventLogging\SecuritySignals\Exception\SecuritySignalsStorageException;
+use PDO;
+use PDOException;
+use Throwable;
+
+final class SecuritySignalsQueryMysqlRepository implements SecuritySignalsQueryInterface
+{
+    private const TABLE_NAME = 'maa_event_logging_security_signals';
+
+    public function __construct(private readonly PDO $pdo) {}
+
+    /** @return array<SecuritySignalsViewDTO> */
+    public function find(SecuritySignalsQueryDTO $query): array
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($query->actorType !== null) {
+            $conditions[] = 'actor_type = :actor_type';
+            $params['actor_type'] = $query->actorType;
+        }
+
+        if ($query->actorId !== null) {
+            $conditions[] = 'actor_id = :actor_id';
+            $params['actor_id'] = $query->actorId;
+        }
+
+        if ($query->signalType !== null) {
+            $conditions[] = 'signal_type = :signal_type';
+            $params['signal_type'] = $query->signalType;
+        }
+
+        if ($query->severity !== null) {
+            $conditions[] = 'severity = :severity';
+            $params['severity'] = $query->severity;
+        }
+
+        if ($query->requestId !== null) {
+            $conditions[] = 'request_id = :request_id';
+            $params['request_id'] = $query->requestId;
+        }
+
+        if ($query->correlationId !== null) {
+            $conditions[] = 'correlation_id = :correlation_id';
+            $params['correlation_id'] = $query->correlationId;
+        }
+
+        if ($query->after !== null) { $conditions[] = 'occurred_at >= :after'; $params['after'] = $query->after->format('Y-m-d H:i:s.u'); }
+        if ($query->before !== null) { $conditions[] = 'occurred_at <= :before'; $params['before'] = $query->before->format('Y-m-d H:i:s.u'); }
+        if ($query->cursorOccurredAt !== null && $query->cursorId !== null) {
+            $conditions[] = '(occurred_at < :cursor_at OR (occurred_at = :cursor_at AND id < :cursor_id))';
+            $params['cursor_at'] = $query->cursorOccurredAt->format('Y-m-d H:i:s.u');
+            $params['cursor_id'] = $query->cursorId;
+        }
+
+        $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
+        $limit = max(1, $query->limit);
+        $sql = sprintf('SELECT * FROM %s %s ORDER BY occurred_at DESC, id DESC LIMIT %d', self::TABLE_NAME, $where, $limit);
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(fn (array $row): SecuritySignalsViewDTO => $this->mapRowToDTO($row), $rows);
+        } catch (PDOException $e) {
+            throw new SecuritySignalsStorageException('Failed to query SecuritySignals records: ' . $e->getMessage(), 0, $e);
+        } catch (Throwable $e) {
+            throw new SecuritySignalsStorageException('Failed to map SecuritySignals row: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /** @param array<string, mixed> $row */
+    private function mapRowToDTO(array $row): SecuritySignalsViewDTO
+    {
+        return new SecuritySignalsViewDTO(
+            id: self::intValue($row, 'id') ?? 0,
+            eventId: self::stringValue($row, 'event_id') ?? '',
+            actorType: self::stringValue($row, 'actor_type'),
+            actorId: self::intValue($row, 'actor_id'),
+            signalType: self::stringValue($row, 'signal_type') ?? '',
+            severity: self::stringValue($row, 'severity') ?? '',
+            correlationId: self::stringValue($row, 'correlation_id'),
+            requestId: self::stringValue($row, 'request_id'),
+            routeName: self::stringValue($row, 'route_name'),
+            ipAddress: self::stringValue($row, 'ip_address'),
+            userAgent: self::stringValue($row, 'user_agent'),
+            metadata: self::jsonArray($row, 'metadata'),
+            occurredAt: self::dateValue($row, 'occurred_at')
+        );
+    }
+
+    /** @param array<string, mixed> $row */
+    private static function stringValue(array $row, string $key): ?string { return is_string($row[$key] ?? null) ? $row[$key] : null; }
+    /** @param array<string, mixed> $row */
+    private static function intValue(array $row, string $key): ?int { return isset($row[$key]) && is_numeric($row[$key]) ? (int) $row[$key] : null; }
+    /** @param array<string, mixed> $row */
+    private static function dateValue(array $row, string $key): DateTimeImmutable { return new DateTimeImmutable(is_string($row[$key] ?? null) ? $row[$key] : '1970-01-01 00:00:00', new DateTimeZone('UTC')); }
+    /** @param array<string, mixed> $row */
+    private static function nullableDate(array $row, string $key): ?DateTimeImmutable { return isset($row[$key]) && is_string($row[$key]) ? new DateTimeImmutable($row[$key], new DateTimeZone('UTC')) : null; }
+    /** @param array<string, mixed> $row @return array<string, mixed>|null */
+    private static function jsonArray(array $row, string $key): ?array { if (!isset($row[$key]) || !is_string($row[$key]) || $row[$key] === '') return null; try { $decoded = json_decode($row[$key], true, 512, JSON_THROW_ON_ERROR); return is_array($decoded) ? $decoded : null; } catch (JsonException) { return null; } }
+}

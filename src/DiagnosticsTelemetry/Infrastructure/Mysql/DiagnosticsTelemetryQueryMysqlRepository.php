@@ -9,6 +9,7 @@ use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryQuery
 use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryContextDTO;
 use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryCursorDTO;
 use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryEventDTO;
+use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryQueryDTO;
 use Maatify\EventLogging\DiagnosticsTelemetry\Exception\DiagnosticsTelemetryStorageException;
 use Maatify\EventLogging\DiagnosticsTelemetry\Recorder\DiagnosticsTelemetryDefaultPolicy;
 use DateTimeImmutable;
@@ -29,6 +30,78 @@ class DiagnosticsTelemetryQueryMysqlRepository implements DiagnosticsTelemetryQu
         ?DiagnosticsTelemetryPolicyInterface $policy = null
     ) {
         $this->policy = $policy ?? new DiagnosticsTelemetryDefaultPolicy();
+    }
+
+
+    /**
+     * @return array<DiagnosticsTelemetryEventDTO>
+     */
+    public function find(DiagnosticsTelemetryQueryDTO $query): array
+    {
+        $conditions = [];
+        $params = [];
+
+        if ($query->actorType !== null) {
+            $conditions[] = 'actor_type = :actor_type';
+            $params['actor_type'] = $query->actorType;
+        }
+
+        if ($query->actorId !== null) {
+            $conditions[] = 'actor_id = :actor_id';
+            $params['actor_id'] = $query->actorId;
+        }
+
+        if ($query->eventKey !== null) {
+            $conditions[] = 'event_key = :event_key';
+            $params['event_key'] = $query->eventKey;
+        }
+
+        if ($query->severity !== null) {
+            $conditions[] = 'severity = :severity';
+            $params['severity'] = $query->severity;
+        }
+
+        if ($query->requestId !== null) {
+            $conditions[] = 'request_id = :request_id';
+            $params['request_id'] = $query->requestId;
+        }
+
+        if ($query->correlationId !== null) {
+            $conditions[] = 'correlation_id = :correlation_id';
+            $params['correlation_id'] = $query->correlationId;
+        }
+
+        if ($query->after !== null) {
+            $conditions[] = 'occurred_at >= :after';
+            $params['after'] = $query->after->format('Y-m-d H:i:s.u');
+        }
+
+        if ($query->before !== null) {
+            $conditions[] = 'occurred_at <= :before';
+            $params['before'] = $query->before->format('Y-m-d H:i:s.u');
+        }
+
+        if ($query->cursorOccurredAt !== null && $query->cursorId !== null) {
+            $conditions[] = '(occurred_at < :cursor_at OR (occurred_at = :cursor_at AND id < :cursor_id))';
+            $params['cursor_at'] = $query->cursorOccurredAt->format('Y-m-d H:i:s.u');
+            $params['cursor_id'] = $query->cursorId;
+        }
+
+        $whereClause = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
+        $limit = max(1, $query->limit);
+        $sql = sprintf('SELECT * FROM %s %s ORDER BY occurred_at DESC, id DESC LIMIT %d', self::TABLE_NAME, $whereClause, $limit);
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return array_map(fn (array $row): DiagnosticsTelemetryEventDTO => $this->mapRowToDTO($row), $rows);
+        } catch (PDOException $e) {
+            throw new DiagnosticsTelemetryStorageException('Failed to query DiagnosticsTelemetry records: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new DiagnosticsTelemetryStorageException('Failed to map DiagnosticsTelemetry row: ' . $e->getMessage(), 0, $e);
+        }
     }
 
     /**

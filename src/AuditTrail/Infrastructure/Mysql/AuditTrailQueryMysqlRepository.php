@@ -13,6 +13,7 @@ use Maatify\EventLogging\AuditTrail\Exception\AuditTrailStorageException;
 use PDO;
 use PDOException;
 use Exception;
+use Throwable;
 
 class AuditTrailQueryMysqlRepository implements AuditTrailQueryInterface
 {
@@ -39,6 +40,32 @@ class AuditTrailQueryMysqlRepository implements AuditTrailQueryInterface
         if ($query->eventKey !== null) {
             $conditions[] = 'event_key = :event_key';
             $params['event_key'] = $query->eventKey;
+        }
+
+
+        if ($query->entityType !== null) {
+            $conditions[] = 'entity_type = :entity_type';
+            $params['entity_type'] = $query->entityType;
+        }
+
+        if ($query->entityId !== null) {
+            $conditions[] = 'entity_id = :entity_id';
+            $params['entity_id'] = $query->entityId;
+        }
+
+        if ($query->subjectType !== null) {
+            $conditions[] = 'subject_type = :subject_type';
+            $params['subject_type'] = $query->subjectType;
+        }
+
+        if ($query->subjectId !== null) {
+            $conditions[] = 'subject_id = :subject_id';
+            $params['subject_id'] = $query->subjectId;
+        }
+
+        if ($query->requestId !== null) {
+            $conditions[] = 'request_id = :request_id';
+            $params['request_id'] = $query->requestId;
         }
 
         if ($query->correlationId !== null) {
@@ -89,6 +116,11 @@ SQL;
         } catch (PDOException $e) {
             throw new AuditTrailStorageException(
                 message: "Failed to query audit trail: " . $e->getMessage(),
+                previous: $e
+            );
+        } catch (Throwable $e) {
+            throw new AuditTrailStorageException(
+                message: "Failed to map audit trail row: " . $e->getMessage(),
                 previous: $e
             );
         }
