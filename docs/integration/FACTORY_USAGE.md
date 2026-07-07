@@ -55,8 +55,7 @@ If you do not want to use the unified provider, you can use the individual domai
 ```php
 use Maatify\EventLogging\Factory\AuditTrailFactory;
 
-$auditTrailFactory = new AuditTrailFactory();
-$auditTrailRecorder = $auditTrailFactory->createRecorder($pdo, $clock, $psrLogger);
+$auditTrailRecorder = AuditTrailFactory::create($pdo, $clock, $psrLogger);
 ```
 
 ### Important: AuthoritativeAudit Fail-Closed Semantics
@@ -68,7 +67,6 @@ As such, the factory for `AuthoritativeAudit` **does not receive the optional PS
 ```php
 use Maatify\EventLogging\Factory\AuthoritativeAuditFactory;
 
-$authoritativeAuditFactory = new AuthoritativeAuditFactory();
 // Notice there is no $psrLogger parameter here:
-$authoritativeAuditRecorder = $authoritativeAuditFactory->createRecorder($pdo, $clock);
+$authoritativeAuditRecorder = AuthoritativeAuditFactory::create($pdo, $clock);
 ```

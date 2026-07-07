@@ -17,7 +17,7 @@ Wiring a domain typically involves constructing an infrastructure repository (th
 ### Example: Wiring the Audit Trail Domain
 
 ```php
-use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailMysqlRepository;
+use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailLoggerMysqlRepository;
 use Maatify\EventLogging\AuditTrail\Recorder\AuditTrailRecorder;
 use Maatify\EventLogging\Common\SystemClock;
 
@@ -27,24 +27,26 @@ $clock = new SystemClock();
 $psrLogger = /* ... PSR-3 Logger Interface ... */;
 
 // 2. Construct the specific repository/writer
-$auditTrailRepository = new AuditTrailMysqlRepository($pdo);
+$auditTrailRepository = new AuditTrailLoggerMysqlRepository($pdo);
 
 // 3. Construct the recorder, injecting the repository, clock, and PSR logger
 $auditTrailRecorder = new AuditTrailRecorder(
-    writer: $auditTrailRepository,
+    logger: $auditTrailRepository,
     clock: $clock,
-    logger: $psrLogger // Optional fail-open behavior
+    fallbackLogger: $psrLogger, // Optional fail-open behavior
+    policy: null
 );
 ```
 
 ### Injecting Custom Policies
 
-Some domains use policies to determine specific behavior, which you can customize when manually wiring. For instance, the `AuthoritativeAudit` domain uses a `SanitizationPolicy` to filter sensitive data from payloads.
+Some domains use policies to determine specific behavior, which you can customize when manually wiring. For instance, the `AuthoritativeAudit` domain uses a policy to filter sensitive data from payloads or enforce specific actor types.
 
 ```php
-use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditMysqlRepository;
+use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository;
 use Maatify\EventLogging\AuthoritativeAudit\Recorder\AuthoritativeAuditRecorder;
-use Maatify\EventLogging\AuthoritativeAudit\Contract\SanitizationPolicyInterface;
+use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditPolicyInterface;
+use Maatify\EventLogging\AuthoritativeAudit\Enum\AuthoritativeAuditActorTypeInterface;
 use Maatify\EventLogging\Common\SystemClock;
 
 // 1. Host provides dependencies
@@ -52,26 +54,27 @@ $pdo = /* ... PDO instance ... */;
 $clock = new SystemClock();
 
 // 2. Create a custom policy implementing the domain's policy contract
-class MyCustomSanitizationPolicy implements SanitizationPolicyInterface {
-    public function sanitizePayload(array $payload): array {
-        // Custom masking logic here
-        if (isset($payload['credit_card'])) {
-            $payload['credit_card'] = '****';
-        }
-        return $payload;
+class MyCustomAuditPolicy implements AuthoritativeAuditPolicyInterface {
+    public function validatePayload(array $payload): bool {
+        // Custom validation logic here
+        return !isset($payload['credit_card']);
+    }
+
+    public function normalizeActorType(AuthoritativeAuditActorTypeInterface|string $actorType): string {
+        return is_string($actorType) ? $actorType : $actorType->value;
     }
 }
 
-$customPolicy = new MyCustomSanitizationPolicy();
+$customPolicy = new MyCustomAuditPolicy();
 
 // 3. Construct the repository
-$authoritativeAuditRepository = new AuthoritativeAuditMysqlRepository($pdo);
+$authoritativeAuditRepository = new AuthoritativeAuditOutboxWriterMysqlRepository($pdo);
 
 // 4. Construct the recorder, injecting the custom policy
 $authoritativeAuditRecorder = new AuthoritativeAuditRecorder(
     writer: $authoritativeAuditRepository,
-    sanitizationPolicy: $customPolicy,
-    clock: $clock
+    clock: $clock,
+    policy: $customPolicy
     // Note: No PSR logger provided here as this domain is fail-closed
 );
 ```

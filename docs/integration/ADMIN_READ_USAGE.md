@@ -27,7 +27,7 @@ $repository = new AuditTrailQueryMysqlRepository($pdo);
 
 $queryDto = new AuditTrailQueryDTO(
     actorType: 'admin',
-    actorId: '123',
+    actorId: 123,
     eventKey: 'user.created',
     limit: 50
 );
@@ -48,7 +48,7 @@ The queries rigidly maintain a stable `ORDER BY occurred_at DESC, id DESC` to gu
 
 ## Supported Filters per Domain
 
-Each domain's query DTO exposes specific filter properties aligned with its context. Common filters include `actorType`, `actorId`, `occurredAfter`, `occurredBefore`, `requestId`, and `correlationId`.
+Each domain's query DTO exposes specific filter properties aligned with its context. Common filters include `actorType`, `actorId`, `after`, `before`, `requestId`, and `correlationId`.
 
 - **AuthoritativeAudit**: Actor, target, action, correlation, date-range. *(Note: Intentionally no `requestId` filter as it is not stored in this domain).*
 - **AuditTrail**: Actor, event key, entity, subject, request, correlation, date-range.
