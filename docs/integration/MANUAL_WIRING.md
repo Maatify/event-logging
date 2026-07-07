@@ -61,7 +61,7 @@ class MyCustomAuditPolicy implements AuthoritativeAuditPolicyInterface {
     }
 
     public function normalizeActorType(AuthoritativeAuditActorTypeInterface|string $actorType): string {
-        return is_string($actorType) ? $actorType : $actorType->value;
+        return is_string($actorType) ? $actorType : $actorType->value();
     }
 }
 
