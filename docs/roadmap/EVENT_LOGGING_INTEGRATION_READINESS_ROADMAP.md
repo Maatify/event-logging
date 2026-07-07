@@ -137,6 +137,7 @@ Must not introduce:
 Phase 3 — Primitive Read/Admin Viewing Support
 
 Owner: Jules first, then Codex if code gaps exist
+Status: Design/Audit Complete. Implementation Pending.
 
 Goal:
 
@@ -167,7 +168,8 @@ Host application remains responsible for:
 
 Expected docs:
 
-docs/architecture/ADMIN_READ_SUPPORT.md
+docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md
+docs/audits/PHASE_3_PRIMITIVE_READ_SUPPORT_GAP_AUDIT.md
 
 Checkpoints (Module Building Standard):
 * Explicitly cover: Reader contracts
@@ -186,6 +188,15 @@ Checkpoints (Module Building Standard):
 * Verify named constructors and RuntimeException inheritance where exceptions are created directly.
 
 Expected code if missing:
+
+*   **AuthoritativeAudit:** `AuthoritativeAuditQueryInterface`, `AuthoritativeAuditQueryMysqlRepository`, `AuthoritativeAuditQueryDTO`, `AuthoritativeAuditViewDTO`.
+*   **SecuritySignals:** `SecuritySignalsQueryInterface`, `SecuritySignalsQueryMysqlRepository`, `SecuritySignalsQueryDTO`, `SecuritySignalsViewDTO`.
+*   **DeliveryOperations:** `DeliveryOperationsQueryInterface`, `DeliveryOperationsQueryMysqlRepository`, `DeliveryOperationsQueryDTO`, `DeliveryOperationsViewDTO`.
+*   **AuditTrail:** Add `entityType`, `entityId`, `subjectType`, `subjectId`, `requestId` to `AuditTrailQueryDTO` and repository.
+*   **BehaviorTrace:** Replace `BehaviorTraceCursorDTO` with `BehaviorTraceQueryDTO`. Add filters (`after`, `before`, `actorType`, `actorId`, `entityType`, `entityId`, `action`, `requestId`, `correlationId`).
+*   **DiagnosticsTelemetry:** Replace `DiagnosticsTelemetryCursorDTO` with `DiagnosticsTelemetryQueryDTO`. Add filters (`after`, `before`, `actorType`, `actorId`, `eventKey`, `severity`, `requestId`, `correlationId`).
+*   **All domains:** Standardize stable ordering to `ORDER BY occurred_at DESC, id DESC`.
+
 
 * Reader interfaces
 * Query DTOs
