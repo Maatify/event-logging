@@ -20,6 +20,12 @@ Shared primitives live only under `Maatify\EventLogging\Common` and are limited 
 
 Recorders accept domain-specific command objects through `recordCommand()` and also keep primitive `record()` convenience methods that construct the command internally. Host applications should not construct write DTOs for normal recording; write DTOs are internal recorder-to-writer transfer objects.
 
+## Optional factories and provider
+
+Host applications may keep constructing domain recorders manually, or use the optional framework-agnostic factories under `Maatify\EventLogging\Factory`. `EventLoggingProviderFactory::createDefault($pdo, $clock, $psrLogger)` creates a typed `EventLoggingProvider` service map with explicit domain accessors such as `authoritativeAudit()` and `auditTrail()`. The provider does not route by domain strings and does not expose a generic logging API.
+
+`AuthoritativeAudit` remains fail-closed: the provider factory does not pass the optional PSR-3 logger to its factory as fallback storage. The PSR-3 logger is only forwarded to fail-open domains.
+
 ## Continuous Integration
 
 This package uses GitHub Actions for continuous integration. PHPStan workflow is path-filtered and runs only when PHP source, Composer files, phpstan.neon, or workflow files change.
