@@ -38,9 +38,9 @@ examples/
 - **Purpose:** Setup a dummy environment (PDO, Clock, PSR-3 Logger) used by other runnable examples.
 - **Dependencies:** `PDO`, `ClockInterface` (implementation), `LoggerInterface` (implementation).
 - **Demonstrates:** How a host application might prepare the dependencies required by the package.
-- **Must Not Demonstrate:** Real credentials. Use an in-memory SQLite database or a dummy `DB_DSN` for illustration.
+- **Must Not Demonstrate:** Real credentials. Use a safe dummy MySQL test DSN from environment variables. SQLite must not be presented as a compatible runtime for the package MySQL repositories.
 - **Safety Notes:** Do not include real passwords.
-- **Type:** Runnable (creates dummy objects).
+- **Type:** Runnable (creates dummy objects) if a test MySQL DSN is configured, otherwise illustrative. DB-dependent examples should be marked illustrative unless a test MySQL DSN is available.
 
 ### `01-factory-provider.php`
 - **Purpose:** Demonstrate using `EventLoggingProviderFactory` to create the provider.
