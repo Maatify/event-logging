@@ -17,6 +17,36 @@ use RuntimeException;
 
 final class SecuritySignalsRecorderTest extends TestCase
 {
+    public function testRecordCommandSuccessfulPath(): void
+    {
+        $clock = new FixedClock();
+        $logger = $this->createMock(SecuritySignalsLoggerInterface::class);
+        $spyLogger = new SpyLogger();
+
+        $logger->expects($this->once())
+            ->method('write')
+            ->with($this->callback(function (SecuritySignalRecordDTO $dto) use ($clock) {
+                return $dto->signalType === 'brute_force_attempt'
+                    && $dto->severity === 'CRITICAL'
+                    && $dto->actorType === 'USER'
+                    && $dto->actorId === 42
+                    && $dto->occurredAt === $clock->now();
+            }));
+
+        $recorder = new SecuritySignalsRecorder($logger, $clock, $spyLogger);
+
+        $command = new \Maatify\EventLogging\SecuritySignals\Command\RecordSecuritySignalCommand(
+            signalType: 'brute_force_attempt',
+            severity: SecuritySignalSeverityEnum::CRITICAL,
+            actorType: SecuritySignalActorTypeEnum::USER,
+            actorId: 42
+        );
+
+        $recorder->recordCommand($command);
+
+        $this->assertEmpty($spyLogger->logs);
+    }
+
     public function testRecordSuccessfulPath(): void
     {
         $clock = new FixedClock();

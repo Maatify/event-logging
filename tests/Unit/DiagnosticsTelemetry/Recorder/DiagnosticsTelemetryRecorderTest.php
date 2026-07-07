@@ -15,6 +15,36 @@ use RuntimeException;
 
 final class DiagnosticsTelemetryRecorderTest extends TestCase
 {
+    public function testRecordCommandSuccessfulPath(): void
+    {
+        $clock = new FixedClock();
+        $writer = $this->createMock(DiagnosticsTelemetryLoggerInterface::class);
+        $spyLogger = new SpyLogger();
+
+        $writer->expects($this->once())
+            ->method('write')
+            ->with($this->callback(function (DiagnosticsTelemetryEventDTO $dto) use ($clock) {
+                return $dto->eventKey === 'app.start'
+                    && $dto->severity->value() === 'INFO'
+                    && $dto->context->actorType->value() === 'SYSTEM'
+                    && $dto->durationMs === 120
+                    && $dto->context->occurredAt === $clock->now();
+            }));
+
+        $recorder = new DiagnosticsTelemetryRecorder($writer, $clock, $spyLogger);
+
+        $command = new \Maatify\EventLogging\DiagnosticsTelemetry\Command\RecordDiagnosticsTelemetryCommand(
+            eventKey: 'app.start',
+            severity: 'info',
+            actorType: 'system',
+            durationMs: 120
+        );
+
+        $recorder->recordCommand($command);
+
+        $this->assertEmpty($spyLogger->logs);
+    }
+
     public function testRecordSuccessfulPath(): void
     {
         $clock = new FixedClock();

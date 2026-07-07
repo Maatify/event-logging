@@ -15,6 +15,38 @@ use RuntimeException;
 
 final class BehaviorTraceRecorderTest extends TestCase
 {
+    public function testRecordCommandSuccessfulPath(): void
+    {
+        $clock = new FixedClock();
+        $writer = $this->createMock(BehaviorTraceWriterInterface::class);
+        $spyLogger = new SpyLogger();
+
+        $writer->expects($this->once())
+            ->method('write')
+            ->with($this->callback(function (BehaviorTraceEventDTO $dto) use ($clock) {
+                return $dto->action === 'cmd-click'
+                    && $dto->entityType === 'button'
+                    && $dto->entityId === 12
+                    && $dto->context->actorType->value() === 'USER'
+                    && $dto->context->actorId === 34
+                    && $dto->context->occurredAt === $clock->now();
+            }));
+
+        $recorder = new BehaviorTraceRecorder($writer, $clock, $spyLogger);
+
+        $command = new \Maatify\EventLogging\BehaviorTrace\Command\RecordBehaviorTraceCommand(
+            action: 'cmd-click',
+            actorType: 'user',
+            actorId: 34,
+            entityType: 'button',
+            entityId: 12
+        );
+
+        $recorder->recordCommand($command);
+
+        $this->assertEmpty($spyLogger->logs);
+    }
+
     public function testRecordSuccessfulPath(): void
     {
         $clock = new FixedClock();

@@ -17,6 +17,40 @@ use RuntimeException;
 
 final class AuditTrailRecorderTest extends TestCase
 {
+    public function testRecordCommandSuccessfulPath(): void
+    {
+        $clock = new FixedClock();
+        $logger = $this->createMock(AuditTrailLoggerInterface::class);
+        $spyLogger = new SpyLogger();
+
+        $logger->expects($this->once())
+            ->method('write')
+            ->with($this->callback(function (AuditTrailRecordDTO $dto) use ($clock) {
+                return $dto->eventKey === 'test-cmd-event'
+                    && $dto->actorType === 'USER'
+                    && $dto->actorId === 123
+                    && $dto->entityType === 'document'
+                    && $dto->entityId === 456
+                    && $dto->referrerPath === '/cmd-test'
+                    && $dto->occurredAt === $clock->now();
+            }));
+
+        $recorder = new AuditTrailRecorder($logger, $clock, $spyLogger);
+
+        $command = new RecordAuditTrailCommand(
+            eventKey: 'test-cmd-event',
+            actorType: AuditTrailActorTypeEnum::USER,
+            actorId: 123,
+            entityType: 'document',
+            entityId: 456,
+            referrerPath: '/cmd-test?query=string'
+        );
+
+        $recorder->recordCommand($command);
+
+        $this->assertEmpty($spyLogger->logs);
+    }
+
     public function testRecordSuccessfulPath(): void
     {
         $clock = new FixedClock();

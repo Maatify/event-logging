@@ -19,6 +19,43 @@ use RuntimeException;
 
 final class DeliveryOperationsRecorderTest extends TestCase
 {
+    public function testRecordCommandSuccessfulPath(): void
+    {
+        $clock = new FixedClock();
+        $writer = $this->createMock(DeliveryOperationsLoggerInterface::class);
+        $spyLogger = new SpyLogger();
+        $scheduledAt = new DateTimeImmutable('2023-01-01T10:00:00Z');
+
+        $writer->expects($this->once())
+            ->method('log')
+            ->with($this->callback(function (DeliveryOperationRecordDTO $dto) use ($clock, $scheduledAt) {
+                return $dto->channel === 'EMAIL'
+                    && $dto->operationType === 'NOTIFICATION'
+                    && $dto->status === 'SENT'
+                    && $dto->attemptNo === 1
+                    && $dto->actorType === 'SYSTEM'
+                    && $dto->actorId === 123
+                    && $dto->scheduledAt === $scheduledAt
+                    && $dto->occurredAt === $clock->now();
+            }));
+
+        $recorder = new DeliveryOperationsRecorder($writer, $clock, $spyLogger);
+
+        $command = new \Maatify\EventLogging\DeliveryOperations\Command\RecordDeliveryOperationCommand(
+            channel: DeliveryChannelEnum::EMAIL,
+            operationType: DeliveryOperationTypeEnum::NOTIFICATION,
+            status: DeliveryStatusEnum::SENT,
+            attemptNo: 1,
+            actorType: 'system',
+            actorId: 123,
+            scheduledAt: $scheduledAt
+        );
+
+        $recorder->recordCommand($command);
+
+        $this->assertEmpty($spyLogger->logs);
+    }
+
     public function testRecordSuccessfulPath(): void
     {
         $clock = new FixedClock();
