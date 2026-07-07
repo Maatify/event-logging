@@ -137,7 +137,7 @@ Must not introduce:
 Phase 3 — Primitive Read/Admin Viewing Support
 
 Owner: Jules first, then Codex if code gaps exist
-Status: Design/Audit Complete. Implementation Pending.
+Status: Complete.
 
 Goal:
 
