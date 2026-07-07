@@ -244,6 +244,10 @@ Checkpoints (Module Building Standard):
 Phase 5 — Validation Gate
 
 Owner: Jules
+Status: Complete
+
+Goal:
+Run and document the full validation gate for the current repository state before final audit/release readiness.
 
 Required validation:
 
@@ -256,6 +260,9 @@ If code was added, CI must pass.
 
 Checkpoints (Module Building Standard):
 * Verify: PHPStan max
+
+Output Document:
+docs/audits/PHASE_5_VALIDATION_GATE.md
 
 ⸻
 
