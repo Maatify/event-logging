@@ -96,7 +96,16 @@ class DiagnosticsTelemetryQueryMysqlRepository implements DiagnosticsTelemetryQu
             $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            return array_map(fn (array $row): DiagnosticsTelemetryEventDTO => $this->mapRowToDTO($row), $rows);
+            $results = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                /** @var array<string, mixed> $row */
+                $results[] = $this->mapRowToDTO($row);
+            }
+
+            return $results;
         } catch (PDOException $e) {
             throw new DiagnosticsTelemetryStorageException('Failed to query DiagnosticsTelemetry records: ' . $e->getMessage(), 0, $e);
         } catch (Exception $e) {

@@ -73,7 +73,16 @@ final class SecuritySignalsQueryMysqlRepository implements SecuritySignalsQueryI
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return array_map(fn (array $row): SecuritySignalsViewDTO => $this->mapRowToDTO($row), $rows);
+            $results = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                /** @var array<string, mixed> $row */
+                $results[] = $this->mapRowToDTO($row);
+            }
+
+            return $results;
         } catch (PDOException $e) {
             throw new SecuritySignalsStorageException('Failed to query SecuritySignals records: ' . $e->getMessage(), 0, $e);
         } catch (Throwable $e) {
@@ -101,14 +110,52 @@ final class SecuritySignalsQueryMysqlRepository implements SecuritySignalsQueryI
         );
     }
 
+
     /** @param array<string, mixed> $row */
-    private static function stringValue(array $row, string $key): ?string { return is_string($row[$key] ?? null) ? $row[$key] : null; }
+    private static function stringValue(array $row, string $key): ?string
+    {
+        return is_string($row[$key] ?? null) ? $row[$key] : null;
+    }
+
     /** @param array<string, mixed> $row */
-    private static function intValue(array $row, string $key): ?int { return isset($row[$key]) && is_numeric($row[$key]) ? (int) $row[$key] : null; }
+    private static function intValue(array $row, string $key): ?int
+    {
+        return isset($row[$key]) && is_numeric($row[$key]) ? (int) $row[$key] : null;
+    }
+
     /** @param array<string, mixed> $row */
-    private static function dateValue(array $row, string $key): DateTimeImmutable { return new DateTimeImmutable(is_string($row[$key] ?? null) ? $row[$key] : '1970-01-01 00:00:00', new DateTimeZone('UTC')); }
-    /** @param array<string, mixed> $row */
-    private static function nullableDate(array $row, string $key): ?DateTimeImmutable { return isset($row[$key]) && is_string($row[$key]) ? new DateTimeImmutable($row[$key], new DateTimeZone('UTC')) : null; }
-    /** @param array<string, mixed> $row @return array<string, mixed>|null */
-    private static function jsonArray(array $row, string $key): ?array { if (!isset($row[$key]) || !is_string($row[$key]) || $row[$key] === '') return null; try { $decoded = json_decode($row[$key], true, 512, JSON_THROW_ON_ERROR); return is_array($decoded) ? $decoded : null; } catch (JsonException) { return null; } }
+    private static function dateValue(array $row, string $key): DateTimeImmutable
+    {
+        return new DateTimeImmutable(is_string($row[$key] ?? null) ? $row[$key] : '1970-01-01 00:00:00', new DateTimeZone('UTC'));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>|null
+     */
+    private static function jsonArray(array $row, string $key): ?array
+    {
+        if (!isset($row[$key]) || !is_string($row[$key]) || $row[$key] === '') {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($row[$key], true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        foreach (array_keys($decoded) as $decodedKey) {
+            if (!is_string($decodedKey)) {
+                return null;
+            }
+        }
+
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
+    }
 }
