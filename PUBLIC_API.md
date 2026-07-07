@@ -48,5 +48,13 @@ The public entry points are the domain-specific contracts, DTOs, enums, recorder
 - `Maatify\EventLogging\Common\SystemClock`
 - `Maatify\EventLogging\Common\UrlSanitizer`
 - `Maatify\EventLogging\Common\MetadataSanitizer`
+- `Maatify\EventLogging\Factory\AuthoritativeAuditFactory`
+- `Maatify\EventLogging\Factory\AuditTrailFactory`
+- `Maatify\EventLogging\Factory\SecuritySignalsFactory`
+- `Maatify\EventLogging\Factory\BehaviorTraceFactory`
+- `Maatify\EventLogging\Factory\DiagnosticsTelemetryFactory`
+- `Maatify\EventLogging\Factory\DeliveryOperationsFactory`
+- `Maatify\EventLogging\Provider\EventLoggingProvider`
+- `Maatify\EventLogging\Provider\EventLoggingProviderFactory`
 
 No `App\`, project DI/container, project helper, or host-application-specific configuration API is part of the exported package surface.
