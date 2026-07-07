@@ -17,29 +17,44 @@ Factories will construct each domain logger/recorder. They require explicit depe
 Each factory will typically require:
 1.  `PDO`: The database connection.
 2.  `ClockInterface`: (e.g., `SystemClock`) For timestamp generation.
-3.  `?LoggerInterface`: An optional PSR-3 logger for fallback/diagnostic logging (fail-open domains only).
+3.  `?LoggerInterface`: An optional PSR-3 logger. For fail-open domains, this serves as a fallback logger. For the fail-closed AuthoritativeAudit domain, a PSR-3 logger is not a fallback that alters failure semantics; AuthoritativeAudit remains strictly fail-closed.
 4.  `?DomainPolicy`: Optional domain-specific policies where applicable.
 
-Example Factory signature (conceptual):
+Example Factory signature (conceptual - showing fail-open vs fail-closed):
 
 ```php
 namespace Maatify\EventLogging\Factory;
 
 use Maatify\EventLogging\AuthoritativeAudit\Recorder\AuthoritativeAuditRecorder;
+use Maatify\EventLogging\AuditTrail\Recorder\AuditTrailRecorder;
 // ... imports
 
 final class AuthoritativeAuditFactory
 {
+    // AuthoritativeAudit is fail-closed. No PSR-3 fallback logger is accepted
+    // unless explicitly documented for diagnostic-only usage.
+    public static function create(
+        \PDO $pdo,
+        ClockInterface $clock
+    ): AuthoritativeAuditRecorder {
+        $writer = static::createWriter($pdo);
+        return new AuthoritativeAuditRecorder($writer, $clock);
+    }
+
+    // ... public static function createWriter(\PDO $pdo) ...
+}
+
+final class AuditTrailFactory
+{
+    // AuditTrail is fail-open and accepts an optional PSR-3 fallback logger.
     public static function create(
         \PDO $pdo,
         ClockInterface $clock,
         ?LoggerInterface $psrLogger = null
-    ): AuthoritativeAuditRecorder {
+    ): AuditTrailRecorder {
         $writer = static::createWriter($pdo);
-        return new AuthoritativeAuditRecorder($writer, $clock, $psrLogger);
+        return new AuditTrailRecorder($writer, $clock, $psrLogger);
     }
-
-    // ... public static function createWriter(\PDO $pdo) ...
 }
 ```
 
@@ -57,7 +72,7 @@ These factories MUST NOT hide domain boundaries (e.g., they will not return a un
 
 **Decision: An optional, framework-agnostic Provider / Service Map will be included.**
 
-To allow host applications to inject a single object that provides access to all event logging capabilities, a `LoggingProvider` (or similar name) will be provided.
+To allow host applications to inject a single object that provides access to all event logging capabilities, an `EventLoggingProvider` will be provided.
 
 ### Characteristics:
 *   **Framework-Agnostic:** It is a pure PHP class. It does not implement any framework-specific service provider interface (e.g., Illuminate\Support\ServiceProvider).
@@ -105,7 +120,7 @@ final class EventLoggingProviderFactory
         ?LoggerInterface $psrLogger = null
     ): EventLoggingProvider {
         return new EventLoggingProvider(
-            AuthoritativeAuditFactory::create($pdo, $clock, $psrLogger),
+            AuthoritativeAuditFactory::create($pdo, $clock), // Fail-closed, no fallback logger
             AuditTrailFactory::create($pdo, $clock, $psrLogger),
             // ...
         );

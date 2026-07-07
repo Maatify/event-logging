@@ -25,7 +25,7 @@ The boundary between the `maatify/event-logging` library and host applications i
 
 ## 2. EventLoggingManager Decision
 
-**Decision: Expose a typed service map (`EventLoggerProvider` or `LoggingManager`), but avoid any generic recording API.**
+**Decision: Expose a typed service map (`EventLoggingProvider`), but avoid any generic recording API.**
 
 The package will NOT expose a generic `EventLoggingManager` that takes a `$domain` string and routes logs dynamically. Auto-routing generic APIs violate the isolation of logging domains.
 
