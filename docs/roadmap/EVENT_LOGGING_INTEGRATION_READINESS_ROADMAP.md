@@ -106,10 +106,11 @@ docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md
 Phase 2 — Factory / Provider Implementation
 
 Owner: Codex
+Status: Complete
 
 Goal:
 
-Implement framework-agnostic construction helpers.
+Implement framework-agnostic construction helpers. (Audit passed: `docs/audits/PHASE_2_FACTORY_PROVIDER_AUDIT.md`)
 
 Expected code:
 
