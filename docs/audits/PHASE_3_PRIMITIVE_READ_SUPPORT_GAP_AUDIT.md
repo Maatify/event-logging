@@ -82,4 +82,8 @@
 * **Repositories/infrastructure do not swallow Throwable:** Verified. Exception mapping is present.
 * **AuthoritativeAudit remains fail-closed:** Verified.
 * **Read/query exceptions follow MODULE_BUILDING_STANDARD:** Domain exceptions are named and extend `RuntimeException`.
-* **Named constructors and RuntimeException inheritance where exceptions are created directly:** Confirmed present in domain exception classes.
+* **RuntimeException inheritance:** Verified.
+* **Named constructors:** Not consistently present in existing domain storage exceptions.
+* **Resolution:** Phase 3 implementation must either:
+  * add named constructors where new/read-query exceptions are introduced or where exceptions are created directly, if aligned with MODULE_BUILDING_STANDARD, or
+  * explicitly document why existing simple storage exceptions remain constructor-based.
