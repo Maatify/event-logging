@@ -58,3 +58,16 @@ The public entry points are the domain-specific contracts, DTOs, enums, recorder
 - `Maatify\EventLogging\Provider\EventLoggingProviderFactory`
 
 No `App\`, project DI/container, project helper, or host-application-specific configuration API is part of the exported package surface.
+
+## Primitive read/query API
+
+Phase 3 exposes only domain-specific primitive query contracts, DTOs, and MySQL repositories for host-owned admin viewing foundations. The package does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, or CRUD APIs.
+
+- Authoritative audit: `AuthoritativeAuditQueryInterface`, `AuthoritativeAuditQueryDTO`, `AuthoritativeAuditViewDTO`, and `AuthoritativeAuditQueryMysqlRepository` query `maa_event_logging_authoritative_audit_log` with actor, target, action, correlation, date-range, cursor, and limit filters. It intentionally has no `requestId` filter because the authoritative audit log table does not store `request_id`.
+- Audit trail: `AuditTrailQueryInterface`, `AuditTrailQueryDTO`, `AuditTrailViewDTO`, and `AuditTrailQueryMysqlRepository` support actor, event key, entity, subject, request, correlation, date-range, cursor, and limit filters.
+- Security signals: `SecuritySignalsQueryInterface`, `SecuritySignalsQueryDTO`, `SecuritySignalsViewDTO`, and `SecuritySignalsQueryMysqlRepository` support actor, signal type, severity, request, correlation, date-range, cursor, and limit filters.
+- Behavior trace: `BehaviorTraceQueryInterface::find(BehaviorTraceQueryDTO $query)` adds query-based reads for actor, entity, action, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?BehaviorTraceCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
+- Diagnostics telemetry: `DiagnosticsTelemetryQueryInterface::find(DiagnosticsTelemetryQueryDTO $query)` adds query-based reads for actor, event key, severity, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?DiagnosticsTelemetryCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
+- Delivery operations: `DeliveryOperationsQueryInterface`, `DeliveryOperationsQueryDTO`, `DeliveryOperationsViewDTO`, and `DeliveryOperationsQueryMysqlRepository` support actor, target, channel, operation type, status, request, correlation, date-range, cursor, and limit filters.
+
+All primitive query repositories order results by `occurred_at DESC, id DESC`, apply descending cursor pagination with `cursorOccurredAt` and `cursorId`, safely decode JSON payload/metadata fields to arrays, return `null` for corrupt JSON, and wrap read/storage failures in the domain-specific storage exception.
