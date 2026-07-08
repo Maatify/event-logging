@@ -24,7 +24,7 @@
     - [x] Append-only behavior
     - [x] Schema artifact present (`Database/schema.maa_event_logging_diagnostics_telemetry.sql`)
 - [x] **Context & Timing**:
-    - [x] `ClockInterface` & `SystemClock`
+    - [x] `Maatify\SharedCommon\Contracts\ClockInterface`
     - [x] UTC enforcement (via `DateTimeZone('UTC')`)
     - [x] Correlation/Trace ID support
 - [x] **Archiving Awareness**:

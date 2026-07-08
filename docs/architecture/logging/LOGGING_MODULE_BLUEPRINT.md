@@ -240,7 +240,7 @@ The Module owns the **Write Semantics** (Schema). The Host owns the **Read Exper
 
 ### Integration Tests
 - **Target:** Infrastructure (Repository).
-- **Strategy:** Real Database (SQLite/MySQL).
+- **Strategy:** Real Database (MySQL).
 - **Assert:** Data persists, Round-trip (Write -> Read) works, Constraints (foreign keys, types) are honored.
 
 ### Constraints

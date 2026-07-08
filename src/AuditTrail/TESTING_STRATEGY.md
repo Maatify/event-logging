@@ -2,7 +2,7 @@
 
 ## Unit Tests
 **Scope**: Recorder, Policy, DTO.
-- Mock `AuditTrailLoggerInterface` and `ClockInterface`.
+- Mock `AuditTrailLoggerInterface` and `Maatify\SharedCommon\Contracts\ClockInterface`.
 - Assert `record()` constructs correct DTO.
 - Assert `record()` swallows exceptions from Logger.
 - Assert Policy validates metadata size.

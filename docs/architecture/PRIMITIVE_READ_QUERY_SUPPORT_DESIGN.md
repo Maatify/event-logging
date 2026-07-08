@@ -76,7 +76,7 @@ To strictly maintain domain isolation and align with `MODULE_BUILDING_STANDARD.m
 
 ## 7. Exception Policy
 *   **Domain-Specific:** All read and query methods MUST throw domain-specific exceptions (e.g., `AuditTrailStorageException`).
-*   **Inheritance:** Domain exceptions MUST inherit from `RuntimeException` and use named constructors where appropriate.
+*   **Inheritance:** Domain exceptions MUST inherit from `Maatify\Exceptions\Exception\System\SystemMaatifyException` and use named constructors where appropriate.
 *   **No Swallowing in Repositories:** Repositories and infrastructure layers MUST NOT swallow `Throwable` or `PDOException`. Exceptions must be caught and wrapped in the domain's storage exception.
 *   **Fail-Open Write Path:** The fail-open swallowing (for non-authoritative domains) applies strictly at the `Recorder` boundary, not the read path.
 *   **Metadata:** Read mapping MUST swallow `JsonException` and return `null` for corrupted metadata fields, ensuring the rest of the record is still readable.

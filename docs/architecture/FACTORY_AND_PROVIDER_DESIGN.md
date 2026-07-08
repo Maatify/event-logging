@@ -16,7 +16,7 @@ Factories will construct each domain logger/recorder. They require explicit depe
 
 Each factory will typically require:
 1.  `PDO`: The database connection.
-2.  `ClockInterface`: (e.g., `SystemClock`) For timestamp generation.
+2.  `ClockInterface`: (e.g., `SystemClock`) For timestamp generation. Must implement `Maatify\SharedCommon\Contracts\ClockInterface`.
 3.  `?LoggerInterface`: An optional PSR-3 logger. For fail-open domains, this serves as a fallback logger. For the fail-closed AuthoritativeAudit domain, a PSR-3 logger is not a fallback that alters failure semantics; AuthoritativeAudit remains strictly fail-closed.
 4.  `?DomainPolicy`: Optional domain-specific policies where applicable.
 

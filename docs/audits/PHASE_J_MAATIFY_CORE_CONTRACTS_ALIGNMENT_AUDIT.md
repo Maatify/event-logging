@@ -1,5 +1,7 @@
 # Phase J — Maatify Core Contracts Alignment Audit
 
+*Note: This is a historical audit document. Any references to the internal `ClockInterface` or exceptions inheriting directly from `RuntimeException` prior to Phase J are preserved here for historical context only. The repository now uses `Maatify\SharedCommon\Contracts\ClockInterface` and `Maatify\Exceptions\Exception\System\SystemMaatifyException`.*
+
 ## Scope
 Review the compliance of the `maatify/event-logging` library with Maatify core contracts (`maatify/exceptions` and `maatify/shared-common`), specifically focusing on Exception inheritance and the Clock interface. This phase serves as an audit and design step prior to implementation.
 

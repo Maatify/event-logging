@@ -385,7 +385,7 @@ LoggingCommon
         |           |           |           |             |
         v           v           v           v
 Correlation/     Actor/     Sanitization/   Clock/
-(CorrelationId) (ActorType) (Url/Metadata) (ClockInterface)
+(CorrelationId) (ActorType) (Url/Metadata) (Maatify\SharedCommon\Contracts\ClockInterface)
 
 ```
 Important:
