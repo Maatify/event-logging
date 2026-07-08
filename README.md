@@ -49,7 +49,7 @@ Available examples in `examples/`:
 - `12-custom-policy.php`
 - `13-psr-fallback-logger.php`
 
-Note: These are plain PHP skeletons. DB-dependent examples require an explicit safe MySQL `DB_DSN` to be set. They are not executed automatically, contain no real credentials, and do not use an SQLite fallback.
+Note: These are plain PHP skeletons. DB-dependent examples require an explicit safe MySQL `DB_DSN` to be set. They are not executed automatically, contain no real credentials, and do not use SQLite.
 
 ## Installation
 

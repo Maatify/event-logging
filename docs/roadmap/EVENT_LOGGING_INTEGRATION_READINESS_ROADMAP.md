@@ -324,7 +324,7 @@ Status: Complete
 
 Goal:
 
-Ensure that all operational, architectural, integration, and user-facing documentation accurately reflects the final, post-Phase-J state (where the clock contract is externalized to `maatify/shared-common`, exceptions extend `SystemMaatifyException`, and no SQLite fallbacks exist).
+Ensure that all operational, architectural, integration, and user-facing documentation accurately reflects the final, post-Phase-J state (where the clock contract is externalized to `maatify/shared-common`, exceptions extend `SystemMaatifyException`, and no SQLite exists).
 
 Output Document:
 docs/audits/FINAL_DOCUMENTATION_STATE_CLEANUP_AUDIT.md
