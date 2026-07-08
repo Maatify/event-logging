@@ -5,7 +5,7 @@
 **Namespace:** `Maatify\EventLogging\DiagnosticsTelemetry`
 
 ## Purpose
-This module provides a standalone from host applications and frameworks, isolated logging mechanism for **Diagnostics Telemetry** ONLY. It is designed to be the simplest starting point for a unified logging architecture.
+This module provides a framework-agnostic, host-independent logging mechanism for **Diagnostics Telemetry** ONLY. It is designed to be the simplest starting point for a unified logging architecture.
 
 ## Architecture
 

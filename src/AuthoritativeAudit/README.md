@@ -5,7 +5,7 @@
 **Namespace:** `Maatify\EventLogging\AuthoritativeAudit`
 
 ## Purpose
-This module provides a standalone from host applications and frameworks, isolated logging mechanism for **Authoritative Audit** events. It represents compliance-grade, governance-critical changes (e.g., Privileged account creation, Role assignment, System ownership changes).
+This module provides a framework-agnostic, host-independent logging mechanism for **Authoritative Audit** events. It represents compliance-grade, governance-critical changes (e.g., Privileged account creation, Role assignment, System ownership changes).
 
 **Key Characteristics:**
 - **Fail-Closed:** If writing to the outbox fails, the operation MUST fail.
