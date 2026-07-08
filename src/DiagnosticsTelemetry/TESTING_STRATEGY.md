@@ -20,7 +20,7 @@ This module is designed to be tested in isolation.
   - Test `validateMetadataSize` (64KB limit).
 
 - **Recorder Logic:**
-  - Mock `DiagnosticsTelemetryLoggerInterface` and `ClockInterface`.
+  - Mock `DiagnosticsTelemetryLoggerInterface` and `Maatify\SharedCommon\Contracts\ClockInterface`.
   - Call `record(...)` with various inputs.
   - Verify `write(...)` is called on the writer with the correct `DiagnosticsTelemetryEventDTO`.
   - Verify write-side truncation (pass long strings and check the DTO passed to the writer).
@@ -34,7 +34,7 @@ Note: Integration tests validate storage correctness, not query expressiveness.
 **Target:** `Infrastructure\Mysql\**Repository`.
 
 - **Setup:**
-  - Use `Database/schema.maa_event_logging_diagnostics_telemetry.sql` to create the table in a test DB (MySQL/SQLite).
+  - Use `Database/schema.maa_event_logging_diagnostics_telemetry.sql` to create the table in a test DB (MySQL).
 
 - **Write Test:**
   - Instantiate `DiagnosticsTelemetryLoggerMysqlRepository` with a real PDO.

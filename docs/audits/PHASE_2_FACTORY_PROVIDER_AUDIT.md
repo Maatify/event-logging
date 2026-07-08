@@ -1,5 +1,7 @@
 # Phase 2 — Factory / Provider Implementation Audit
 
+*Note: This is a historical audit document from before Phase J. Any references to the internal `ClockInterface` or exceptions inheriting directly from `RuntimeException` are preserved here for historical context only. The repository now uses `Maatify\SharedCommon\Contracts\ClockInterface` and `Maatify\Exceptions\Exception\System\SystemMaatifyException`.*
+
 **Commit:** `cd6eb104ceb4d98bce4235c9ab6e8ed3d7b243ff`
 **Auditor:** Jules
 **Status:** PASS

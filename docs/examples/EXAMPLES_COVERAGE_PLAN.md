@@ -36,7 +36,7 @@ examples/
 
 ### `00-bootstrap.php`
 - **Purpose:** Setup a dummy environment (PDO, Clock, PSR-3 Logger) used by other runnable examples.
-- **Dependencies:** `PDO`, `ClockInterface` (implementation), `LoggerInterface` (implementation).
+- **Dependencies:** `PDO`, `Maatify\SharedCommon\Contracts\ClockInterface` (implementation), `LoggerInterface` (implementation).
 - **Demonstrates:** How a host application might prepare the dependencies required by the package.
 - **Must Not Demonstrate:** Real credentials. Use a safe dummy MySQL test DSN from environment variables. SQLite must not be presented as a compatible runtime for the package MySQL repositories.
 - **Safety Notes:** Do not include real passwords.

@@ -57,4 +57,4 @@ $logs = $queryRepo->find($query);
 
 Ensure `AuditTrailRecorder` is wired in your DI container with:
 - `AuditTrailLoggerInterface` implementation (e.g. `AuditTrailLoggerMysqlRepository`)
-- `ClockInterface` implementation
+- `Maatify\SharedCommon\Contracts\ClockInterface` implementation

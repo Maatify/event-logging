@@ -7,7 +7,7 @@ The `maatify/event-logging` library provides optional, framework-agnostic factor
 To instantiate the provider or individual factories, the host application must construct and supply the following dependencies:
 
 1. **`PDO`**: A standard configured PDO instance connected to your database.
-2. **`ClockInterface`**: An instance implementing `Maatify\SharedCommon\Contracts\ClockInterface` (typically `Maatify\EventLogging\Common\SystemClock`).
+2. **`ClockInterface`**: An instance implementing `Maatify\SharedCommon\Contracts\ClockInterface` (e.g., `Maatify\EventLogging\Common\SystemClock`).
 3. **`LoggerInterface` (Optional)**: A PSR-3 compatible logger to provide fail-open fallback behavior for specific domains.
 
 ## Creating the Default Provider

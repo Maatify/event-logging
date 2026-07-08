@@ -13,7 +13,7 @@ This checklist certifies that the module adheres to the Canonical Logging Standa
 ## 2. Dependency Safety
 - [x] **No Framework Coupling**: Does not use `request()`, `auth()`, or DI container helpers.
 - [x] **No Domain Leaks**: Does not reference User, Order, or other business entities.
-- [x] **Explicit Dependencies**: Uses `ClockInterface`, `LoggerInterface`.
+- [x] **Explicit Dependencies**: Uses `Maatify\SharedCommon\Contracts\ClockInterface`, `LoggerInterface`.
 
 ## 3. Recorder Logic
 - [x] **Fail-Open**: `record()` catches `Throwable` and returns `void`.

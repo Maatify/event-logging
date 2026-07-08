@@ -5,7 +5,7 @@ This document defines how the module must be tested to ensure compliance with th
 ## 1. Unit Tests (Recorder & Policy)
 
 **Scope:** `Maatify\EventLogging\BehaviorTrace\Recorder`
-**Mocking:** Mock `BehaviorTraceWriterInterface`, `ClockInterface`, `LoggerInterface`.
+**Mocking:** Mock `BehaviorTraceWriterInterface`, `Maatify\SharedCommon\Contracts\ClockInterface`, `LoggerInterface`.
 
 ### Test Cases:
 1.  **Happy Path**: `record()` creates correct DTO and calls `writer->write()`.
@@ -21,7 +21,7 @@ This document defines how the module must be tested to ensure compliance with th
 ## 2. Integration Tests (Infrastructure)
 
 **Scope:** `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql`
-**Environment:** Real MySQL Database (or SQLite in-memory if compatible).
+**Environment:** Real MySQL Database.
 
 ### Test Cases:
 1.  **Persistence**: `write()` inserts a row into `maa_event_logging_behavior_trace`.

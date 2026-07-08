@@ -62,7 +62,7 @@ The module is designed to be isolated.
     - `PDO` (standard PHP extension)
     - `Psr\Log\LoggerInterface` (standard PSR)
     - `Ramsey\Uuid` (explicit dependency for UUIDv4 generation)
-    - `ClockInterface` (internal abstraction)
+    - `Maatify\SharedCommon\Contracts\ClockInterface`
 
 
 

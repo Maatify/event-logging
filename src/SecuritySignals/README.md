@@ -41,4 +41,4 @@ class AuthController {
 
 Ensure `SecuritySignalsRecorder` is wired in your DI container with:
 - `SecuritySignalsLoggerInterface` implementation (e.g. `SecuritySignalsLoggerMysqlRepository`)
-- `ClockInterface` implementation
+- `Maatify\SharedCommon\Contracts\ClockInterface` implementation

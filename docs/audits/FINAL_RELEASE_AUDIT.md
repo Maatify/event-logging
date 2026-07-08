@@ -1,5 +1,7 @@
 # FINAL RELEASE AUDIT
 
+*Note: This is a historical audit document from before Phase J. Any references to the internal `ClockInterface` or exceptions inheriting directly from `RuntimeException` are preserved here for historical context only. The repository now uses `Maatify\SharedCommon\Contracts\ClockInterface` and `Maatify\Exceptions\Exception\System\SystemMaatifyException`.*
+
 ## Verdict
 PASS
 
