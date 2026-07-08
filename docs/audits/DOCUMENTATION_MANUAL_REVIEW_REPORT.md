@@ -13,7 +13,7 @@ This report evaluates files flagged with `Needs manual review` in the `DOCUMENTA
 | `./docs/integration/INSTALLATION.md` | Safe guardrail wording | States "does not assume usage of Slim, Laravel, Symfony, PHP-DI" to emphasize isolation. | Keep as-is | None needed. |
 | `./docs/integration/MANUAL_WIRING.md` | Safe guardrail wording | Explains there are "no generic loggers" and "No Internal Framework Bindings" for DI containers. | Keep as-is | None needed. |
 | `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md` | Safe guardrail wording | Prohibits a "generic log event" DTO. | Keep as-is | None needed. |
-| `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Unsafe current wording | Instructs to "Verify named constructors and RuntimeException inheritance". This contradicts the project requirement that exceptions must extend `SystemMaatifyException` and return a specific enum. | Update wording | Update wording to require extending `SystemMaatifyException` instead of `RuntimeException`. |
+| `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Resolved unsafe wording | Instructs to "Verify named constructors and RuntimeException inheritance". This contradicts the project requirement that exceptions must extend `SystemMaatifyException` and return a specific enum. | Keep as-is | Resolved by roadmap exception-policy wording update. |
 | `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md` | Safe guardrail wording | Lists items like "Ensure no GenericLogger" and "Ensure no framework bindings" as architecture regression test goals. | Keep as-is | None needed. |
 | `./docs/standards/MODULE_BUILDING_STANDARD.md` | Host-app coupling risk | Recommends `\RuntimeException` for exceptions and uses `php-di/php-di` `ContainerBuilder` for DI bindings. This conflicts with the standalone library rules (using `SystemMaatifyException` and no PHP-DI bindings). | Needs architect decision | Clarify if this standard applies only to host-app modules or needs specific standalone library exceptions added to the standard. |
 | `./schema/README.md` | Safe guardrail wording | States the domain isolation "avoids implying a shared generic log table". | Keep as-is | None needed. |
@@ -22,7 +22,7 @@ This report evaluates files flagged with `Needs manual review` in the `DOCUMENTA
 ## Prioritized Cleanup Recommendations
 
 ### Fix Now Before v1.0.0-rc.1
-- **`./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md`**: Contains a direct contradiction with the current exception architecture (`RuntimeException` vs `SystemMaatifyException`). Needs an immediate update to ensure the roadmap aligns with the required implementation.
+No remaining Fix Now documentation wording blockers identified by this report.
 
 ### Keep As Guardrails
 The following files contain correctly phrased prohibitions (e.g., "no generic logger", "no framework bindings") and should remain exactly as they are:
