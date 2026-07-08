@@ -52,7 +52,7 @@
 | `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Reviewed: previous exception-policy wording was corrected; remaining generic/framework mentions are historical roadmap context or guardrails. |
 | `./docs/roadmap/EVENT_LOGGING_RELEASE_READINESS_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks |  |
 | `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Needs manual review: mentions generic logger/recorder/repo, framework bindings (Slim, PHP-DI, etc) |
-| `./docs/standards/MODULE_BUILDING_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions RuntimeException as storage exception, framework bindings (Slim, PHP-DI, etc) |
+| `./docs/standards/PACKAGE_BUILDING_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Resolved (Updated to Package Standard): `RuntimeException` is completely forbidden and replaced with `SystemMaatifyException`; no longer recommends framework bindings. |
 | `./docs/testing/TEST_COVERAGE_MATRIX.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./schema/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions generic logger/recorder/repo |
 | `./src/AuditTrail/CANONICAL_ARCHITECTURE.md` | Domain Docs | Candidate for Archive | Domain canonical architecture |  |
