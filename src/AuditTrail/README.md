@@ -1,6 +1,6 @@
 # AuditTrail Module
 
-A standalone library for logging data access, views, and exports.
+A framework-agnostic standalone library (uses explicit Composer/runtime dependencies) for logging data access, views, and exports.
 
 ## Installation
 

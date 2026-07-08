@@ -30,4 +30,4 @@ This library is highly decoupled and acts as an integration-agnostic package. Th
 - **No Framework Requirement:** This package does not assume usage of Slim, Laravel, Symfony, PHP-DI, or any other framework/container.
 - **No Host App Dependency:** The package maintains absolute isolation from host applications.
 - **Host-Provided PDO:** The package requires a standard `PDO` instance for persistence, which must be created and provided by the host application.
-- **No Automatic Routes/Controllers/UI:** This package does not automatically register any HTTP routes, controllers, or Admin UIs. The host application must implement all such features independently.
+- **No Automatic Routes/Controllers/UI:** This package does not automatically register any HTTP routes, controllers, or Admin UIs. The host application must implement all such features isolated from this package.

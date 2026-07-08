@@ -2,7 +2,7 @@
 
 > **Project:** maatify/event-logging
 > **Status:** CANONICAL (Binding — Subordinate to unified-logging-system.*)
-> **Scope:** Defines the **mandatory design standard** for building any logging domain as a standalone, extractable library.
+> **Scope:** Defines the **mandatory design standard** for building any logging domain as a framework-agnostic standalone, extractable library (uses explicit Composer/runtime dependencies).
 > **Terminology Source of Truth:** `docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md`
 > **ASCII Language Source of Truth:** `docs/architecture/logging/ASCII_FLOW_LEGENDS.md`
 > **Architecture Source of Truth:**
@@ -21,7 +21,7 @@ This standard exists to guarantee that **every logging domain**:
 * has honest and predictable failure semantics
 * enforces strict DTO discipline
 * respects explicit policy boundaries
-* can be extracted later as a standalone library **without redesign**
+* can be extracted later as a framework-agnostic standalone library (uses explicit Composer/runtime dependencies) **without redesign**
 
 This standard applies to **all six logging domains** defined in
 `LOG_DOMAINS_OVERVIEW.md`.

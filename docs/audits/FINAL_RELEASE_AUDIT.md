@@ -18,7 +18,7 @@ The `maatify/event-logging` package has successfully completed all roadmap phase
 ## Standalone package readiness
 - **Composer package name:** `maatify/event-logging`
 - **PSR-4 namespace:** `Maatify\EventLogging\`
-- **Host application references:** None. There are no dependencies or references to `Athar Admin`, `App\`, `Slim`, or any host-project runtime dependencies.
+- **Host application references:** None. There are no framework or host dependencies, nor references to `Athar Admin`, `App\`, `Slim`, or any host-project runtime dependencies.
 - **Public documentation:** Accurate, consistent, and ready for release.
 
 ## Architecture compliance

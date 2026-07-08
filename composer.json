@@ -1,6 +1,6 @@
 {
   "name": "maatify/event-logging",
-  "description": "Standalone event logging library containing isolated Maatify logging domains.",
+  "description": "Framework-agnostic standalone event logging library containing isolated Maatify logging domains. Depends only on explicit Composer/runtime dependencies.",
   "type": "library",
   "license": "MIT",
   "require": {

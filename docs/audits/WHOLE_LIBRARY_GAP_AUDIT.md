@@ -12,7 +12,7 @@ Commit: `6292c8485a3a312f68f8dd5e8df8acef251dc5db`
 Review based on files up to the aforementioned commit. All historical documents are treated as such, while the `src/` directory and active test suite define the factual state.
 
 ## Architecture review
-* **Standalone Package:** No dependencies on specific frameworks. The namespace is pure `Maatify\EventLogging`. No `App\`, `Athar`, or similar bindings.
+* **Standalone Package:** No dependencies on specific frameworks (depends only on explicit Composer/runtime dependencies). The namespace is pure `Maatify\EventLogging`. No `App\`, `Athar`, or similar bindings.
 * **Domain Isolation:** Six distinct domains exist (AuthoritativeAudit, AuditTrail, SecuritySignals, BehaviorTrace, DiagnosticsTelemetry, DeliveryOperations). There are no generic "logs" or "event_logs" tables or concepts.
 
 ## Public API review

@@ -12,7 +12,7 @@
 
 This document enforces a single structural rule:
 
-> Every logging domain MUST be structured as if it will be extracted into an independent library later.
+> Every logging domain MUST be structured as if it will be extracted into a standalone library from host applications (uses explicit Composer/runtime dependencies) later.
 
 This prevents:
 

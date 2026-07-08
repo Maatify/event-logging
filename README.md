@@ -1,6 +1,6 @@
 # Maatify Event Logging
 
-`maatify/event-logging` is a standalone Composer library for isolated Maatify event logging domains. It is framework-agnostic and is wired by host applications through their own dependency setup.
+`maatify/event-logging` is a framework-agnostic, standalone Composer package (not self-contained; it uses explicit Composer/runtime dependencies) for isolated Maatify event logging domains. It is wired by host applications through their own dependency setup.
 
 ## Logging domains
 
@@ -13,7 +13,7 @@ The package preserves six isolated event logging domains:
 5. **DiagnosticsTelemetry** — technical observability and diagnostic events.
 6. **DeliveryOperations** — async jobs, notifications, webhooks, and delivery lifecycle events.
 
-Shared primitives under `Maatify\EventLogging\Common` are limited to cross-domain utilities such as sanitizers and the `SystemClock` implementation. The clock contract source of truth is `maatify/shared-common` (`Maatify\SharedCommon\Contracts\ClockInterface`), and storage exception identity comes from `maatify/exceptions` (`SystemMaatifyException` with Maatify error codes). The package remains standalone within the Maatify ecosystem, has no framework binding, and does not provide a generic logger, generic DTO, generic recorder, or shared generic log table.
+Shared primitives under `Maatify\EventLogging\Common` are limited to cross-domain utilities such as sanitizers and the `SystemClock` implementation. The clock contract source of truth is `maatify/shared-common` (`Maatify\SharedCommon\Contracts\ClockInterface`), and storage exception identity comes from `maatify/exceptions` (`SystemMaatifyException` with Maatify error codes). The package remains standalone from host applications and frameworks within the Maatify ecosystem, and does not provide a generic logger, generic DTO, generic recorder, or shared generic log table.
 
 
 ## Recording API shape

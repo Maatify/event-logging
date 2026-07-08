@@ -16,7 +16,7 @@ This document defines a single unified approach to logging across the system tha
 * enforces consistent layering (HTTP → Domain policy → Storage)
 * provides honest failure semantics (no hidden failures except where explicitly permitted)
 * supports scalable retention (baseline first; archiving remains optional guidance)
-* enables future extraction of each logging domain as an independent library
+* enables future extraction of each logging domain as a standalone library from host applications
 
 ---
 
