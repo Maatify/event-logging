@@ -1,6 +1,6 @@
 # Diagnostics Telemetry Module
 
-**Project:** maatify/admin-control-panel
+**Project:** maatify/event-logging
 **Module:** DiagnosticsTelemetry
 **Namespace:** `Maatify\EventLogging\DiagnosticsTelemetry`
 
