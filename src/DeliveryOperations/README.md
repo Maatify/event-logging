@@ -1,6 +1,6 @@
 # DeliveryOperations Module
 
-**Project:** maatify/admin-control-panel
+**Project:** maatify/event-logging
 **Module:** DeliveryOperations
 **Namespace:** `Maatify\EventLogging\DeliveryOperations`
 
