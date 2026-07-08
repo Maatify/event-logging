@@ -330,7 +330,7 @@ public function list(
 // 1. Total — unfiltered count of the entire table (no WHERE)
 $stmtTotal = $this->pdo->query('SELECT COUNT(*) FROM maa_something');
 if ($stmtTotal === false) {
-    throw new \RuntimeException('Failed to count maa_something');
+    throw SomeDomainDatabaseException::queryFailed('Failed to count maa_something');
 }
 $total = (int) $stmtTotal->fetchColumn();
 
@@ -354,8 +354,7 @@ $stmt->bindValue(':offset', $offset,  PDO::PARAM_INT);
 $stmt->execute();
 ```
 
-Note: `new \RuntimeException(...)` in the total count guard above is an **infrastructure guard**,
-not a domain/business error. It is acceptable here because there is no meaningful recovery.
+Note: The exception thrown in the total count guard above must be a domain-specific storage exception (extending `SystemMaatifyException`), in line with the package exception policy. Creating a raw `\RuntimeException` here is forbidden.
 
 ### The WHERE Builder Pattern
 

@@ -25,7 +25,7 @@ Previous release audit passed for the extracted core, and all integration-readin
 - **PHPStan max:** Deferred to Phase 5
 - **Public contracts/interfaces:** Applicable now (Phase 1)
 - **Documentation completeness:** Deferred to Phase 4
-- **Final “module is not done until” checklist:** Deferred to Phase 6
+- **Final “package is not done until” checklist:** Deferred to Phase 6
 
 ⸻
 
@@ -281,7 +281,7 @@ Required verdict:
 * PASS
 
 Checkpoints (Package Building Standard):
-* Final audit against docs/standards/MODULE_BUILDING_STANDARD.md
+* Final audit against docs/standards/PACKAGE_BUILDING_STANDARD.md
 * Verify: Final "package is not done until" checklist
 
 *Note: Phase 6 was historically passed prior to Phase J. However, Phase 6 alone is no longer considered the final release audit due to subsequent architectural changes.*

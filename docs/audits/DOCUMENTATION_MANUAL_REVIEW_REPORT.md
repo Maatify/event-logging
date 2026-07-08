@@ -15,7 +15,7 @@ This report evaluates files flagged with `Needs manual review` in the `DOCUMENTA
 | `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md` | Safe guardrail wording | Prohibits a "generic log event" DTO. | Keep as-is | None needed. |
 | `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Resolved unsafe wording | Instructs to "Verify named constructors and RuntimeException inheritance". This contradicts the project requirement that exceptions must extend `SystemMaatifyException` and return a specific enum. | Keep as-is | Resolved by roadmap exception-policy wording update. |
 | `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md` | Safe guardrail wording | Lists items like "Ensure no GenericLogger" and "Ensure no framework bindings" as architecture regression test goals. | Keep as-is | None needed. |
-| `./docs/standards/MODULE_BUILDING_STANDARD.md` | Resolved unsafe wording | Recommended `\RuntimeException` for exceptions and used `php-di/php-di` `ContainerBuilder` for DI bindings. This conflicted with the standalone library rules. | Keep as package standard | Resolved. The document was rewritten into a `PACKAGE_BUILDING_STANDARD` that enforces `SystemMaatifyException` and forbids framework DI bindings. |
+| `./docs/standards/PACKAGE_BUILDING_STANDARD.md` | Resolved unsafe wording | Recommended `\RuntimeException` for exceptions and used `php-di/php-di` `ContainerBuilder` for DI bindings. This conflicted with the standalone library rules. | Keep as package standard | Resolved. The document was rewritten into a `PACKAGE_BUILDING_STANDARD` and completely removes `RuntimeException`, enforces `SystemMaatifyException`, and forbids framework DI bindings. |
 | `./schema/README.md` | Safe guardrail wording | States the domain isolation "avoids implying a shared generic log table". | Keep as-is | None needed. |
 | `./src/DiagnosticsTelemetry/CHECKLIST.md` | Safe guardrail wording | Checklist verifies "No dependencies on App\Models or App\Services". | Convert to historical/archive | Wording is safe, but this is a domain checklist meant for the archive. |
 
@@ -35,7 +35,7 @@ The following files contain correctly phrased prohibitions (e.g., "no generic lo
 - `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md`
 - `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md`
 - `./schema/README.md`
-- `./docs/standards/MODULE_BUILDING_STANDARD.md` (Now updated to reflect safe package standards)
+- `./docs/standards/PACKAGE_BUILDING_STANDARD.md` (Now updated to reflect safe package standards)
 
 ### Archive / Consolidation Candidates
 - **`./src/DiagnosticsTelemetry/CHECKLIST.md`**: The wording is correct, but the document itself is a candidate for the historical archive alongside other domain checklists.

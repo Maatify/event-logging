@@ -67,7 +67,7 @@ Ordering MUST be stable across all domains: `ORDER BY occurred_at DESC, id DESC`
 *   Localization and labeling.
 
 ## 6. Architecture Constraints
-To strictly maintain domain isolation and align with `MODULE_BUILDING_STANDARD.md`:
+To strictly maintain domain isolation and align with `PACKAGE_BUILDING_STANDARD.md`:
 *   **NO** GenericReader or GenericQueryRepository.
 *   **NO** GenericLogViewer or UI controllers.
 *   **NO** GenericLogDTO.
