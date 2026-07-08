@@ -181,7 +181,7 @@ The module MUST provide a **Primitive Reader** for archiving and system access.
 - No other swallowing is permitted on the read-side.
 
 ### Why Required?
-Even if the application uses a separate UI reader, the module MUST be independently verifiable and exportable.
+Even if the application uses a separate UI reader, the module MUST be verifiable and exportable isolated from host applications.
 
 ---
 
@@ -225,7 +225,7 @@ The Module owns the **Write Semantics** (Schema). The Host owns the **Read Exper
 ### Recursion Guard (Hard Rule)
 
 - Failure handling MUST NOT trigger any logging Recorder or Writer again.
-- The fallback channel MUST be primitive and dependency-free
+- The fallback channel MUST be primitive (depends only on explicit Composer/runtime dependencies)
   (e.g., `error_log`, syslog, stderr).
 - Recursive logging attempts are forbidden.
 

@@ -10,7 +10,7 @@ Read it fully before writing a single line of code.
 
 Every module must be:
 
-- **Standalone** — runs independently with no knowledge of the host project internals
+- **Standalone** — runs isolated from host applications (depends only on explicit Composer/runtime dependencies) with no knowledge of the host project internals
 - **Extractable** — can be packaged as a `composer require` library
 - **Host-agnostic** — never FKs or JOINs on host tables. Host provides IDs; module trusts them
 - **PDO-based** — all persistence uses PDO directly. No ORM, no external query builder.

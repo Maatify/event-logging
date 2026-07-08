@@ -1,6 +1,6 @@
 # SecuritySignals Module
 
-A standalone library for logging security indicators and alerts.
+A framework-agnostic standalone library (uses explicit Composer/runtime dependencies) for logging security indicators and alerts.
 
 ## Installation
 

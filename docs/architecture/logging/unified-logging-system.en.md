@@ -21,7 +21,7 @@ Build a strict logging architecture that prevents semantic mixing and enables:
 * Each event logged in exactly **one domain**
 * One MySQL table per domain, column-searchable
 * No secrets or sensitive data logged
-* Design extractable into independent libraries
+* Design extractable into framework-agnostic standalone libraries
 
 ---
 

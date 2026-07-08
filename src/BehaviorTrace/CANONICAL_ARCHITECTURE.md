@@ -1,7 +1,7 @@
 # BehaviorTrace: Canonical Architecture
 
 **Status:** Final / Authoritative
-**Type:** Standalone Library
+**Type:** Framework-agnostic standalone library (uses explicit Composer/runtime dependencies)
 **Scope:** Operational Activity
 
 ---

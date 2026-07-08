@@ -5,7 +5,7 @@
 **Namespace:** `Maatify\EventLogging\BehaviorTrace`
 
 ## Purpose
-This module provides a standalone, isolated logging mechanism for **Operational Activity** (Mutations Only). It tracks "Who did what to what" (e.g., Create, Update, Delete actions). It is NOT for read/view logs (use Audit Trail) or technical logs (use Diagnostics Telemetry).
+This module provides a standalone from host applications and frameworks, isolated logging mechanism for **Operational Activity** (Mutations Only). It tracks "Who did what to what" (e.g., Create, Update, Delete actions). It is NOT for read/view logs (use Audit Trail) or technical logs (use Diagnostics Telemetry).
 
 ## Architecture
 

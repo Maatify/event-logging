@@ -5,7 +5,7 @@
 **Namespace:** `Maatify\EventLogging\DeliveryOperations`
 
 ## Purpose
-This module provides a standalone, isolated logging mechanism for **Delivery Operations** (Jobs, Queues, Notifications, Webhooks). It tracks the lifecycle of asynchronous operations (e.g., queued, sent, delivered, failed).
+This module provides a standalone from host applications and frameworks, isolated logging mechanism for **Delivery Operations** (Jobs, Queues, Notifications, Webhooks). It tracks the lifecycle of asynchronous operations (e.g., queued, sent, delivered, failed).
 
 **Key Characteristics:**
 - **Best-Effort:** Logging failures are swallowed (fail-open) to prevent disrupting the core operation.
