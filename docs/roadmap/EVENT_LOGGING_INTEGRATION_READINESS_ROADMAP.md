@@ -184,8 +184,7 @@ Checkpoints (Module Building Standard):
 * Verify fail-open swallowing exists only at the Recorder boundary.
 * Verify repositories/infrastructure do not swallow Throwable.
 * Verify AuthoritativeAudit remains fail-closed.
-* Verify read/query exceptions follow MODULE_BUILDING_STANDARD where applicable.
-* Verify domain-specific storage/read/query exceptions use named constructors where applicable, extend SystemMaatifyException, and use the appropriate Maatify error code enum instead of RuntimeException as the current storage exception base.
+* Verify read/query/storage exceptions follow the current event-logging exception policy: domain-specific exception classes, named constructors where applicable, SystemMaatifyException as the base, and the appropriate Maatify error code enum instead of RuntimeException as the storage exception base.
 
 Expected code if missing:
 
