@@ -266,6 +266,20 @@ docs/audits/PHASE_5_VALIDATION_GATE.md
 
 ⸻
 
+Phase J — Maatify Core Contracts Alignment Audit
+
+Owner: Jules
+Status: Complete
+
+Goal:
+
+Review the compliance of the `maatify/event-logging` library with Maatify core contracts (`maatify/exceptions` and `maatify/shared-common`). This phase was introduced due to a Maatify ecosystem compliance decision prior to final release.
+
+Output Document:
+docs/audits/PHASE_J_MAATIFY_CORE_CONTRACTS_ALIGNMENT_AUDIT.md
+
+⸻
+
 Phase 6 — Final Integration Release Audit
 
 Owner: Jules
