@@ -20,8 +20,8 @@ The library currently defines 6 exceptions, all of which directly extend `Runtim
 6. `Maatify\EventLogging\DiagnosticsTelemetry\Exception\DiagnosticsTelemetryStorageException`
 
 **Mapping Proposal**:
-These are primarily storage-related errors wrapping PDO exceptions. The most appropriate base class in `maatify/exceptions` is `Maatify\Exceptions\Exception\System\DatabaseConnectionMaatifyException` (or `SystemMaatifyException`).
-**Recommendation**: Make these domain exceptions extend `DatabaseConnectionMaatifyException` (or `SystemMaatifyException`) from `maatify/exceptions`. The domain-specific exception names MUST be kept to prevent breaking `catch` blocks in host applications.
+These are primarily storage-related errors wrapping PDO exceptions. While `Maatify\Exceptions\Exception\System\DatabaseConnectionMaatifyException` conceptually fits, it is a `final class` and cannot be extended. Therefore, it should be used only as a semantic reference.
+**Recommendation**: Make these domain exceptions extend `Maatify\Exceptions\Exception\System\SystemMaatifyException`. The domain-specific exception names MUST be kept to prevent breaking `catch` blocks in host applications. Each exception will need to implement the required default error identity methods (e.g., `defaultErrorCode(): ErrorCodeInterface`).
 
 ## Clock Inventory
 
@@ -68,8 +68,9 @@ The API breakage in the `ClockInterface` namespaces and signatures is inevitable
    - Delete `src/Common/ClockInterface.php`.
    - Update `SystemClock` and `FixedClock` to implement `getTimezone(): DateTimeZone`.
 3. **Exception Migration**:
-   - Update the 6 domain storage exceptions to extend `Maatify\Exceptions\Exception\System\DatabaseConnectionMaatifyException` (or `SystemMaatifyException`).
-   - Remove `use RuntimeException;` and implement any required abstract methods (or rely on the base class implementations).
+   - Update the 6 domain storage exceptions to extend `Maatify\Exceptions\Exception\System\SystemMaatifyException`.
+   - Remove `use RuntimeException;`.
+   - Implement the required abstract methods for error identity (e.g., `defaultErrorCode(): ErrorCodeInterface`).
 4. **Testing**:
    - Update `tests/Regression/ArchitectureTest.php` if it currently asserts for internal primitives/ClockInterface.
    - Verify `phpunit` passes with the newly mocked/real clocks.
@@ -102,7 +103,7 @@ Please implement Phase J - Maatify Core Contracts Alignment based on the audit r
 2. Delete `src/Common/ClockInterface.php`.
 3. Find all usages of `Maatify\EventLogging\Common\ClockInterface` in `src/`, `tests/`, `examples/`, and `docs/` and replace them with `Maatify\SharedCommon\Contracts\ClockInterface`.
 4. Update `SystemClock` (`src/Common/SystemClock.php`) and `FixedClock` (`tests/Support/FixedClock.php`) to implement the `getTimezone(): DateTimeZone` method required by the new interface.
-5. Update all 6 storage exception classes in `src/` to extend `Maatify\Exceptions\Exception\System\DatabaseConnectionMaatifyException` instead of `RuntimeException`. Ensure no specific domain names are changed.
+5. Update all 6 storage exception classes in `src/` to extend `SystemMaatifyException` and implement required default error identity methods, while preserving all existing domain-specific exception class names.
 6. Verify architecture tests in `tests/Regression/ArchitectureTest.php` pass, specifically those checking the `Common` module primitives, adjusting assertions as needed since `ClockInterface.php` is removed.
 7. Run tests, PHPStan, and examples validation to verify success.
 ```
