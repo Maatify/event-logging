@@ -82,7 +82,7 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         $this->assertSame('update_user', $viewDto->action);
         $this->assertSame('user', $viewDto->targetType);
         $this->assertSame(100, $viewDto->targetId);
-        $this->assertSame(['old_name' => 'John', 'new_name' => 'Jane'], $viewDto->changes); // Note: we map payload to changes here for testing roundtrip
+        $this->assertEquals(['old_name' => 'John', 'new_name' => 'Jane'], $viewDto->changes); // Note: we map payload to changes here for testing roundtrip
         $this->assertSame('corr-xyz', $viewDto->correlationId);
         $this->assertEquals($now, $viewDto->occurredAt);
     }
