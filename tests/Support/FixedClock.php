@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Maatify\EventLogging\Tests\Support;
 
 use DateTimeImmutable;
-use Maatify\EventLogging\Common\ClockInterface;
+use DateTimeZone;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 
 class FixedClock implements ClockInterface
 {
@@ -19,5 +20,10 @@ class FixedClock implements ClockInterface
     public function now(): DateTimeImmutable
     {
         return $this->now;
+    }
+
+    public function getTimezone(): DateTimeZone
+    {
+        return $this->now->getTimezone();
     }
 }

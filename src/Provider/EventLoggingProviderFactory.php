@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\Provider;
 
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use Maatify\EventLogging\Factory\AuditTrailFactory;
 use Maatify\EventLogging\Factory\AuthoritativeAuditFactory;
 use Maatify\EventLogging\Factory\BehaviorTraceFactory;

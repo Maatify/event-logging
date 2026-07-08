@@ -9,6 +9,8 @@ use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryQuery
 use Maatify\EventLogging\Factory\AuthoritativeAuditFactory;
 use Maatify\EventLogging\Provider\EventLoggingProvider;
 use Maatify\EventLogging\Provider\EventLoggingProviderFactory;
+use Maatify\Exceptions\Exception\System\SystemMaatifyException;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -241,6 +243,9 @@ class ArchitectureTest extends TestCase
         $this->assertEquals('src/', $composerData['autoload']['psr-4']['Maatify\\EventLogging\\']);
 
         $require = $composerData['require'] ?? [];
+        $this->assertSame('^1.1', $require['maatify/exceptions'] ?? null);
+        $this->assertSame('^1.0', $require['maatify/shared-common'] ?? null);
+
         $bannedRequires = ['slim/', 'laravel/', 'illuminate/', 'symfony/', 'php-di/'];
 
         foreach (array_keys($require) as $package) {
@@ -324,6 +329,49 @@ class ArchitectureTest extends TestCase
         $this->assertTrue(interface_exists(DiagnosticsTelemetryQueryInterface::class));
         $dtRef = new ReflectionClass(DiagnosticsTelemetryQueryInterface::class);
         $this->assertTrue($dtRef->hasMethod('read'), "DiagnosticsTelemetryQueryInterface must retain legacy read() method");
+    }
+
+    public function testClockContractUsesSharedCommonAsSourceOfTruth(): void
+    {
+        $this->assertFileDoesNotExist(__DIR__ . '/../../src/Common/ClockInterface.php');
+
+        foreach ($this->getSrcFiles() as $file) {
+            $content = file_get_contents($file);
+
+            $this->assertStringNotContainsString(
+                'Maatify\\EventLogging\\Common\\ClockInterface',
+                $content,
+                "File $file must not use the removed internal ClockInterface"
+            );
+        }
+
+        $factoryRef = new ReflectionClass(EventLoggingProviderFactory::class);
+        $clockParameter = $factoryRef->getMethod('createDefault')->getParameters()[1] ?? null;
+        $this->assertNotNull($clockParameter);
+        $this->assertSame(ClockInterface::class, $clockParameter->getType()?->getName());
+    }
+
+    public function testStorageExceptionsUseSystemMaatifyException(): void
+    {
+        $exceptionClasses = [
+            \Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException::class,
+            \Maatify\EventLogging\AuditTrail\Exception\AuditTrailStorageException::class,
+            \Maatify\EventLogging\SecuritySignals\Exception\SecuritySignalsStorageException::class,
+            \Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceStorageException::class,
+            \Maatify\EventLogging\DiagnosticsTelemetry\Exception\DiagnosticsTelemetryStorageException::class,
+            \Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException::class,
+        ];
+
+        foreach ($exceptionClasses as $exceptionClass) {
+            $ref = new ReflectionClass($exceptionClass);
+            $content = file_get_contents($ref->getFileName());
+
+            $this->assertTrue($ref->isSubclassOf(SystemMaatifyException::class));
+            $this->assertStringContainsString('extends SystemMaatifyException', $content);
+            $this->assertStringNotContainsString('extends RuntimeException', $content);
+            $this->assertStringNotContainsString('DatabaseConnectionMaatifyException', $content);
+            $this->assertTrue($ref->hasMethod('defaultErrorCode'));
+        }
     }
 
     public function testDomainIsolation(): void

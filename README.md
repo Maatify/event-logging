@@ -13,7 +13,7 @@ The package preserves six isolated event logging domains:
 5. **DiagnosticsTelemetry** — technical observability and diagnostic events.
 6. **DeliveryOperations** — async jobs, notifications, webhooks, and delivery lifecycle events.
 
-Shared primitives live only under `Maatify\EventLogging\Common` and are limited to cross-domain utilities such as clocks and sanitizers. The package does not provide a generic logger, generic DTO, generic recorder, or shared generic log table.
+Shared primitives under `Maatify\EventLogging\Common` are limited to cross-domain utilities such as sanitizers and the `SystemClock` implementation. The clock contract source of truth is `maatify/shared-common` (`Maatify\SharedCommon\Contracts\ClockInterface`), and storage exception identity comes from `maatify/exceptions` (`SystemMaatifyException` with Maatify error codes). The package remains standalone within the Maatify ecosystem, has no framework binding, and does not provide a generic logger, generic DTO, generic recorder, or shared generic log table.
 
 
 ## Recording API shape

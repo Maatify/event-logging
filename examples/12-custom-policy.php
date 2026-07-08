@@ -18,7 +18,7 @@ use Maatify\EventLogging\AuditTrail\Recorder\AuditTrailRecorder;
 
 // We assume $pdo and $clock are available from 00-bootstrap.php.
 // @var \PDO $pdo
-// @var \Maatify\EventLogging\Common\ClockInterface $clock
+// @var \Maatify\SharedCommon\Contracts\ClockInterface $clock
 
 class MyCustomAuditTrailPolicy implements AuditTrailPolicyInterface
 {

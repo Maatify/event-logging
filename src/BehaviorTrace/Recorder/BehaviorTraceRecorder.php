@@ -10,7 +10,7 @@ use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTraceWriterInterface;
 use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceContextDTO;
 use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceEventDTO;
 use Maatify\EventLogging\BehaviorTrace\Enum\BehaviorTraceActorTypeInterface;
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use JsonException;

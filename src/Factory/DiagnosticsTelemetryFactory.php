@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\Factory;
 
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryLoggerInterface;
 use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryPolicyInterface;
 use Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryLoggerMysqlRepository;

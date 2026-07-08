@@ -372,7 +372,6 @@ src/LoggingCommon/
         UrlSanitizer.php
         MetadataSanitizer.php
     Clock/
-        ClockInterface.php
 
 
 ┌───────────────────────────────────────────────────────────┐

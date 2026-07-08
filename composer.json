@@ -8,7 +8,9 @@
     "ext-json": "*",
     "ext-pdo": "*",
     "psr/log": "^3.0",
-    "ramsey/uuid": "^4.9"
+    "ramsey/uuid": "^4.9",
+    "maatify/exceptions": "^1.1",
+    "maatify/shared-common": "^1.0"
   },
   "autoload": {
     "psr-4": {
