@@ -188,4 +188,20 @@ class DiagnosticsTelemetryQueryMysqlRepositoryTest extends TestCase
 
         $repository->find(new DiagnosticsTelemetryQueryDTO(limit: 10));
     }
+
+    public function testFindReturnsEmptyArrayOnEmptyResult(): void
+    {
+        $mockStatement = $this->createMock(\PDOStatement::class);
+        $mockStatement->method('execute')->willReturn(true);
+        $mockStatement->method('fetchAll')->willReturn([]);
+
+        $mockPdo = $this->createMock(\PDO::class);
+        $mockPdo->method('prepare')->willReturn($mockStatement);
+
+        $repository = new DiagnosticsTelemetryQueryMysqlRepository($mockPdo);
+        $results = $repository->find(new DiagnosticsTelemetryQueryDTO(limit: 10));
+
+        $this->assertIsArray($results);
+        $this->assertEmpty($results);
+    }
 }
