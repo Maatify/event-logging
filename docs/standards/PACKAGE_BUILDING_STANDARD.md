@@ -496,7 +496,7 @@ ORDER BY t.something_id ASC, t.language_id ASC
 Responsibility:
 - **Business orchestration** lives in Services
 - **Validation** lives in Commands and DTO filters
-- **SQL** lives in Repositories or module-local SQL support builders
+- **SQL** lives in Repositories or package-local/domain-local SQL support builders
 
 ```php
 // Command service — throws NotFoundException when repo returns false
