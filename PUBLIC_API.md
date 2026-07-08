@@ -44,7 +44,7 @@ The public entry points are the domain-specific contracts, DTOs, enums, recorder
 - `Maatify\EventLogging\DeliveryOperations\Exception\*`
 - `Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\*`
 - `Maatify\EventLogging\DeliveryOperations\Recorder\*`
-- `Maatify\EventLogging\Common\ClockInterface`
+
 - `Maatify\EventLogging\Common\SystemClock`
 - `Maatify\EventLogging\Common\UrlSanitizer`
 - `Maatify\EventLogging\Common\MetadataSanitizer`
