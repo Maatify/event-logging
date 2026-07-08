@@ -59,6 +59,10 @@ The public entry points are the domain-specific contracts, DTOs, enums, recorder
 
 No `App\`, project DI/container, project helper, or host-application-specific configuration API is part of the exported package surface.
 
+> **Infrastructure Notice**
+>
+> Classes in `Infrastructure\Mysql\*` namespaces (e.g., MySQL repositories) are public infrastructure adapters for package composition/wiring. They are not the preferred application/business-layer API. Host composition roots or DI containers may instantiate and bind them to domain contracts. Application and business code should depend on `Contract\*` interfaces, not concrete infrastructure classes.
+
 ## Primitive read/query API
 
 Phase 3 exposes only domain-specific primitive query contracts, DTOs, and MySQL repositories for host-owned admin viewing foundations. The package does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, or CRUD APIs.
@@ -70,4 +74,21 @@ Phase 3 exposes only domain-specific primitive query contracts, DTOs, and MySQL 
 - Diagnostics telemetry: `DiagnosticsTelemetryQueryInterface::find(DiagnosticsTelemetryQueryDTO $query)` adds query-based reads for actor, event key, severity, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?DiagnosticsTelemetryCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
 - Delivery operations: `DeliveryOperationsQueryInterface`, `DeliveryOperationsQueryDTO`, `DeliveryOperationsViewDTO`, and `DeliveryOperationsQueryMysqlRepository` support actor, target, channel, operation type, status, request, correlation, date-range, cursor, and limit filters.
 
-All primitive query repositories order results by `occurred_at DESC, id DESC`, apply descending cursor pagination with `cursorOccurredAt` and `cursorId`, safely decode JSON payload/metadata fields to arrays, return `null` for corrupt JSON, and wrap read/storage failures in the domain-specific storage exception.
+All primitive query repositories order results by `occurred_at DESC, id DESC`, apply descending cursor pagination with `cursorOccurredAt` and `cursorId`, safely decode JSON payload/metadata fields to arrays, return `null` for corrupt JSON, wrap read/storage failures in the domain-specific storage exception, and provide **fail-safe hydration** (e.g. gracefully handling invalid enum values in the DB by sanitizing or falling back rather than throwing).
+
+> **Reader Scope & Limitations**
+>
+> The query interfaces exposed by this package represent a **primitive, cursor-based read-side**. The package supports only the documented primitive domain-specific filters.
+>
+> It is designed for:
+> - Archiving
+> - Sequential processing
+> - Export and migration jobs
+>
+> It does **not** support:
+> - Generic search or arbitrary filtering
+> - UI-grid querying with generic pagination
+> - Joins
+> - Aggregations, analytics, or advanced reporting
+>
+> UI or admin screens may build on top of these contracts externally, outside the package.

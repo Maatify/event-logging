@@ -82,4 +82,4 @@ The following file contains open technical questions that require a decision fro
 
 ## 7. Recommended Next Step
 
-**Merge-First Batch:** Proceed with extracting the specific public API and contract definitions from the domain `PUBLIC_API.md` files and merging them into `PUBLIC_API.md` and/or `EVENT_LOGGING_MODULE_REFERENCE.md`.
+**Merge-First Batch:** Proceed with extracting the specific public API and contract definitions from the domain `PUBLIC_API.md` files and merging them into `PUBLIC_API.md` and/or `EVENT_LOGGING_MODULE_REFERENCE.md`. *(Update: The Merge-First Batch for `PUBLIC_API.md` files is now complete).*

@@ -125,6 +125,13 @@ The expected failure posture is domain-dependent:
 
 Validation belongs at domain boundaries. Commands carry public input; recorders apply policies and construct already-structured write DTOs; repositories enforce storage-specific failures without applying recording policy.
 
+### Extensibility Points
+
+Host applications can extend and customize domain validation by implementing explicit policy and enum interfaces:
+
+- **Policy Interfaces:** Domain policy interfaces (e.g., `BehaviorTracePolicyInterface`, `DiagnosticsTelemetryPolicyInterface`) can be implemented to override default validation rules (e.g., allowing different Actor Types or custom validation logic).
+- **Enum Interfaces:** Domains exposing Enum interfaces (e.g., `DiagnosticsTelemetrySeverityInterface`, `BehaviorTraceActorTypeInterface`) allow host applications to define their own custom Actor Types or Severities beyond the package-provided default Enum classes.
+
 ## Standard rules documented as package-specific exceptions
 
 - **Admin/Customer folders:** Not applicable; logging domains are the correct public boundary.
