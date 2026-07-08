@@ -7,13 +7,13 @@
 | `./PUBLIC_API.md` | Root / Package Docs | Active | Package level documentation |  |
 | `./README.md` | Root / Package Docs | Active | Main entry point and package overview | Contains current guardrail wording: explicitly not self-contained, no generic logger/DTO/recorder/table, no SQLite examples. No cleanup required unless wording becomes ambiguous. |
 | `./TESTING_STRATEGY.md` | Root / Package Docs | Active | Package-wide testing strategy | Safe guardrail wording: mentions generic logger/recorder/repo as regression test targets. |
-| `./docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions framework bindings (Slim, PHP-DI, etc) |
-| `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions generic logger/recorder/repo, framework bindings (Slim, PHP-DI, etc) |
-| `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions framework bindings (Slim, PHP-DI, etc) |
+| `./docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
+| `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
+| `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/GLOBAL_LOGGING_RULES.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/LOGGING_MODULE_BLUEPRINT.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
-| `./docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions generic logger/recorder/repo |
+| `./docs/architecture/logging/LOG_DOMAINS_OVERVIEW.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/architecture/logging/LOG_STORAGE_AND_ARCHIVING.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/UNIFIED_LOGGING_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
@@ -44,8 +44,8 @@
 | `./docs/examples/EXAMPLES_COVERAGE_PLAN.md` | Examples Docs | Active | Code example coverage and plans | Safe guardrail wording: explicitly states SQLite must not be presented as compatible. |
 | `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package |  |
 | `./docs/integration/FACTORY_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package |  |
-| `./docs/integration/INSTALLATION.md` | Public Integration Docs | Active | Instructions for integrating the package | Needs manual review: mentions framework bindings (Slim, PHP-DI, etc) |
-| `./docs/integration/MANUAL_WIRING.md` | Public Integration Docs | Active | Instructions for integrating the package | Needs manual review: mentions framework bindings (Slim, PHP-DI, etc) |
+| `./docs/integration/INSTALLATION.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
+| `./docs/integration/MANUAL_WIRING.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/reference/logging/ASCII_FLOW_LEGENDS.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/reference/logging/LOGGING_ASCII_OVERVIEW.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
