@@ -13,7 +13,7 @@ Previous release audit passed for the extracted core, and all integration-readin
 * Integration documentation is still incomplete.
 
 
-## Module Building Standard Alignment
+## Package Building Standard Alignment
 
 - **Required root files:** Deferred to Phase 4
 - **Namespace/package boundaries:** Applicable now (Phase 1)
@@ -89,7 +89,7 @@ Rules:
 * No framework-specific service provider
 * No host app runtime assumptions
 
-Checkpoints (Module Building Standard):
+Checkpoints (Package Building Standard):
 * Explicitly cover: Whether Bootstrap/DI belongs in this package
 * Explicitly cover: Whether optional bindings are framework-agnostic
 * Explicitly cover: Which public services/repositories need contracts
@@ -171,7 +171,7 @@ Expected docs:
 docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md
 docs/audits/PHASE_3_PRIMITIVE_READ_SUPPORT_GAP_AUDIT.md
 
-Checkpoints (Module Building Standard):
+Checkpoints (Package Building Standard):
 * Explicitly cover: Reader contracts
 * Explicitly cover: Query DTOs
 * Explicitly cover: Cursor DTOs
@@ -233,7 +233,7 @@ Must explain:
 * reader/query usage
 * what the host app must implement itself
 
-Checkpoints (Module Building Standard):
+Checkpoints (Package Building Standard):
 * Verify: Required root files
 * Verify: Schema rules
 * Verify: Documentation completeness
@@ -257,7 +257,7 @@ vendor/bin/phpstan analyse -c phpstan.neon
 
 If code was added, CI must pass.
 
-Checkpoints (Module Building Standard):
+Checkpoints (Package Building Standard):
 * Verify: PHPStan max
 
 Output Document:
@@ -280,9 +280,9 @@ Required verdict:
 
 * PASS
 
-Checkpoints (Module Building Standard):
+Checkpoints (Package Building Standard):
 * Final audit against docs/standards/MODULE_BUILDING_STANDARD.md
-* Verify: Final "module is not done until" checklist
+* Verify: Final "package is not done until" checklist
 
 *Note: Phase 6 was historically passed prior to Phase J. However, Phase 6 alone is no longer considered the final release audit due to subsequent architectural changes.*
 

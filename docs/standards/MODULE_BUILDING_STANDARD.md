@@ -1,51 +1,52 @@
-# MODULE_BUILDING_STANDARD
+# PACKAGE_BUILDING_STANDARD
 
-**Maatify Module Building Standard — v1**
-This document is the law for building any new standalone module in the Maatify ecosystem.
+**Maatify Standalone Composer Package Building Standard — v1**
+This document is the law for building any new standalone Composer package in the Maatify ecosystem.
 Read it fully before writing a single line of code.
 
 ---
 
-## 1. The Module Contract
+## 1. The Package Contract
 
-Every module must be:
+Every package must be:
 
 - **Standalone** — runs isolated from host applications (depends only on explicit Composer/runtime dependencies) with no knowledge of the host project internals
-- **Extractable** — can be packaged as a `composer require` library
-- **Host-agnostic** — never FKs or JOINs on host tables. Host provides IDs; module trusts them
+- **Installable** — packaged as a `composer require` library
+- **Host-agnostic** — never FKs or JOINs on host tables. Host provides IDs; package trusts them. Host applications wire dependencies themselves.
 - **PDO-based** — all persistence uses PDO directly. No ORM, no external query builder.
-  Small internal SQL fragment builders are allowed only for repeated module-local query logic.
-- **PHPStan max** — zero errors at level max before the module is considered done
+  Small internal SQL fragment builders are allowed only for repeated package-local query logic.
+- **PHPStan max** — zero errors at level max before the package is considered done
 
 ---
 
 ## 2. Required Files
 
-Every module must contain these files at its root:
+Every package must contain these files at its root (the repository root is the package root):
 
 ```
-Modules/{ModuleName}/
 ├── README.md                          ← installation, quick examples, what it does / does not
 ├── CHANGELOG.md                       ← versioned history, starting at [1.0.0]
-├── {MODULE_NAME}_MODULE_REFERENCE.md  ← complete API reference and design rules
-├── composer.json                      ← library type, psr-4 autoload, requires
+├── {PACKAGE_NAME}_PACKAGE_REFERENCE.md ← complete API reference and design rules (e.g. docs/EVENT_LOGGING_MODULE_REFERENCE.md)
+├── composer.json                      ← library type, psr-4 autoload, explicit runtime/Composer dependencies only
 ├── phpstan.neon                       ← level: max, paths: [src]
-├── schema/                            ← one or more .sql files
-└── src/                               ← all PHP source code
+├── src/                               ← all PHP source code
+├── tests/                             ← if applicable
+├── schema/                            ← if the package owns SQL schema
+└── docs/                              ← for architecture/integration/audits
 ```
 
 ---
 
 ## 3. Namespace
 
-Pattern: `Maatify\{ModuleName}\`
+Pattern: `Maatify\{PackageName}\`
 
 ```
-Maatify\Cart\
-Maatify\Shipping\
-Maatify\PaymentMethod\
-Maatify\{NextModule}\
+Maatify\EventLogging\
+Maatify\{NextPackage}\
 ```
+
+*Note: Host app namespaces such as `App\`, `Athar`, or `EP4N` are strictly forbidden.*
 
 ---
 
@@ -53,53 +54,36 @@ Maatify\{NextModule}\
 
 ```
 src/
-├── Bootstrap/
-│   └── {ModuleName}Bindings.php
-│
-├── Exception/
-│   ├── {ModuleName}ExceptionInterface.php
-│   ├── {ModuleName}NotFoundException.php
-│   ├── {ModuleName}InvalidArgumentException.php
-│   ├── {ModuleName}CodeAlreadyExistsException.php
-│   ├── {ModuleName}ConflictException.php
-│   └── ...                                          ← add only when genuinely distinct
-│
-├── Shared/                                          ← cross-cutting within the module
+├── {Domain}/                                        ← subpackage / domain boundary
+│   ├── Exception/
 │   ├── Contract/
 │   ├── DTO/
-│   ├── Infrastructure/
-│   │   ├── Persistence/Support/
-│   │   │   └── ScopedOrderingManager.php            ← if display_order is needed
-│   │   └── Support/                                 ← internal SQL fragment builders, helpers
+│   ├── Infrastructure/Repository/
 │   └── Service/
 │
-├── Admin/
-│   └── {Entity}/
-│       ├── Command/
-│       ├── Contract/
-│       ├── DTO/
-│       ├── Infrastructure/Repository/
-│       └── Service/
+├── Common/                                          ← framework-neutral shared primitives only
 │
-└── Customer/
-    └── {Entity}/
-        ├── Contract/
-        ├── DTO/
-        ├── Infrastructure/Repository/
-        └── Service/
+├── Factory/                                         ← optional, only if framework-agnostic
+│
+└── Provider/                                        ← optional, only if framework-agnostic
 ```
+
+- **No mandatory `Admin/Customer`**: Domain boundaries should reflect logical separation.
+- **No mandatory `Bootstrap`**: Host apps are responsible for wiring.
+- **No framework-specific ServiceProvider/Bindings**: E.g., no Laravel/Slim/PHP-DI bindings inside the package.
 
 ---
 
 ## 5. Schema Rules
 
-- Table prefix: `maa_{module_short_name}_`
-- Every table needs: `PRIMARY KEY (id)`, proper indexes, meaningful COMMENTs on columns
-- All policies (soft delete, display order, FK behavior, uniqueness) documented in the SQL header
-- No FK constraints on host tables — use `COMMENT 'Host-provided ID. No FK.'`
-- Soft delete: `deleted_at DATETIME NULL` — `NULL = active`, `NOT NULL = soft-deleted`
-- Hard delete: always in a transaction with any required cleanup (e.g. compact display_order)
-- Split schema into logical files if restrictions or addons exist separately
+- Allowed when the package owns persistence.
+- Table prefix: `maa_{package_short_name}_` (e.g. `maa_event_logging_`)
+- Every table needs: `PRIMARY KEY (id)`, proper indexes, meaningful COMMENTs on columns.
+- All policies (soft delete, display order, FK behavior, uniqueness) documented in the SQL header.
+- Domain-local schema files are allowed (e.g. `src/{Domain}/Database/`).
+- Package-level `schema/README.md` may index domain-local SQL files.
+- **No generic shared `logs` or `event_logs` tables**; use strict domain-isolated tables.
+- No FK constraints or JOINs to host app tables — use `COMMENT 'Host-provided ID. No FK.'`.
 
 ---
 
@@ -107,80 +91,58 @@ src/
 
 ### Standard Exception Types
 
-Every module must define these exception classes as a minimum:
+Package exceptions must use the Maatify exception hierarchy where applicable.
 
-| Class | When to throw |
-|---|---|
-| `{Module}ExceptionInterface` | Interface — all module exceptions implement this |
-| `{Module}NotFoundException` | Record not found by id or code |
-| `{Module}InvalidArgumentException` | Invalid value in any command, filter, or input |
-| `{Module}CodeAlreadyExistsException` | Unique code/key violation on create or update |
-| `{Module}ConflictException` | Business rule conflict (e.g. overlapping records) |
+Storage/infrastructure exceptions in this package must be domain-specific and extend:
+`Maatify\Exceptions\Exception\System\SystemMaatifyException`
 
-Add more only when a genuinely distinct error category exists.
+They must use the appropriate Maatify error code enum, e.g.:
+`ErrorCodeEnum::DATABASE_CONNECTION_FAILED`
+
+*Note: `\RuntimeException` is explicitly **forbidden** as the base for storage exceptions.*
 
 ### Interface
 
 ```php
-interface {ModuleName}ExceptionInterface extends \Throwable {}
+interface {PackageName}ExceptionInterface extends \Throwable {}
 ```
 
-### All exceptions extend `\RuntimeException` and implement the interface
+### Extending SystemMaatifyException
 
 ```php
-final class {ModuleName}NotFoundException extends \RuntimeException
-    implements {ModuleName}ExceptionInterface
+final class {Domain}DatabaseException extends \Maatify\Exceptions\Exception\System\SystemMaatifyException
+    implements {PackageName}ExceptionInterface
 {
-    public static function withId(int $id): self
-    {
-        return new self("Record with id [{$id}] not found.");
-    }
-
-    public static function withCode(string $code): self
-    {
-        return new self("Record with code [{$code}] not found.");
-    }
-}
-
-final class {ModuleName}InvalidArgumentException extends \RuntimeException
-    implements {ModuleName}ExceptionInterface
-{
-    public static function emptyField(string $field): self
-    {
-        return new self("Field [{$field}] must not be empty.");
-    }
-
-    public static function invalidId(string $field): self
-    {
-        return new self("Field [{$field}] must be a positive integer >= 1.");
-    }
-
-    public static function invalidDecimal(string $field, string $given): self
-    {
-        return new self("Invalid decimal for [{$field}]: [{$given}].");
-    }
+    // Implementation uses Maatify codes
 }
 ```
 
-Named constructors are **required** for every exception — never `new SomeException('...')` at call site.
+Named constructors should remain recommended/required where applicable — never `new SomeException('...')` at call site.
 
-### What the module catches and converts
+### Fail-Open / Fail-Closed Behavior
+
+Behavior must stay domain-specific:
+- **Authoritative Domains** (e.g. `AuthoritativeAudit`) are fail-closed.
+- **Non-Authoritative Domains** are fail-open only at the recorder boundary.
+- **Repositories and Read Queries** must never swallow storage failures.
+
+### What the package catches and converts
 
 ```php
 // SQLSTATE 23xxx = integrity constraint violation (duplicate key)
 } catch (\PDOException $e) {
     if (str_starts_with((string) $e->getCode(), '23')) {
-        throw {ModuleName}CodeAlreadyExistsException::withCode($command->code);
+        throw {Domain}CodeAlreadyExistsException::withCode($command->code);
     }
     throw $e; // anything else → propagate as-is
 }
 ```
 
-### What the module does NOT catch
+### What the package does NOT catch
 
-- PDO infrastructure errors (connection failure, syntax error) → propagate as `\PDOException`
-- Any `\Throwable` outside the module's business domain → propagate as-is
-- Never wrap unknown errors in a named module exception — host must see the real error
+- PDO infrastructure errors (connection failure, syntax error) should generally be wrapped in `SystemMaatifyException`.
+- Any `\Throwable` outside the package's business domain → propagate as-is.
+- Never wrap unknown errors in a named package exception if it obfuscates root causes for host.
 
 ### Transaction Pattern
 
@@ -567,14 +529,10 @@ Services **never**:
 
 ## 13. Admin vs Customer Separation
 
-| Layer | Namespace | Access |
-|---|---|---|
-| Admin | `Maatify\{Module}\Admin\{Entity}\` | Full CRUD, all fields, inactive + deleted records |
-| Customer | `Maatify\{Module}\Customer\{Entity}\` | Active only, translated fields, minimal DTO |
+Some business modules may choose actor-specific namespaces (e.g., `Admin\` vs `Customer\`).
 
-- Admin DTOs expose: `notes`, `provider`, `deleted_at`, all internal fields
-- Customer DTOs expose: only what the end user needs to see
-- Never mix admin and customer query logic in the same repository
+However, **infrastructure packages** like `event-logging` should use their real package/domain boundaries instead.
+For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAudit`, `BehaviorTrace`) serve as the public architectural boundaries rather than arbitrary Admin/Customer folders.
 
 ---
 
@@ -601,47 +559,12 @@ Services **never**:
 
 ## 16. Bootstrap / DI Rules
 
-```php
-final class {ModuleName}Bindings
-{
-    /** @param ContainerBuilder<Container> $builder */
-    public static function register(ContainerBuilder $builder): void
-    {
-        $builder->addDefinitions([
-
-            // ── Shared ────────────────────────────────────────────────────
-
-            SomeSharedClass::class => static function (ContainerInterface $c): SomeSharedClass {
-                /** @var PDO $pdo */
-                $pdo = $c->get(PDO::class);
-                return new SomeSharedClass($pdo);
-            },
-
-            // ── Admin — {Entity} ──────────────────────────────────────────
-
-            SomeCommandRepositoryInterface::class => static function (ContainerInterface $c): PdoSomeCommandRepository {
-                /** @var PDO $pdo */
-                $pdo = $c->get(PDO::class);
-                return new PdoSomeCommandRepository($pdo);
-            },
-
-            SomeCommandService::class => static function (ContainerInterface $c): SomeCommandService {
-                /** @var SomeCommandRepositoryInterface $commandRepo */
-                $commandRepo = $c->get(SomeCommandRepositoryInterface::class);
-                return new SomeCommandService($commandRepo);
-            },
-
-        ]);
-    }
-}
-```
+**Composer packages must not require host-specific bindings.**
 
 Rules:
-- PSR-11 compatible
-- Uses `php-di/php-di` `ContainerBuilder` (suggested, not required)
-- Every `$c->get()` call preceded by an explicit `/** @var Type */` annotation
-- Sections separated by comments: `// ── Admin — {Entity} ──`
-- No business logic in bindings — wiring only
+- No Slim/Laravel/Symfony/PHP-DI bindings as package requirements.
+- Optional factories or providers are allowed, but they must be strictly framework-agnostic.
+- Host applications are fully responsible for wiring dependencies through their own container or runtime environment.
 
 ---
 
@@ -683,7 +606,7 @@ $params['country_code_block'] = $countryCode;
 
 ---
 
-## 19. PHPStan Rules
+## 19. PHPStan and Testing Rules
 
 ### `phpstan.neon`
 
@@ -694,6 +617,13 @@ parameters:
         - src
 ```
 
+### Testing Strategy
+
+- **PHPUnit Tests**: Use PHPUnit for all tests if applicable.
+- **Database Tests**: DB-dependent integration tests require an explicit real MySQL DSN (e.g. checked via environment variables).
+- **No SQLite**: SQLite fallback or support is strictly banned for this package to ensure real repository round-trips match production behavior.
+- **Example Code**: Must be purely illustrative, validated via syntax checks (`php -l`), devoid of real credentials or framework bindings.
+
 ### PDO fetch results — always annotate
 
 ```php
@@ -702,16 +632,6 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 /** @var list<array<string, mixed>> $rows */
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-```
-
-### Admin list — full return shape annotation
-
-```php
-/**
- * @param  array<string, string|int>  $columnFilters
- * @return array{data: list<SomeListItemDTO>, pagination: array{page: int, per_page: int, total: int, filtered: int}}
- */
-public function list(int $page, int $perPage, ?string $globalSearch, array $columnFilters): array;
 ```
 
 ### IteratorAggregate — generic annotations required
@@ -732,19 +652,6 @@ private array $items;
 
 /** @param list<SomethingDTO> $items */
 public function __construct(array $items)
-```
-
-### DI container bindings
-
-```php
-/** @param ContainerBuilder<Container> $builder */
-public static function register(ContainerBuilder $builder): void
-
-/** @var PDO $pdo */
-$pdo = $c->get(PDO::class);
-
-/** @var SomeInterface $dep */
-$dep = $c->get(SomeInterface::class);
 ```
 
 ### Hydration — extract before cast
@@ -797,17 +704,19 @@ private function findRawById(int $id): ?array
 
 ---
 
-## 20. The Module Is NOT Done Until
+## 20. The Package Is NOT Done Until
 
 - [ ] All PHPStan max errors resolved — zero errors, no suppressions
-- [ ] All schema files complete with header comments and column policies
+- [ ] Tests and static analysis pass, and examples are syntax-checked
 - [ ] `README.md` written with installation steps and quick examples
 - [ ] `CHANGELOG.md` written starting at `[1.0.0]`
-- [ ] `{MODULE}_MODULE_REFERENCE.md` complete — full API, design rules, extension guide
-- [ ] `composer.json` lists only actual dependencies (no phantom extensions)
-- [ ] `Bootstrap/{ModuleName}Bindings.php` covers every public service and interface
+- [ ] `{PACKAGE}_PACKAGE_REFERENCE.md` complete — full API, design rules, extension guide
+- [ ] `composer.json` metadata is correct and lists explicit runtime/Composer dependencies only (no phantom extensions)
 - [ ] Every public service/repository capability intended for infrastructure substitution has a matching contract (interface)
-- [ ] No `new \RuntimeException(...)` or `new \Exception(...)` for domain/business errors — always a named module exception
+- [ ] Domain-specific failure semantics are documented
 - [ ] Transaction catch blocks rethrow the original `\Throwable` after rollback — never swallow
 - [ ] Business orchestration lives in Services, validation in Commands/filters, SQL in Repositories
-- [ ] No SQL outside Repository classes and module-local SQL support builders
+- [ ] Schema docs align with MySQL/domain-owned tables, no generic `logs` or `event_logs` tables
+- [ ] Framework-agnostic boundaries preserved: no host app namespaces, no framework bindings required
+- [ ] No generic logger, recorder, or repository
+- [ ] Docs reflect current exception rules (using `SystemMaatifyException`) and clock contracts
