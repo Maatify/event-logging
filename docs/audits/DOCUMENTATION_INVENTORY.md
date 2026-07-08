@@ -48,13 +48,13 @@
 | `./docs/integration/MANUAL_WIRING.md` | Public Integration Docs | Active | Instructions for integrating the package | Needs manual review: mentions framework bindings (Slim, PHP-DI, etc) |
 | `./docs/reference/logging/ASCII_FLOW_LEGENDS.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/reference/logging/LOGGING_ASCII_OVERVIEW.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
-| `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions generic logger/recorder/repo |
+| `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Reviewed: previous exception-policy wording was corrected; remaining generic/framework mentions are historical roadmap context or guardrails. |
 | `./docs/roadmap/EVENT_LOGGING_RELEASE_READINESS_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks |  |
-| `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Needs manual review: mentions generic logger/recorder/repo, framework bindings (Slim, PHP-DI, etc) |
+| `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/standards/PACKAGE_BUILDING_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Resolved (Updated to Package Standard): `RuntimeException` is completely forbidden and replaced with `SystemMaatifyException`; no longer recommends framework bindings. |
 | `./docs/testing/TEST_COVERAGE_MATRIX.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
-| `./schema/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Needs manual review: mentions generic logger/recorder/repo |
+| `./schema/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./src/AuditTrail/CANONICAL_ARCHITECTURE.md` | Domain Docs | Candidate for Archive | Domain canonical architecture |  |
 | `./src/AuditTrail/CHECKLIST.md` | Domain Docs | Candidate for Archive | Domain specific checklist |  |
 | `./src/AuditTrail/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
