@@ -57,8 +57,28 @@ abstract class MysqlIntegrationTestCase extends TestCase
         }
 
         $sql = file_get_contents($file);
-        // Split by statement (basic heuristic for schema files)
-        $statements = array_filter(array_map('trim', explode(';', $sql)));
+
+        $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+
+        $tables = array_reverse($this->getTableNames());
+        foreach ($tables as $table) {
+            $this->pdo->exec("DROP TABLE IF EXISTS `$table`");
+        }
+
+        $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+
+        $statements = [];
+        $current = '';
+        $lines = explode("\n", $sql);
+        foreach ($lines as $line) {
+            if (str_starts_with(trim($line), '--')) continue; // Skip full line comments
+            $current .= $line . "\n";
+            if (str_ends_with(trim($line), ';')) {
+                $statements[] = trim($current);
+                $current = '';
+            }
+        }
+
         foreach ($statements as $stmt) {
             if ($stmt !== '') {
                 $this->pdo->exec($stmt);
@@ -68,8 +88,10 @@ abstract class MysqlIntegrationTestCase extends TestCase
 
     protected function cleanTables(): void
     {
+        $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
         foreach ($this->getTableNames() as $table) {
             $this->pdo->exec("TRUNCATE TABLE `$table`");
         }
+        $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
     }
 }

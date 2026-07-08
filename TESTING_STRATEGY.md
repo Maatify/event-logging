@@ -20,4 +20,18 @@ composer test:unit
 vendor/bin/phpunit
 ```
 
+### Integration Tests
+
+The integration test suite specifically tests MySQL repository round-trips.
+
+To run the integration tests, you must provide a valid MySQL DSN using environment variables.
+If the `EVENT_LOGGING_TEST_MYSQL_DSN` environment variable is not present, the integration tests will be safely skipped.
+
+```bash
+EVENT_LOGGING_TEST_MYSQL_DSN="mysql:host=127.0.0.1;port=3306;dbname=test_db" \
+EVENT_LOGGING_TEST_MYSQL_USER="test_user" \
+EVENT_LOGGING_TEST_MYSQL_PASSWORD="test_pass" \
+vendor/bin/phpunit --testsuite Integration
+```
+
 This phase does not wire the package into host application runtime behavior.
