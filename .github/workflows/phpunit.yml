@@ -5,6 +5,10 @@ on:
     paths:
       - "src/**/*.php"
       - "tests/**/*.php"
+      - "examples/**/*.php"
+      - "docs/**/*.md"
+      - "README.md"
+      - "phpstan.neon"
       - "composer.json"
       - "composer.lock"
       - "phpunit.xml.dist"
@@ -13,6 +17,10 @@ on:
     paths:
       - "src/**/*.php"
       - "tests/**/*.php"
+      - "examples/**/*.php"
+      - "docs/**/*.md"
+      - "README.md"
+      - "phpstan.neon"
       - "composer.json"
       - "composer.lock"
       - "phpunit.xml.dist"
@@ -33,6 +41,9 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Syntax check examples
+        run: find examples -name "*.php" -exec php -l {} \;
 
       - name: Run Unit Tests
         run: vendor/bin/phpunit --testsuite Unit

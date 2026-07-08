@@ -9,6 +9,13 @@ Recommended validation for `maatify/event-logging`:
 5. Add regression tests proving domains stay isolated and no generic logger/DTO/recorder/table is introduced.
 6. Add static analysis after package dependencies and CI are finalized.
 
+## Examples Validation
+Examples provided in the `examples/` directory are purely illustrative skeletons.
+- They are syntax-checked using `find examples -name "*.php" -exec php -l {} \;`.
+- They are intentionally not part of strict PHPStan analysis for this phase.
+- `vendor/bin/phpstan analyse -c phpstan.neon` remains strictly for production/test code analysis.
+- DB-dependent examples must not run in CI without an explicit `DB_DSN`.
+
 ## Running Tests
 
 To run the local test suite, ensure dependencies are installed and use PHPUnit:

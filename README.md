@@ -30,6 +30,27 @@ Host applications may keep constructing domain recorders manually, or use the op
 
 This package uses GitHub Actions for continuous integration. PHPStan workflow is path-filtered and runs only when PHP source, Composer files, phpstan.neon, or workflow files change.
 
+## Examples
+
+For illustrative code samples covering different integration and usage scenarios, see the [Examples Coverage Plan](docs/examples/EXAMPLES_COVERAGE_PLAN.md).
+Available examples in `examples/`:
+- `00-bootstrap.php`
+- `01-factory-provider.php`
+- `02-manual-wiring.php`
+- `03-authoritative-audit-record.php`
+- `04-audit-trail-record.php`
+- `05-security-signal-record.php`
+- `06-behavior-trace-record.php`
+- `07-diagnostics-telemetry-record.php`
+- `08-delivery-operation-record.php`
+- `09-admin-read-audit-trail.php`
+- `10-admin-read-authoritative-audit.php`
+- `11-cursor-pagination.php`
+- `12-custom-policy.php`
+- `13-psr-fallback-logger.php`
+
+Note: These are plain PHP skeletons. DB-dependent examples require an explicit safe MySQL `DB_DSN` to be set. They are not executed automatically, contain no real credentials, and do not use an SQLite fallback.
+
 ## Installation
 
 ```bash
