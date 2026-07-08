@@ -37,6 +37,9 @@ jobs:
       - name: Run Unit Tests
         run: vendor/bin/phpunit --testsuite Unit
 
+      - name: Run Regression Tests
+        run: vendor/bin/phpunit --testsuite Regression
+
   phpunit-integration:
     runs-on: ubuntu-latest
     services:

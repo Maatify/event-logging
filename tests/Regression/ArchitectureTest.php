@@ -274,6 +274,21 @@ class ArchitectureTest extends TestCase
             );
         }
 
+        $expectedMethods = [
+            'authoritativeAudit',
+            'auditTrail',
+            'securitySignals',
+            'behaviorTrace',
+            'diagnosticsTelemetry',
+            'deliveryOperations'
+        ];
+        foreach ($expectedMethods as $expectedMethod) {
+            $this->assertTrue(
+                $providerRef->hasMethod($expectedMethod),
+                "EventLoggingProvider must retain explicit typed accessor: $expectedMethod()"
+            );
+        }
+
         $this->assertTrue(class_exists(EventLoggingProviderFactory::class));
         $factoryRef = new ReflectionClass(EventLoggingProviderFactory::class);
         foreach ($factoryRef->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
