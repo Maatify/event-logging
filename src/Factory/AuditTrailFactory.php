@@ -8,7 +8,7 @@ use Maatify\EventLogging\AuditTrail\Contract\AuditTrailLoggerInterface;
 use Maatify\EventLogging\AuditTrail\Contract\AuditTrailPolicyInterface;
 use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailLoggerMysqlRepository;
 use Maatify\EventLogging\AuditTrail\Recorder\AuditTrailRecorder;
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use PDO;
 use Psr\Log\LoggerInterface;
 

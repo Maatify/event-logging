@@ -11,7 +11,7 @@ The Maatify ecosystem has established shared standards for exception handling an
 
 ## Exceptions Inventory
 
-The library currently defines 6 exceptions, all of which directly extend `RuntimeException`:
+Before implementation, the library defined 6 exceptions, all of which directly extended `RuntimeException`:
 1. `Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceStorageException`
 2. `Maatify\EventLogging\AuditTrail\Exception\AuditTrailStorageException`
 3. `Maatify\EventLogging\SecuritySignals\Exception\SecuritySignalsStorageException`
@@ -25,7 +25,7 @@ These are primarily storage-related errors wrapping PDO exceptions. While `Maati
 
 ## Clock Inventory
 
-**Current State**:
+**Pre-implementation State**:
 - Interface: `Maatify\EventLogging\Common\ClockInterface` (`now(): DateTimeImmutable`)
 - Implementation: `Maatify\EventLogging\Common\SystemClock`
 - Used extensively in:
@@ -50,7 +50,7 @@ Adding `maatify/exceptions` and `maatify/shared-common`:
 ## Public API Impact
 
 - **Exceptions**: Changing the inheritance of exceptions from `RuntimeException` to `MaatifyException` -> `RuntimeException` will NOT break existing `catch (RuntimeException $e)` blocks.
-- **ClockInterface**: Replacing the internal `ClockInterface` with `Maatify\SharedCommon\Contracts\ClockInterface` will break backward compatibility for host applications explicitly passing their own implementations or using the current `Maatify\EventLogging\Common\ClockInterface` in their type hints.
+- **ClockInterface**: Replacing the internal `ClockInterface` with `Maatify\SharedCommon\Contracts\ClockInterface` will break backward compatibility for host applications explicitly passing their own implementations or using the removed `Maatify\EventLogging\Common\ClockInterface` in their type hints.
   - This change will alter constructor signatures in all recorders and factories.
   - Existing implementations of `ClockInterface` by host applications will be broken unless they add `getTimezone(): DateTimeZone`.
 

@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\AuthoritativeAudit\Recorder;
 
 use BackedEnum;
 use Maatify\EventLogging\AuthoritativeAudit\Command\RecordAuthoritativeAuditCommand;
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use UnitEnum;
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditOutboxWriterInterface;
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditPolicyInterface;

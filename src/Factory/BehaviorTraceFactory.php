@@ -8,7 +8,7 @@ use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTracePolicyInterface;
 use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTraceWriterInterface;
 use Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceWriterMysqlRepository;
 use Maatify\EventLogging\BehaviorTrace\Recorder\BehaviorTraceRecorder;
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use PDO;
 use Psr\Log\LoggerInterface;
 

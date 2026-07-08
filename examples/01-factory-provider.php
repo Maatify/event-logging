@@ -16,7 +16,7 @@ use Maatify\EventLogging\Provider\EventLoggingProviderFactory;
 
 // We assume $pdo, $clock, and $logger are available from 00-bootstrap.php.
 // @var \PDO $pdo
-// @var \Maatify\EventLogging\Common\ClockInterface $clock
+// @var \Maatify\SharedCommon\Contracts\ClockInterface $clock
 // @var \Psr\Log\LoggerInterface $logger
 
 $provider = EventLoggingProviderFactory::createDefault($pdo, $clock, $logger);

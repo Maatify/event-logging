@@ -107,7 +107,6 @@ No syntax errors detected in src/Factory/SecuritySignalsFactory.php
 No syntax errors detected in src/Common/UrlSanitizer.php
 No syntax errors detected in src/Common/MetadataSanitizer.php
 No syntax errors detected in src/Common/SystemClock.php
-No syntax errors detected in src/Common/ClockInterface.php
 No syntax errors detected in src/DeliveryOperations/Command/RecordDeliveryOperationCommand.php
 No syntax errors detected in src/DeliveryOperations/Recorder/DeliveryOperationsDefaultPolicy.php
 No syntax errors detected in src/DeliveryOperations/Recorder/DeliveryOperationsRecorder.php

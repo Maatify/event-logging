@@ -8,7 +8,7 @@ use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditOutboxWri
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditPolicyInterface;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository;
 use Maatify\EventLogging\AuthoritativeAudit\Recorder\AuthoritativeAuditRecorder;
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use PDO;
 
 final class AuthoritativeAuditFactory

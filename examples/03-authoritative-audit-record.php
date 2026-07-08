@@ -19,7 +19,7 @@ use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageE
 
 // We assume $pdo and $clock are available from 00-bootstrap.php.
 // @var \PDO $pdo
-// @var \Maatify\EventLogging\Common\ClockInterface $clock
+// @var \Maatify\SharedCommon\Contracts\ClockInterface $clock
 
 // We don't pass the logger to the provider for Authoritative Audit
 $provider = EventLoggingProviderFactory::createDefault($pdo, $clock);

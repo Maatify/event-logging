@@ -6,7 +6,7 @@ namespace Maatify\EventLogging\DeliveryOperations\Recorder;
 
 use BackedEnum;
 use Maatify\EventLogging\DeliveryOperations\Command\RecordDeliveryOperationCommand;
-use Maatify\EventLogging\Common\ClockInterface;
+use Maatify\SharedCommon\Contracts\ClockInterface;
 use UnitEnum;
 use DateTimeImmutable;
 use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsLoggerInterface;
