@@ -61,7 +61,7 @@ No `App\`, project DI/container, project helper, or host-application-specific co
 
 > **Infrastructure Notice**
 >
-> Classes in `Infrastructure\**` namespaces (e.g., MySQL repositories) are internal implementation details. They should not be used directly by the application layer. Applications should bind to the interfaces in the `Contract\` namespaces via Dependency Injection.
+> Classes in `Infrastructure\Mysql\*` namespaces (e.g., MySQL repositories) are public infrastructure adapters for package composition/wiring. They are not the preferred application/business-layer API. Host composition roots or DI containers may instantiate and bind them to domain contracts. Application and business code should depend on `Contract\*` interfaces, not concrete infrastructure classes.
 
 ## Primitive read/query API
 
@@ -78,16 +78,17 @@ All primitive query repositories order results by `occurred_at DESC, id DESC`, a
 
 > **Reader Scope & Limitations**
 >
-> The query interface exposed by this module represents a **primitive, cursor-based read-side**.
+> The query interfaces exposed by this package represent a **primitive, cursor-based read-side**. The package supports only the documented primitive domain-specific filters.
 >
 > It is designed for:
 > - Archiving
 > - Sequential processing
 > - Export and migration jobs
 >
-> It is **not designed** to support:
-> - UI pagination
-> - Searching or filtering
-> - Aggregations or analytics
+> It does **not** support:
+> - Generic search or arbitrary filtering
+> - UI-grid querying with generic pagination
+> - Joins
+> - Aggregations, analytics, or advanced reporting
 >
-> Any advanced or UI-driven querying MUST be implemented outside the module, using application-level services or optional utilities built on top of the module contracts.
+> UI or admin screens may build on top of these contracts externally, outside the package.
