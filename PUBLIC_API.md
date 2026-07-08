@@ -59,6 +59,10 @@ The public entry points are the domain-specific contracts, DTOs, enums, recorder
 
 No `App\`, project DI/container, project helper, or host-application-specific configuration API is part of the exported package surface.
 
+> **Infrastructure Notice**
+>
+> Classes in `Infrastructure\**` namespaces (e.g., MySQL repositories) are internal implementation details. They should not be used directly by the application layer. Applications should bind to the interfaces in the `Contract\` namespaces via Dependency Injection.
+
 ## Primitive read/query API
 
 Phase 3 exposes only domain-specific primitive query contracts, DTOs, and MySQL repositories for host-owned admin viewing foundations. The package does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, or CRUD APIs.
@@ -70,4 +74,20 @@ Phase 3 exposes only domain-specific primitive query contracts, DTOs, and MySQL 
 - Diagnostics telemetry: `DiagnosticsTelemetryQueryInterface::find(DiagnosticsTelemetryQueryDTO $query)` adds query-based reads for actor, event key, severity, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?DiagnosticsTelemetryCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
 - Delivery operations: `DeliveryOperationsQueryInterface`, `DeliveryOperationsQueryDTO`, `DeliveryOperationsViewDTO`, and `DeliveryOperationsQueryMysqlRepository` support actor, target, channel, operation type, status, request, correlation, date-range, cursor, and limit filters.
 
-All primitive query repositories order results by `occurred_at DESC, id DESC`, apply descending cursor pagination with `cursorOccurredAt` and `cursorId`, safely decode JSON payload/metadata fields to arrays, return `null` for corrupt JSON, and wrap read/storage failures in the domain-specific storage exception.
+All primitive query repositories order results by `occurred_at DESC, id DESC`, apply descending cursor pagination with `cursorOccurredAt` and `cursorId`, safely decode JSON payload/metadata fields to arrays, return `null` for corrupt JSON, wrap read/storage failures in the domain-specific storage exception, and provide **fail-safe hydration** (e.g. gracefully handling invalid enum values in the DB by sanitizing or falling back rather than throwing).
+
+> **Reader Scope & Limitations**
+>
+> The query interface exposed by this module represents a **primitive, cursor-based read-side**.
+>
+> It is designed for:
+> - Archiving
+> - Sequential processing
+> - Export and migration jobs
+>
+> It is **not designed** to support:
+> - UI pagination
+> - Searching or filtering
+> - Aggregations or analytics
+>
+> Any advanced or UI-driven querying MUST be implemented outside the module, using application-level services or optional utilities built on top of the module contracts.
