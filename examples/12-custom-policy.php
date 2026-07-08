@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/00-bootstrap.php';
+example_requires_pdo($pdo);
 
 use Maatify\EventLogging\AuditTrail\Contract\AuditTrailPolicyInterface;
 use Maatify\EventLogging\AuditTrail\Enum\AuditTrailActorTypeEnum;

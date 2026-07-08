@@ -23,12 +23,15 @@ if ($dsn) {
     // Only connect if the host explicitly provides a DSN string via environment variable
     $pdo = new PDO($dsn);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} else {
-    // Fallback to a mock/dummy PDO for pure illustrative/skeleton execution
-    // SQLite MUST NOT be presented as a compatible runtime for the package MySQL repositories,
-    // but we need a PDO instance for type-hints to pass in these skeleton examples.
-    // In real applications, this must be a real MySQL PDO instance.
-    $pdo = new PDO('sqlite::memory:');
+}
+
+function example_requires_pdo(?PDO $pdo): void
+{
+    if ($pdo === null) {
+        echo "This example requires a configured PDO instance.\n";
+        echo "Please provide a safe MySQL DSN via the DB_DSN environment variable to execute.\n";
+        exit(0);
+    }
 }
 
 // 2. Setup the clock

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/00-bootstrap.php';
+example_requires_pdo($pdo);
 
 use Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceWriterMysqlRepository;
 use Maatify\EventLogging\BehaviorTrace\Recorder\BehaviorTraceRecorder;

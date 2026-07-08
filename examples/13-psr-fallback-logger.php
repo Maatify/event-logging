@@ -16,20 +16,17 @@ use Psr\Log\AbstractLogger;
  * Demonstrate fail-open behavior with a PSR-3 fallback logger.
  */
 
-// 1. We create a DB connection we KNOW will fail (bad DSN).
-try {
-    $failingPdo = new \PDO('mysql:host=invalid_host;dbname=test', 'user', 'pass', [
-        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
-    ]);
-} catch (\PDOException $e) {
-    // If it fails immediately on construct, we'll just mock it.
-    // For this example, let's use the memory sqlite which will fail because the table doesn't exist.
-    $failingPdo = new \PDO('sqlite::memory:');
-    $failingPdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+// We create an explicitly failing mock PDO because this script intentionally requires a failing repository.
+class FailingMockPdo extends \PDO {
+    public function __construct() {}
+    public function prepare($query, $options = []): \PDOStatement|false {
+        throw new \PDOException("Simulated connection/query failure");
+    }
 }
+$failingPdo = new FailingMockPdo();
 
-// 2. We use a simple logger that echo's to the screen so we can see the fallback happen.
-$logger = new class extends AbstractLogger {
+// We use a simple logger that echo's to the screen so we can see the fallback happen.
+$fallbackLogger = new class extends AbstractLogger {
     /**
      * @param mixed $level
      * @param string|\Stringable $message
@@ -48,7 +45,7 @@ $clock = new SystemClock();
 $recorder = new AuditTrailRecorder(
     logger: $repository,
     clock: $clock,
-    fallbackLogger: $logger
+    fallbackLogger: $fallbackLogger
 );
 
 $command = new RecordAuditTrailCommand(

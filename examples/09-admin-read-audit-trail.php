@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/00-bootstrap.php';
+example_requires_pdo($pdo);
 
 use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailQueryMysqlRepository;
 use Maatify\EventLogging\AuditTrail\DTO\AuditTrailQueryDTO;
@@ -23,8 +24,6 @@ $queryDTO = new AuditTrailQueryDTO(
 );
 
 // Note: If you run this without a real database, it will throw an exception.
-// In 00-bootstrap.php we use an in-memory SQLite if no DSN is provided,
-// but the repositories assume MySQL syntax (e.g., table structures).
 echo "Attempting to query audit trail...\n";
 try {
     $results = $repository->find($queryDTO);
@@ -33,5 +32,5 @@ try {
         echo "- Event: " . $result->eventKey . " at " . $result->occurredAt->format(\DateTimeInterface::ATOM) . "\n";
     }
 } catch (\Throwable $e) {
-    echo "Query failed (expected if using dummy SQLite PDO): " . $e->getMessage() . "\n";
+    echo "Query failed (expected if DB is unreachable): " . $e->getMessage() . "\n";
 }

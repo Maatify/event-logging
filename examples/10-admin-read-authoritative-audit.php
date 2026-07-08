@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/00-bootstrap.php';
+example_requires_pdo($pdo);
 
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
@@ -30,5 +31,5 @@ try {
         echo "- Action: " . $result->action . " at " . $result->occurredAt->format(\DateTimeInterface::ATOM) . "\n";
     }
 } catch (\Throwable $e) {
-    echo "Query failed (expected if using dummy SQLite PDO): " . $e->getMessage() . "\n";
+    echo "Query failed (expected if DB is unreachable): " . $e->getMessage() . "\n";
 }

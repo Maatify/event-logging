@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/00-bootstrap.php';
+example_requires_pdo($pdo);
 
 use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailQueryMysqlRepository;
 use Maatify\EventLogging\AuditTrail\DTO\AuditTrailQueryDTO;
@@ -28,5 +29,5 @@ try {
     $results = $repository->find($queryDTO);
     echo "Fetched page.\n";
 } catch (\Throwable $e) {
-    echo "Query failed (expected if using dummy SQLite PDO): " . $e->getMessage() . "\n";
+    echo "Query failed (expected if DB is unreachable): " . $e->getMessage() . "\n";
 }
