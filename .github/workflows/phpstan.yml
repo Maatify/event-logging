@@ -36,7 +36,7 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: PHP syntax check
-        run: find src -name "*.php" -exec php -l {} \;
+        run: find src tests examples -name "*.php" -exec php -l {} \;
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse -c phpstan.neon
