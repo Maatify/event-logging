@@ -1,0 +1,78 @@
+# Security Policy
+
+## Supported Versions
+
+The following versions of **Maatify Event Logging** are currently supported with security updates.
+
+| Version | Supported |
+|---------|-----------|
+| 1.x     | ✅ Yes     |
+| < 1.0   | ❌ No      |
+
+---
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability in this package, please report it responsibly.
+
+Please **do not open a public GitHub issue** for security vulnerabilities.
+
+Instead, report it privately via email:
+
+[support@maatify.com](mailto:support@maatify.com)
+
+Please include as much detail as possible, including:
+
+* A clear description of the vulnerability
+* Affected package version or commit SHA
+* Steps to reproduce the issue
+* Expected and actual behavior
+* Potential impact
+* Any relevant logs, stack traces, schema details, or example payloads
+* Suggested mitigation, if available
+
+We will review the report and work to address confirmed security issues appropriately.
+
+---
+
+## Security Scope
+
+This package is a framework-agnostic standalone Composer package for event logging domains.
+
+Security reports are especially relevant when they involve:
+
+* Unsafe handling of logged metadata or payload data
+* SQL injection or unsafe query construction inside package-owned repositories
+* Incorrect fail-open / fail-closed behavior in logging domains
+* Exposure of sensitive data through DTO serialization or query output
+* Broken domain isolation between logging domains
+* Incorrect use of host-provided identifiers
+* Dependency-related vulnerabilities affecting package runtime behavior
+
+---
+
+## Out of Scope
+
+The following areas are generally outside the security scope of this package unless the issue is caused directly by this package:
+
+* Host application authentication or authorization
+* Host application routing, controllers, middleware, or UI
+* Host application database credentials or PDO configuration
+* Infrastructure, server, firewall, or deployment misconfiguration
+* Incorrect permissions applied by the consuming application
+* Manual modification of database tables outside the package contract
+
+Host applications are responsible for securely configuring their own runtime, database connection, access control, and operational environment.
+
+---
+
+## Disclosure Policy
+
+Once a vulnerability is confirmed:
+
+1. The issue will be reviewed and triaged.
+2. A fix will be prepared and tested.
+3. A patched version will be released when appropriate.
+4. A security advisory may be published if the vulnerability affects released versions.
+
+We appreciate responsible disclosure that helps keep the Maatify ecosystem safe.
