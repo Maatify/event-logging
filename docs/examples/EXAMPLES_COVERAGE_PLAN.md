@@ -30,6 +30,7 @@ examples/
   11-cursor-pagination.php
   12-custom-policy.php
   13-psr-fallback-logger.php
+  14-di-bindings.php
 ```
 
 ## Example Details
@@ -145,3 +146,11 @@ examples/
 - **Must Not Demonstrate:** Fallback logging for AuthoritativeAudit.
 - **Safety Notes:** N/A
 - **Type:** Illustrative/Runnable.
+
+### `14-di-bindings.php`
+- **Purpose:** Demonstrate using `EventLoggingBindings::definitions()`.
+- **Dependencies:** PDO, ClockInterface, optionally LoggerInterface.
+- **Demonstrates:** Using optional pure-PHP DI bindings.
+- **Must Not Demonstrate:** Mandatory dependency on PHP-DI or any framework.
+- **Safety Notes:** N/A
+- **Type:** Illustrative.
