@@ -32,7 +32,6 @@ use Maatify\EventLogging\BehaviorTrace\Recorder\BehaviorTraceRecorder;
 use Maatify\EventLogging\Bootstrap\EventLoggingBindings;
 use Maatify\EventLogging\Common\SystemClock;
 use Maatify\SharedCommon\Contracts\ClockInterface;
-use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -40,7 +39,7 @@ use Psr\Log\NullLogger;
  * Note: The following is a pseudo-container setup for illustrative purposes.
  * In a real application, you would use a concrete container like PHP-DI's ContainerBuilder.
  */
-class DummyContainer implements ContainerInterface {
+class DummyContainer {
     private array $definitions = [];
     private array $instances = [];
 
@@ -99,26 +98,22 @@ $allDefinitions = array_merge(
 // 3. Build the container
 $container = new DummyContainer($allDefinitions);
 
-// 4. Retrieve and use a domain recorder
-// Example: AuthoritativeAudit (Fail-Closed)
+// 4. Retrieve a domain recorder
+// Example: Resolving AuthoritativeAudit
+// Note on Semantics: AuthoritativeAudit is designed as fail-closed and explicitly rejects fallback loggers.
 try {
     /** @var AuthoritativeAuditRecorder $authoritativeAudit */
     $authoritativeAudit = $container->get(AuthoritativeAuditRecorder::class);
-
-    // This will throw an exception if the PDO connection fails,
-    // because AuthoritativeAudit does NOT use the fallback logger.
     echo "AuthoritativeAuditRecorder retrieved successfully.\n";
 } catch (\Throwable $e) {
-    echo "AuthoritativeAudit setup failed as expected if PDO is invalid: " . $e->getMessage() . "\n";
+    echo "AuthoritativeAudit setup failed: " . $e->getMessage() . "\n";
 }
 
-// Example: BehaviorTrace (Fail-Open)
+// Example: Resolving BehaviorTrace
+// Note on Semantics: BehaviorTrace is designed as fail-open and will accept the fallback logger provided above.
 try {
     /** @var BehaviorTraceRecorder $behaviorTrace */
     $behaviorTrace = $container->get(BehaviorTraceRecorder::class);
-
-    // If PDO fails during recording, BehaviorTrace will catch the exception
-    // and route the error to the LoggerInterface we provided above.
     echo "BehaviorTraceRecorder retrieved successfully.\n";
 } catch (\Throwable $e) {
     echo "BehaviorTrace setup failed: " . $e->getMessage() . "\n";

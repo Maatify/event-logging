@@ -30,6 +30,7 @@ use Maatify\EventLogging\Bootstrap\EventLoggingBindings;
 use Maatify\EventLogging\Common\SystemClock;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 // 1. Define the host requirements
 $hostDefinitions = [
@@ -40,7 +41,7 @@ $hostDefinitions = [
         return new SystemClock();
     },
     LoggerInterface::class => function () {
-        return new \Monolog\Logger('event-logging-fallback'); // Optional
+        return new NullLogger(); // Optional
     },
 ];
 
@@ -59,4 +60,4 @@ $container = $containerBuilder->build();
 $auditTrail = $container->get(\Maatify\EventLogging\AuditTrail\Recorder\AuditTrailRecorder::class);
 ```
 
-For a complete working skeleton, see the [`14-di-bindings.php`](../../examples/14-di-bindings.php) example file.
+For a plain PHP illustrative skeleton, see the [`14-di-bindings.php`](../../examples/14-di-bindings.php) example file.
