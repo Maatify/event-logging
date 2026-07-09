@@ -1,5 +1,9 @@
 # maatify/event-logging
 
+![Maatify.dev](https://www.maatify.dev/assets/img/img/maatify_logo_white.svg)
+
+---
+
 [![Latest Version](https://img.shields.io/packagist/v/maatify/event-logging.svg?style=for-the-badge)](https://packagist.org/packages/maatify/event-logging)
 [![PHP Version](https://img.shields.io/packagist/php-v/maatify/event-logging.svg?style=for-the-badge)](https://packagist.org/packages/maatify/event-logging)
 [![License](https://img.shields.io/packagist/l/maatify/event-logging.svg?style=for-the-badge)](https://github.com/Maatify/event-logging/blob/main/LICENSE)
