@@ -52,7 +52,8 @@
   "scripts": {
     "test": "phpunit",
     "test:unit": "phpunit --testsuite Unit",
-    "test:integration": "phpunit --testsuite Integration"
+    "test:integration": "phpunit --testsuite Integration",
+    "analyse": "phpstan analyse src --level=max"
   },
   "minimum-stability": "stable",
   "prefer-stable": true,
