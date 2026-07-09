@@ -6,8 +6,8 @@
 * **Keep Active:** 6
 * **Archived:** 12
 * **Merge-First Completed / Public API kept in src:** 4
-* **Needs Architect Decision:** 1
-* **Blocker before full archive:** Yes. The `OPEN_QUESTIONS.md` file requires architectural resolution before it can be archived or merged.
+* **Needs Architect Decision:** 0 — all domain docs archive blockers resolved
+* **Blocker before full archive:** No. All domain docs archive blockers have been resolved.
 
 ## 2. Per-file table
 
