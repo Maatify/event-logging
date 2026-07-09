@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Release Preparation
 
+### Added
+- Added optional pure-PHP DI binding helper for host applications that want convenience container wiring without a mandatory DI dependency.
+
 ### Changed
 - Polished Composer metadata (`composer.json`) to accurately reflect package scope, requirements, and dependencies.
 
 ### Documentation
+- Clarified that framework-agnostic core wiring can be manual or use optional convenience DI bindings.
 - Applied professional release-grade polish to `README.md`.
 - Completed final documentation audit and instituted documentation quality gate.
 - Standardized package structure and wording across examples, schema index, module references, and integration guides for release readiness.

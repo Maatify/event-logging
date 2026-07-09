@@ -18,7 +18,7 @@
 
 `maatify/event-logging` is a framework-agnostic standalone Composer package for registering event logging domains within the Maatify ecosystem.
 
-This package provides strict domain isolation, MySQL persistence, and fail-open/fail-closed semantics without framework bindings. It intentionally relies on explicit Composer and runtime dependencies to operate autonomously from host applications and frameworks.
+This package provides strict domain isolation, MySQL persistence, and fail-open/fail-closed semantics without mandatory framework bindings. It intentionally relies on explicit Composer and runtime dependencies to operate autonomously from host applications and frameworks.
 
 ---
 
@@ -29,9 +29,9 @@ This package provides strict domain isolation, MySQL persistence, and fail-open/
 * **MySQL-Only Persistence**: Direct database persistence through domain-owned repositories.
 * **AuthoritativeAudit Semantics**: Fail-closed governance logging.
 * **Fail-Open Boundaries**: Non-authoritative domains can accept a PSR-3 fallback logger.
-* **Optional Framework-Agnostic Provider**: Built-in optional factories for wiring dependencies.
+* **Optional Framework-Agnostic Provider and Bindings**: Built-in optional factories and pure-PHP DI binding helpers for wiring dependencies.
 * **Primitive Cursor-Based Read APIs**: Dedicated, stable read/query capabilities.
-* **No Framework Bindings**: Operates independently from host applications and host namespaces.
+* **No Mandatory Framework Bindings**: Optional bindings are pure PHP convenience helpers and do not add framework runtime dependencies.
 * **No Generic Logging API**: Excludes shared generic loggers, generic log tables, or unified repositories.
 
 ---
@@ -79,7 +79,7 @@ $provider = EventLoggingProviderFactory::createDefault($pdo, $clock, $psrLogger)
 $auditTrail = $provider->auditTrail();
 ```
 
-*(See [`01-factory-provider.php`](examples/01-factory-provider.php) for more details.)*
+*(See [`01-factory-provider.php`](examples/01-factory-provider.php) for manual factory/provider wiring. Hosts that prefer DI can also import the optional pure-PHP `Maatify\EventLogging\Bootstrap\EventLoggingBindings::definitions()` helper; this helper is not required and does not introduce framework-specific behavior.)*
 
 ### Domain Recorder Usage
 

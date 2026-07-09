@@ -11,7 +11,7 @@ The boundary between the `maatify/event-logging` library and host applications i
 *   Domain recorders (`Recorder\*`)
 *   Persistence contracts (`Contract\*`)
 *   Domain repositories (`Infrastructure\Mysql\*`)
-*   Optional framework-agnostic construction helpers (Factories)
+*   Optional framework-agnostic construction helpers (Factories and DI binding helpers)
 
 **Host Application owns:**
 *   PDO connection creation and configuration
@@ -41,11 +41,11 @@ This preserves domain-specific entry points and prevents the introduction of `Ge
 
 ## 3. Bootstrap / DI
 
-**Decision: The package will NOT include a standard `Bootstrap/{ModuleName}Bindings.php`.**
+**Decision: The package may include optional, framework-agnostic `Bootstrap` helpers, but they are never mandatory runtime integration points.**
 
-According to the `EVENT_LOGGING_MODULE_REFERENCE.md` exceptions, this package intentionally avoids providing project-specific bindings to maintain framework-agnosticism.
+The core remains framework-agnostic: host applications still own PDO creation, clock selection, runtime configuration, and container setup. Hosts may wire the package manually through factories/providers, or they may import the optional pure-PHP binding helper when their DI container supports callable definitions.
 
-Host applications should wire dependencies manually or via their own DI container by choosing the required domain contracts, policies, `PDO` connection, and optional PSR-3 logger. The package will provide pure PHP Factory classes (see `FACTORY_AND_PROVIDER_DESIGN.md`) to ease this manual wiring, but will not assume any specific DI container (e.g., PHP-DI, Laravel).
+The optional `EventLoggingBindings` helper exists only as a convenience map for DI wiring. It must not introduce Laravel, Slim, Symfony, host-application, or PHP-DI runtime behavior into the core package. It depends on host-provided `PDO` and `ClockInterface` entries, treats `LoggerInterface` as optional, and preserves the domain semantics documented for `EventLoggingProviderFactory`.
 
 ## 4. Public Contracts
 
@@ -61,7 +61,7 @@ A new optional interface for the Provider/Service Map may be introduced, but it 
 ## 5. Architecture Constraints
 
 This design adheres to all constraints:
-*   **Framework-agnostic:** No DI container bindings, no Slim/Laravel/Symfony dependencies.
+*   **Framework-agnostic:** Optional DI binding helpers are pure PHP convenience maps only; no Slim/Laravel/Symfony dependencies or required container packages.
 *   **Standalone boundaries:** Library logic is isolated from host logic.
 *   **API Stability:** Existing contracts in `PUBLIC_API.md` are unaffected.
 *   **Prohibited Patterns Avoided:** No `GenericLogger`, generic DTOs, generic recorders, generic tables, or auto-routing.

@@ -68,9 +68,9 @@ A factory class will be created for each of the six canonical domains:
 
 These factories MUST NOT hide domain boundaries (e.g., they will not return a unified `LoggerInterface` but rather the specific `DomainRecorder`).
 
-## 3. Provider / Bindings
+## 3. Provider / Optional Bindings
 
-**Decision: An optional, framework-agnostic Provider / Service Map will be included.**
+**Decision: An optional, framework-agnostic Provider / Service Map and optional pure-PHP binding helper will be included.**
 
 To allow host applications to inject a single object that provides access to all event logging capabilities, an `EventLoggingProvider` will be provided.
 
@@ -128,7 +128,13 @@ final class EventLoggingProviderFactory
 }
 ```
 
+### Optional DI binding helper
+
+`Maatify\EventLogging\Bootstrap\EventLoggingBindings` provides a pure-PHP `definitions()` map for hosts that want container wiring shortcuts. The helper is optional and does not require PHP-DI, Laravel, Slim, Symfony, or any host namespace. Containers that can consume callable definitions may use it; other hosts can continue wiring the factories manually.
+
+The helper binds `EventLoggingProvider`, typed domain recorders, and domain query interfaces using host-provided `PDO` and `ClockInterface` services. If a host provides `Psr\Log\LoggerInterface`, it is passed through the provider factory only to fail-open domains. `AuthoritativeAudit` remains fail-closed and does not receive a PSR-3 fallback logger.
+
 ## 4. Alignment with Rules
 
-*   **No Slim/PHP-DI bindings:** The package relies purely on constructor injection. Host frameworks will map their DI definitions to these factories manually.
-*   **No Host Assumptions:** The factories assume nothing about the host environment other than the availability of a `PDO` instance and standard interfaces.
+*   **No mandatory Slim/PHP-DI bindings:** The package relies on constructor injection and optional pure-PHP callable definitions. Host frameworks may map their DI definitions manually or import the optional helper.
+*   **No Host Assumptions:** The factories and optional bindings assume nothing about the host environment other than the availability of a `PDO` instance and standard interfaces.
