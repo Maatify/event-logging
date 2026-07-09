@@ -3,6 +3,29 @@
   "description": "Framework-agnostic standalone event logging library containing isolated Maatify logging domains. Depends only on explicit Composer/runtime dependencies.",
   "type": "library",
   "license": "MIT",
+  "keywords": [
+    "event-logging",
+    "audit",
+    "audit-trail",
+    "security-signals",
+    "behavior-trace",
+    "diagnostics-telemetry",
+    "delivery-operations",
+    "logging",
+    "mysql",
+    "pdo"
+  ],
+  "homepage": "https://github.com/Maatify/event-logging",
+  "support": {
+    "issues": "https://github.com/Maatify/event-logging/issues",
+    "source": "https://github.com/Maatify/event-logging"
+  },
+  "authors": [
+    {
+      "name": "Maatify",
+      "homepage": "https://maatify.dev"
+    }
+  ],
   "require": {
     "php": "^8.2",
     "ext-json": "*",
@@ -30,5 +53,7 @@
     "test": "phpunit",
     "test:unit": "phpunit --testsuite Unit",
     "test:integration": "phpunit --testsuite Integration"
-  }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }
