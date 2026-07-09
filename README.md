@@ -172,7 +172,9 @@ See the [LICENSE](LICENSE) file for details.
 
 ## 👤 Author
 
-Engineered by Mohamed Abdulalim / Maatify.dev
+Engineered by **Mohamed Abdulalim** ([@megyptm](https://github.com/megyptm))  
+Backend Lead & Technical Architect  
+https://www.maatify.dev
 
 ---
 
