@@ -50,7 +50,7 @@ To maintain the integrity and standalone nature of this package, all contributio
 
 * **No framework bindings:** The package must not rely on Laravel, Symfony, Slim, or any other framework.
 * **No host app namespaces:** Code must not reference `App`, `Athar`, `EP4N`, or any project-specific namespaces.
-* **No generic logger API:** The package intentionally forbids a single "generic" logger interface.
+* **No generic logger API:** The package does not expose a catch-all logging API, generic recorder, or domain-string-routed logger. PSR-3 is only accepted as an optional fallback logger for fail-open domains.
 * **No generic recorder/repository:** Each domain has its own dedicated recorder and repository.
 * **No shared generic `logs` or `event_logs` table:** Each domain corresponds to a specific `maa_event_logging_*` table.
 * **MySQL/PDO only:** We strictly support MySQL-backed repositories.
