@@ -10,6 +10,18 @@ A core architectural principle of this library is the strict isolation of domain
 
 The package contains no bindings or auto-discovery configuration for frameworks such as Laravel, Symfony, Slim, or specific containers like PHP-DI. The host application's container is entirely responsible for discovering, instantiating, and managing the lifecycle of these objects externally.
 
+## Host-Managed Infrastructure Dependencies
+
+When integrating this package, the host application is responsible for providing critical infrastructure instances:
+
+### PDO Connection
+The package does not own or manage the creation of `PDO` connections. It expects an already configured `PDO` instance to be injected into its factories or directly into its MySQL repositories.
+To ensure compatibility with the provided schema, the host application must ensure the connection uses the `utf8mb4` character set (specifically `utf8mb4_unicode_ci` collation). Any specific PDO options or charset configurations should be handled at the application level before passing the connection to the package.
+
+### Fallback Logging (PSR-3)
+For domains that support fail-open behavior, the package relies on the generic `Psr\Log\LoggerInterface`. The package does not require any specific logging implementation (e.g., Monolog). Any PSR-3 compatible logger provided by the host application is sufficient.
+Note that injecting a fallback logger does not change the fundamental failure semantics of the domains: `AuthoritativeAudit` remains strictly fail-closed (it does not accept a fallback logger), while other domains use the fallback logger only at the recorder boundary to fail-open upon storage failure.
+
 ## Manually Constructing Domain Recorders and Repositories
 
 Wiring a domain typically involves constructing an infrastructure repository (the writer), and then injecting that into the domain recorder along with a clock and an optional fallback logger.

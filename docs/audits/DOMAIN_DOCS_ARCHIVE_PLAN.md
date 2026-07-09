@@ -27,7 +27,7 @@
 | `src/DeliveryOperations/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
 | `docs/archive/domain-docs/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `docs/archive/domain-docs/DiagnosticsTelemetry/CHECKLIST.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
-| `src/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Candidate for Archive | Needs Architect Decision | Unresolved questions regarding PDO connections and UUID dependency. | N/A | High |
+| `docs/archive/domain-docs/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Archived | Archived | Resolved and archived. | N/A | Low |
 | `src/DiagnosticsTelemetry/PUBLIC_API.md` | Candidate for Dedicated Archive | Merge completed; keep in src for now | Merged into root PUBLIC_API.md / EVENT_LOGGING_MODULE_REFERENCE.md; kept for later dedicated archive decision | Completed | Medium |
 | `src/DiagnosticsTelemetry/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
 | `docs/archive/domain-docs/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
@@ -76,10 +76,8 @@ These domain overview files serve as the primary introduction to each namespace 
 
 ## 6. Architect Decision Needed
 
-The following file contains open technical questions that require a decision from an architect before it can be closed or archived:
-
-* `src/DiagnosticsTelemetry/OPEN_QUESTIONS.md` (Contains unresolved questions regarding the injected PDO connection and UUID dependency approach).
+No files currently require an architect decision. `OPEN_QUESTIONS.md` has been successfully resolved and archived.
 
 ## 7. Recommended Next Step
 
-**Archive Validation:** The Safe Archive Batch has been executed. The `PUBLIC_API.md` files' Merge-First Batch is complete. The only remaining domain docs archive blocker is resolving `OPEN_QUESTIONS.md`.
+**Archive Complete:** The Safe Archive Batch has been executed. The `PUBLIC_API.md` files' Merge-First Batch is complete. `OPEN_QUESTIONS.md` is resolved and archived. There are no remaining domain docs archive blockers.

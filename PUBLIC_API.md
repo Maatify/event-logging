@@ -61,7 +61,7 @@ No `App\`, project DI/container, project helper, or host-application-specific co
 
 > **Infrastructure Notice**
 >
-> Classes in `Infrastructure\Mysql\*` namespaces (e.g., MySQL repositories) are public infrastructure adapters for package composition/wiring. They are not the preferred application/business-layer API. Host composition roots or DI containers may instantiate and bind them to domain contracts. Application and business code should depend on `Contract\*` interfaces, not concrete infrastructure classes.
+> Classes in `Infrastructure\Mysql\*` namespaces (e.g., MySQL repositories, including Query Repositories) are public infrastructure adapters strictly meant for package composition/wiring. They are not the preferred application/business-layer API. Host composition roots or DI containers may instantiate and bind them to domain contracts. Application and business code must depend on `Contract\*` interfaces, not concrete infrastructure classes.
 
 ## Primitive read/query API
 
@@ -85,10 +85,10 @@ All primitive query repositories order results by `occurred_at DESC, id DESC`, a
 > - Sequential processing
 > - Export and migration jobs
 >
-> It does **not** support:
+> It explicitly does **not** support:
 > - Generic search or arbitrary filtering
 > - UI-grid querying with generic pagination
 > - Joins
 > - Aggregations, analytics, or advanced reporting
 >
-> UI or admin screens may build on top of these contracts externally, outside the package.
+> Any advanced query utilities must be built at the application-level. The package does not and will not provide optional advanced query utilities. UI or admin screens may build on top of these primitive contracts externally, strictly outside the package.

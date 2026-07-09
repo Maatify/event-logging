@@ -10,6 +10,11 @@
 - Framework-agnostic: no application container, HTTP framework, route layer, middleware, or runtime wiring is required by the package.
 - Logging-domain isolation: each domain owns its contracts, DTOs, recorders, policies, exceptions, repositories, and SQL schema.
 
+## External Dependencies
+
+- `ramsey/uuid`: This dependency is intentional and explicit. The package relies on it for UUID generation and will not provide an internal fallback generator.
+- `ext-pdo` and `ext-json`: Required PHP extensions for database interaction and payload serialization.
+
 ## Public namespaces
 
 The package exposes `Maatify\EventLogging\` via PSR-4 autoloading. Public package namespaces are:
@@ -52,6 +57,7 @@ The package must not introduce any of the following:
 - A cross-domain writer or repository
 
 These are prohibited because the logging architecture requires independent failure semantics, retention policies, schema design, and review paths for each domain.
+Advanced querying (generic search, UI-grids, analytics, joins) is also completely outside the scope of the package, which supports only primitive domain-specific filters.
 
 ## Admin/Customer split exception
 
@@ -118,10 +124,10 @@ AuthoritativeAudit is the explicit exception. It remains fail-closed for governa
 
 Recorders apply domain policies before storage. Policies decide whether an event is recordable and may normalize safe metadata. Storage exceptions remain domain-specific so hosts can choose fail-open or fail-closed behavior per domain.
 
-The expected failure posture is domain-dependent:
+The expected failure posture is strictly domain-dependent:
 
-- Authoritative audit events are security/governance critical and should be treated as fail-closed by host applications.
-- Diagnostic, behavior, delivery, audit trail, and security-signal domains expose domain-specific exceptions so hosts can apply their own reliability posture without collapsing all failures into one generic logging error.
+- `AuthoritativeAudit` events are security/governance critical and are treated as strictly **fail-closed**. They do not accept a fallback logger and will throw validation or storage exceptions.
+- Diagnostic, behavior, delivery, audit trail, and security-signal domains are **fail-open strictly at the recorder boundary** (upon storage failure). They may accept an optional PSR-3 fallback logger to capture failures before swallowing exceptions, but they expose domain-specific exceptions at the repository level so hosts can apply their own reliability posture if bypassing the recorder.
 
 Validation belongs at domain boundaries. Commands carry public input; recorders apply policies and construct already-structured write DTOs; repositories enforce storage-specific failures without applying recording policy.
 
