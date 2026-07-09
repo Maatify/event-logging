@@ -35,14 +35,14 @@ Initial stable release of `maatify/event-logging` under the strictly isolated `M
 - Adopted `ClockInterface` exclusively from `maatify/shared-common` in place of internal implementations.
 
 ### Security
-- Engineered `AuthoritativeAudit` to strictly operate in a fail-closed manner to guarantee high-integrity persistence without PSR-3 fallbacks.
+- Preserved AuthoritativeAudit fail-closed behavior, ensuring storage failures are surfaced instead of being swallowed or redirected to PSR-3 fallback logging.
 - Structured non-authoritative domains to fail-open securely at the recorder boundary, with optional PSR-3 fallback logging capabilities.
 
 ### Validation
-- Banned direct use of `RuntimeException` for storage and network exceptions, replacing them with strongly typed domain or system-level exceptions.
+- Banned direct use of `RuntimeException` for storage/read/query exceptions, replacing them with strongly typed domain or system-level exceptions.
 
 ### Guarantees
-- Exclusively supports real MySQL; SQLite is explicitly unsupported and actively blocked.
+- Supports MySQL-backed repositories only; SQLite is explicitly unsupported and must not be presented as a compatible runtime.
 - Completely devoid of generic tables (e.g., `logs`, `event_logs`).
 - Operates entirely free of framework-specific bindings and isolated from host application namespaces.
 - Contains absolutely zero UI components, admin controllers, route handling, permissions logic, or generic analytics inside the package boundary.
