@@ -13,29 +13,29 @@
 
 | Path | Current Inventory Status | Recommended Action | Reason | Merge Target | Risk Level |
 |---|---|---|---|---|---|
-| `src/AuditTrail/CANONICAL_ARCHITECTURE.md` | Candidate for Archive | Archive Candidate | Redundant with global architecture docs. | N/A | Low |
-| `src/AuditTrail/CHECKLIST.md` | Candidate for Archive | Archive Candidate | Historical checklist, no longer needed. | N/A | Low |
+| `docs/archive/domain-docs/AuditTrail/CANONICAL_ARCHITECTURE.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
+| `docs/archive/domain-docs/AuditTrail/CHECKLIST.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `src/AuditTrail/PUBLIC_API.md` | Candidate for Archive | Merge Into Package Docs First | Contains specific contract and API definitions needed for usage. | `PUBLIC_API.md` / `EVENT_LOGGING_MODULE_REFERENCE.md` | Medium |
 | `src/AuditTrail/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
-| `src/AuditTrail/TESTING_STRATEGY.md` | Candidate for Archive | Archive Candidate | Outdated, covered by global testing matrix. | N/A | Low |
+| `docs/archive/domain-docs/AuditTrail/TESTING_STRATEGY.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `src/AuthoritativeAudit/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
-| `src/BehaviorTrace/CANONICAL_ARCHITECTURE.md` | Candidate for Archive | Archive Candidate | Redundant with global architecture docs. | N/A | Low |
-| `src/BehaviorTrace/CHECKLIST.md` | Candidate for Archive | Archive Candidate | Historical checklist, no longer needed. | N/A | Low |
+| `docs/archive/domain-docs/BehaviorTrace/CANONICAL_ARCHITECTURE.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
+| `docs/archive/domain-docs/BehaviorTrace/CHECKLIST.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `src/BehaviorTrace/PUBLIC_API.md` | Candidate for Archive | Merge Into Package Docs First | Contains specific contract and API definitions needed for usage. | `PUBLIC_API.md` / `EVENT_LOGGING_MODULE_REFERENCE.md` | Medium |
 | `src/BehaviorTrace/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
-| `src/BehaviorTrace/TESTING_STRATEGY.md` | Candidate for Archive | Archive Candidate | Outdated, covered by global testing matrix. | N/A | Low |
+| `docs/archive/domain-docs/BehaviorTrace/TESTING_STRATEGY.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `src/DeliveryOperations/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
-| `src/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Candidate for Archive | Archive Candidate | Redundant with global architecture docs. | N/A | Low |
-| `src/DiagnosticsTelemetry/CHECKLIST.md` | Candidate for Archive | Archive Candidate | Historical checklist, no longer needed. | N/A | Low |
+| `docs/archive/domain-docs/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
+| `docs/archive/domain-docs/DiagnosticsTelemetry/CHECKLIST.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `src/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Candidate for Archive | Needs Architect Decision | Unresolved questions regarding PDO connections and UUID dependency. | N/A | High |
 | `src/DiagnosticsTelemetry/PUBLIC_API.md` | Candidate for Archive | Merge Into Package Docs First | Contains specific contract and API definitions needed for usage. | `PUBLIC_API.md` / `EVENT_LOGGING_MODULE_REFERENCE.md` | Medium |
 | `src/DiagnosticsTelemetry/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
-| `src/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Candidate for Archive | Archive Candidate | Outdated, covered by global testing matrix. | N/A | Low |
-| `src/SecuritySignals/CANONICAL_ARCHITECTURE.md` | Candidate for Archive | Archive Candidate | Redundant with global architecture docs. | N/A | Low |
-| `src/SecuritySignals/CHECKLIST.md` | Candidate for Archive | Archive Candidate | Historical checklist, no longer needed. | N/A | Low |
+| `docs/archive/domain-docs/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
+| `docs/archive/domain-docs/SecuritySignals/CANONICAL_ARCHITECTURE.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
+| `docs/archive/domain-docs/SecuritySignals/CHECKLIST.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 | `src/SecuritySignals/PUBLIC_API.md` | Candidate for Archive | Merge Into Package Docs First | Contains specific contract and API definitions needed for usage. | `PUBLIC_API.md` / `EVENT_LOGGING_MODULE_REFERENCE.md` | Medium |
 | `src/SecuritySignals/README.md` | Active | Keep Active | Domain overview and entry point. | N/A | Low |
-| `src/SecuritySignals/TESTING_STRATEGY.md` | Candidate for Archive | Archive Candidate | Outdated, covered by global testing matrix. | N/A | Low |
+| `docs/archive/domain-docs/SecuritySignals/TESTING_STRATEGY.md` | Archived | Archived | Safe Archive Batch completed | N/A | Low |
 
 ## 3. Safe Archive Batch
 
@@ -54,9 +54,9 @@ The following files have been successfully moved to `docs/archive/domain-docs/`:
 * `docs/archive/domain-docs/SecuritySignals/CHECKLIST.md`
 * `docs/archive/domain-docs/SecuritySignals/TESTING_STRATEGY.md`
 
-## 4. Merge Before Archive
+## 4. Merge Before Archive — Completed
 
-The following files should have their core API points/contracts/DTOs merged into `PUBLIC_API.md` and their design rules/usage references merged into `EVENT_LOGGING_MODULE_REFERENCE.md` before archiving:
+The Merge-First Batch is now completed. The following files remain in `src/` for now and may be archived in a later dedicated batch only if desired:
 
 * `src/AuditTrail/PUBLIC_API.md`
 * `src/BehaviorTrace/PUBLIC_API.md`
