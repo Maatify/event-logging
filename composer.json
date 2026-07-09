@@ -55,5 +55,8 @@
     "test:integration": "phpunit --testsuite Integration"
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "suggest": {
+    "php-di/php-di": "Optional DI container integration for wiring maatify/event-logging bindings."
+  }
 }
