@@ -1,5 +1,7 @@
 # Event Logging Schema Layout
 
+For the canonical storage guarantees, deferred archiving plans, and query semantics, please see the [Storage & Schema Guarantees](../docs/architecture/STORAGE_AND_SCHEMA.md) documentation.
+
 The package keeps SQL schema files beside the domain that owns them instead of duplicating or flattening them into this directory.
 
 ## Domain-local schema files

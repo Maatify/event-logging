@@ -150,6 +150,13 @@ The `examples/` directory contains plain PHP illustrative skeletons covering int
 * [Schema Layout](schema/README.md)
 * [Testing Strategy](TESTING_STRATEGY.md)
 
+### Architecture
+* [Unified Logging Architecture](docs/architecture/LOGGING_ARCHITECTURE.md)
+* [Logging Domain Rules](docs/architecture/LOGGING_DOMAIN_RULES.md)
+* [Storage & Schema Guarantees](docs/architecture/STORAGE_AND_SCHEMA.md)
+* [Deferred Scope & Future Considerations](docs/architecture/DEFERRED_SCOPE.md)
+* [Authoritative Audit Pipeline](docs/architecture/AUTHORITATIVE_AUDIT_PIPELINE.md)
+
 ### Integration Guides
 * [Installation Guide](docs/integration/INSTALLATION.md)
 * [Factory Usage](docs/integration/FACTORY_USAGE.md)
