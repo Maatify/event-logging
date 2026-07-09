@@ -55,29 +55,29 @@
 | `./docs/standards/PACKAGE_BUILDING_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Resolved (Updated to Package Standard): `RuntimeException` is completely forbidden and replaced with `SystemMaatifyException`; no longer recommends framework bindings. |
 | `./docs/testing/TEST_COVERAGE_MATRIX.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./schema/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
-| `./src/AuditTrail/CANONICAL_ARCHITECTURE.md` | Domain Docs | Candidate for Archive | Domain canonical architecture |  |
-| `./src/AuditTrail/CHECKLIST.md` | Domain Docs | Candidate for Archive | Domain specific checklist |  |
+| `./docs/archive/domain-docs/AuditTrail/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
+| `./docs/archive/domain-docs/AuditTrail/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
 | `./src/AuditTrail/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/AuditTrail/README.md` | Domain Docs | Active | Domain overview |  |
-| `./src/AuditTrail/TESTING_STRATEGY.md` | Domain Docs | Candidate for Archive | Domain testing strategy |  |
+| `./docs/archive/domain-docs/AuditTrail/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 | `./src/AuthoritativeAudit/README.md` | Domain Docs | Active | Domain overview |  |
-| `./src/BehaviorTrace/CANONICAL_ARCHITECTURE.md` | Domain Docs | Candidate for Archive | Domain canonical architecture |  |
-| `./src/BehaviorTrace/CHECKLIST.md` | Domain Docs | Candidate for Archive | Domain specific checklist |  |
+| `./docs/archive/domain-docs/BehaviorTrace/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
+| `./docs/archive/domain-docs/BehaviorTrace/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
 | `./src/BehaviorTrace/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/BehaviorTrace/README.md` | Domain Docs | Active | Domain overview |  |
-| `./src/BehaviorTrace/TESTING_STRATEGY.md` | Domain Docs | Candidate for Archive | Domain testing strategy |  |
+| `./docs/archive/domain-docs/BehaviorTrace/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 | `./src/DeliveryOperations/README.md` | Domain Docs | Active | Domain overview |  |
-| `./src/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Domain Docs | Candidate for Archive | Domain canonical architecture |  |
-| `./src/DiagnosticsTelemetry/CHECKLIST.md` | Domain Docs | Candidate for Archive | Domain specific checklist | Needs manual review: mentions host app namespaces (App, Athar, EP4N) |
+| `./docs/archive/domain-docs/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
+| `./docs/archive/domain-docs/DiagnosticsTelemetry/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist | Needs manual review: mentions host app namespaces (App, Athar, EP4N) |
 | `./src/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Domain Docs | Candidate for Archive | Domain-specific internal documentation |  |
 | `./src/DiagnosticsTelemetry/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/DiagnosticsTelemetry/README.md` | Domain Docs | Active | Domain overview |  |
-| `./src/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Domain Docs | Candidate for Archive | Domain testing strategy |  |
-| `./src/SecuritySignals/CANONICAL_ARCHITECTURE.md` | Domain Docs | Candidate for Archive | Domain canonical architecture |  |
-| `./src/SecuritySignals/CHECKLIST.md` | Domain Docs | Candidate for Archive | Domain specific checklist |  |
+| `./docs/archive/domain-docs/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
+| `./docs/archive/domain-docs/SecuritySignals/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
+| `./docs/archive/domain-docs/SecuritySignals/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
 | `./src/SecuritySignals/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/SecuritySignals/README.md` | Domain Docs | Active | Domain overview |  |
-| `./src/SecuritySignals/TESTING_STRATEGY.md` | Domain Docs | Candidate for Archive | Domain testing strategy |  |
+| `./docs/archive/domain-docs/SecuritySignals/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 
 ## Recommended Cleanup Plan
 
