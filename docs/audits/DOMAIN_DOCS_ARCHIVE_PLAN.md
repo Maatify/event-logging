@@ -7,7 +7,7 @@
 * **Archive Candidate:** 12
 * **Merge Into Package Docs First:** 4
 * **Needs Architect Decision:** 1
-* **Blocker before full archive:** Yes. The `PUBLIC_API.md` files contain public entry point definitions that must be merged into global integration documentation first, and `OPEN_QUESTIONS.md` requires architectural resolution before it can be archived or merged.
+* **Blocker before full archive:** Yes. The `OPEN_QUESTIONS.md` file requires architectural resolution before it can be archived or merged.
 
 ## 2. Per-file table
 
@@ -39,20 +39,20 @@
 
 ## 3. Safe Archive Batch
 
-The following files can be moved directly to `docs/archive/domain-docs/` in a subsequent task:
+The following files have been successfully moved to `docs/archive/domain-docs/`:
 
-* `src/AuditTrail/CANONICAL_ARCHITECTURE.md`
-* `src/AuditTrail/CHECKLIST.md`
-* `src/AuditTrail/TESTING_STRATEGY.md`
-* `src/BehaviorTrace/CANONICAL_ARCHITECTURE.md`
-* `src/BehaviorTrace/CHECKLIST.md`
-* `src/BehaviorTrace/TESTING_STRATEGY.md`
-* `src/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md`
-* `src/DiagnosticsTelemetry/CHECKLIST.md`
-* `src/DiagnosticsTelemetry/TESTING_STRATEGY.md`
-* `src/SecuritySignals/CANONICAL_ARCHITECTURE.md`
-* `src/SecuritySignals/CHECKLIST.md`
-* `src/SecuritySignals/TESTING_STRATEGY.md`
+* `docs/archive/domain-docs/AuditTrail/CANONICAL_ARCHITECTURE.md`
+* `docs/archive/domain-docs/AuditTrail/CHECKLIST.md`
+* `docs/archive/domain-docs/AuditTrail/TESTING_STRATEGY.md`
+* `docs/archive/domain-docs/BehaviorTrace/CANONICAL_ARCHITECTURE.md`
+* `docs/archive/domain-docs/BehaviorTrace/CHECKLIST.md`
+* `docs/archive/domain-docs/BehaviorTrace/TESTING_STRATEGY.md`
+* `docs/archive/domain-docs/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md`
+* `docs/archive/domain-docs/DiagnosticsTelemetry/CHECKLIST.md`
+* `docs/archive/domain-docs/DiagnosticsTelemetry/TESTING_STRATEGY.md`
+* `docs/archive/domain-docs/SecuritySignals/CANONICAL_ARCHITECTURE.md`
+* `docs/archive/domain-docs/SecuritySignals/CHECKLIST.md`
+* `docs/archive/domain-docs/SecuritySignals/TESTING_STRATEGY.md`
 
 ## 4. Merge Before Archive
 
@@ -82,4 +82,4 @@ The following file contains open technical questions that require a decision fro
 
 ## 7. Recommended Next Step
 
-**Merge-First Batch:** Proceed with extracting the specific public API and contract definitions from the domain `PUBLIC_API.md` files and merging them into `PUBLIC_API.md` and/or `EVENT_LOGGING_MODULE_REFERENCE.md`. *(Update: The Merge-First Batch for `PUBLIC_API.md` files is now complete).*
+**Archive Validation:** The Safe Archive Batch has been executed. The `PUBLIC_API.md` files' Merge-First Batch is complete. The only remaining domain docs archive blocker is resolving `OPEN_QUESTIONS.md`.
