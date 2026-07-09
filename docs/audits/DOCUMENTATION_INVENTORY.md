@@ -69,7 +69,7 @@
 | `./src/DeliveryOperations/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist | Needs manual review: mentions host app namespaces (App, Athar, EP4N) |
-| `./src/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Domain Docs | Candidate for Archive | Domain-specific internal documentation |  |
+| `./docs/archive/domain-docs/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Domain Docs | Archived | Domain-specific internal documentation (Resolved) |  |
 | `./src/DiagnosticsTelemetry/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/DiagnosticsTelemetry/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |

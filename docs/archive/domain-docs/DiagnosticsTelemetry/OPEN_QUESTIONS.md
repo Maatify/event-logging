@@ -1,4 +1,11 @@
-# Open Questions
+# Open Questions (Resolved)
+
+> **Resolution Status:** All questions in this document have been resolved.
+> - **PDO Connection & Fallback Logging:** Documented in `docs/integration/MANUAL_WIRING.md`. The package does not manage PDO; the host provides it configured for `utf8mb4_unicode_ci`. Fallback logging relies on generic `LoggerInterface`.
+> - **Query Repository Usage & Advanced Querying:** Addressed in `PUBLIC_API.md` and `EVENT_LOGGING_MODULE_REFERENCE.md`. Query repositories are strictly infrastructure adapters for host DI, and advanced query utilities remain purely application-level.
+> - **UUID Dependency:** Documented in `EVENT_LOGGING_MODULE_REFERENCE.md` as an intentional explicit dependency; no internal generator is required.
+>
+> *This file is preserved for historical reference only.*
 
 1. **PDO Connection**:
    - The module assumes a `PDO` instance is injected into the Writer. How should this connection be configured (e.g., specific charset, options) to ensure compatibility with `utf8mb4_unicode_ci` as per schema?
