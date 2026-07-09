@@ -154,6 +154,7 @@ The `examples/` directory contains plain PHP illustrative skeletons covering int
 * [Installation Guide](docs/integration/INSTALLATION.md)
 * [Factory Usage](docs/integration/FACTORY_USAGE.md)
 * [Manual Wiring](docs/integration/MANUAL_WIRING.md)
+* [DI Bindings](docs/integration/DI_BINDINGS.md)
 * [Admin Read Usage](docs/integration/ADMIN_READ_USAGE.md)
 
 ---
