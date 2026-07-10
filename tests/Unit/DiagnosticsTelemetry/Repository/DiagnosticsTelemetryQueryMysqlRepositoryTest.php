@@ -111,6 +111,7 @@ class DiagnosticsTelemetryQueryMysqlRepositoryTest extends TestCase
 
         $this->assertCount(1, $results);
         $dto = $results[0];
+        $this->assertEquals(1, $dto->id);
         $this->assertEquals('evt_1', $dto->eventId);
         $this->assertEquals('db_query', $dto->eventKey);
         $this->assertEquals('WARNING', $dto->severity->value());
@@ -174,7 +175,9 @@ class DiagnosticsTelemetryQueryMysqlRepositoryTest extends TestCase
         $results = iterator_to_array($generator);
 
         $this->assertCount(2, $results);
+        $this->assertEquals(1, $results[0]->id);
         $this->assertEquals('evt_1', $results[0]->eventId);
+        $this->assertEquals(2, $results[1]->id);
         $this->assertEquals('evt_2', $results[1]->eventId);
     }
 

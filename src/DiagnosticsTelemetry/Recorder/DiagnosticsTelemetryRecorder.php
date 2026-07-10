@@ -121,6 +121,7 @@ class DiagnosticsTelemetryRecorder
                 );
 
                 $dto = new DiagnosticsTelemetryEventDTO(
+                    id: 0,
                     eventId: Uuid::uuid4()->toString(),
                     eventKey: $eventKey,
                     severity: $normalizedSeverity,
