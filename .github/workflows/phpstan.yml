@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "src/**/*.php"
+      - "tests/**/*.php"
+      - "examples/**/*.php"
       - "composer.json"
       - "composer.lock"
       - "phpstan.neon"
@@ -11,6 +13,8 @@ on:
   pull_request:
     paths:
       - "src/**/*.php"
+      - "tests/**/*.php"
+      - "examples/**/*.php"
       - "composer.json"
       - "composer.lock"
       - "phpstan.neon"
