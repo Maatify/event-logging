@@ -4,11 +4,9 @@ on:
   push:
     paths:
       - "src/**/*.php"
+      - "src/**/*.sql"
       - "tests/**/*.php"
       - "examples/**/*.php"
-      - "docs/**/*.md"
-      - "README.md"
-      - "phpstan.neon"
       - "composer.json"
       - "composer.lock"
       - "phpunit.xml.dist"
@@ -16,11 +14,9 @@ on:
   pull_request:
     paths:
       - "src/**/*.php"
+      - "src/**/*.sql"
       - "tests/**/*.php"
       - "examples/**/*.php"
-      - "docs/**/*.md"
-      - "README.md"
-      - "phpstan.neon"
       - "composer.json"
       - "composer.lock"
       - "phpunit.xml.dist"
