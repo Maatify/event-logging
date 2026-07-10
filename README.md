@@ -156,6 +156,7 @@ The `examples/` directory contains plain PHP illustrative skeletons covering int
 * [Storage & Schema Guarantees](docs/architecture/STORAGE_AND_SCHEMA.md)
 * [Deferred Scope & Future Considerations](docs/architecture/DEFERRED_SCOPE.md)
 * [Authoritative Audit Pipeline](docs/architecture/AUTHORITATIVE_AUDIT_PIPELINE.md)
+* [Admin Query API Roadmap](docs/roadmap/ADMIN_QUERY_API_ROADMAP.md)
 
 ### Integration Guides
 * [Installation Guide](docs/integration/INSTALLATION.md)
