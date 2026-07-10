@@ -44,7 +44,8 @@ class AuthoritativeAuditPaginatedQueryServiceTest extends TestCase
         $this->assertCount(2, $page->items);
         $this->assertSame($item1, $page->items[0]);
         $this->assertSame($item2, $page->items[1]);
-        $this->assertNotContains($item3, $page->items, true);
+        $this->assertNotSame($item3, $page->items[0]);
+        $this->assertNotSame($item3, $page->items[1]);
         $this->assertNotNull($page->nextCursor);
         $this->assertSame(2, $page->nextCursor->id);
         $this->assertSame($item2->occurredAt, $page->nextCursor->occurredAt);
