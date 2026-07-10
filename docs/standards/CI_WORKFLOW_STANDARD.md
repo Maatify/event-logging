@@ -50,7 +50,10 @@ We recommend separating static analysis and testing into two distinct workflows:
   * `src/**/*.php`
   * `tests/**/*.php`
   * `examples/**/*.php` (if examples are syntax-checked by this workflow)
-  * `schema/**/*.sql` (if integration tests depend on package-owned schema)
+  * Package-owned SQL/schema paths (if integration tests depend on them). Actual paths depend on package organization, e.g.:
+    * `schema/**/*.sql`
+    * `src/**/Database/**/*.sql`
+    * `src/**/*.sql`
   * `composer.json`
   * `composer.lock`
   * `phpunit.xml.dist`
