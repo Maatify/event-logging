@@ -7,6 +7,7 @@ namespace Maatify\EventLogging\BehaviorTrace\DTO;
 final readonly class BehaviorTraceEventDTO implements \JsonSerializable
 {
     /**
+     * @param int $id
      * @param string $eventId UUID
      * @param string $action
      * @param string|null $entityType
@@ -15,6 +16,7 @@ final readonly class BehaviorTraceEventDTO implements \JsonSerializable
      * @param array<mixed>|null $metadata
      */
     public function __construct(
+        public int $id,
         public string $eventId,
         public string $action,
         public ?string $entityType,
@@ -29,6 +31,7 @@ final readonly class BehaviorTraceEventDTO implements \JsonSerializable
     public function jsonSerialize(): mixed
     {
         return [
+            'id' => $this->id,
             'eventId' => $this->eventId,
             'action' => $this->action,
             'entityType' => $this->entityType,

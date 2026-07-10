@@ -40,6 +40,7 @@ class BehaviorTraceWriterMysqlRepositoryTest extends TestCase
         );
 
         $dto = new BehaviorTraceEventDTO(
+            id: 0,
             eventId: 'evt_123',
             action: 'click',
             entityType: 'button',
@@ -86,6 +87,7 @@ class BehaviorTraceWriterMysqlRepositoryTest extends TestCase
         );
 
         $dto = new BehaviorTraceEventDTO(
+            id: 0,
             eventId: 'evt_123',
             action: 'click',
             entityType: null,

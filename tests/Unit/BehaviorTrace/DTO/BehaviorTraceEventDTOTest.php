@@ -27,6 +27,7 @@ class BehaviorTraceEventDTOTest extends TestCase
         );
 
         $dto = new BehaviorTraceEventDTO(
+            1,
             'evt-1',
             'CLICK',
             'BUTTON',
@@ -36,6 +37,7 @@ class BehaviorTraceEventDTOTest extends TestCase
         );
 
         $expected = [
+            'id' => 1,
             'eventId' => 'evt-1',
             'action' => 'CLICK',
             'entityType' => 'BUTTON',
@@ -62,6 +64,7 @@ class BehaviorTraceEventDTOTest extends TestCase
         );
 
         $dto = new BehaviorTraceEventDTO(
+            1,
             'evt-1',
             'VIEW',
             null,

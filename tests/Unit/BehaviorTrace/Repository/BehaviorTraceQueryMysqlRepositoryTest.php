@@ -113,6 +113,7 @@ class BehaviorTraceQueryMysqlRepositoryTest extends TestCase
 
         $this->assertCount(1, $results);
         $dto = $results[0];
+        $this->assertEquals(1, $dto->id);
         $this->assertEquals('evt_1', $dto->eventId);
         $this->assertEquals('click', $dto->action);
         $this->assertEquals('USER', $dto->context->actorType->value());
