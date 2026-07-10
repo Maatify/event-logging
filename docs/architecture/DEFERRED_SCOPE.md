@@ -41,6 +41,6 @@ The following capabilities must be implemented by the host application and will 
 - Host-specific search and reporting implementations (e.g., specific CSV exports or cross-table JOINs).
 
 **Future Package Scope (Deferred):**
-While the above are strictly forbidden, providing a generalized PHP-level query interface is considered future scope. See the [Admin Query API Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md) for details on planned:
+While the above are strictly forbidden, providing domain-scoped, framework-agnostic PHP-level query interfaces is considered future scope. See the [Admin Query API Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md) for details on planned:
 - PHP-level Admin Query API contracts and DTOs.
 - Domain-scoped admin listing and dashboard summary read models.

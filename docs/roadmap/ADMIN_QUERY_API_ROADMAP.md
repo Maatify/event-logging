@@ -49,7 +49,7 @@ Implement and document the read models required to support host dashboard metric
 Develop the contracts needed to power periodic reporting (e.g., audit trails for a specific user over a timeframe).
 
 ### Phase 5 — Add Integration Examples and Docs
-Update the documentation and provide illustrative PHP examples demonstrating how a host application can wire the Admin Query API into their own controllers and UI.
+Update the documentation and provide illustrative PHP examples demonstrating how a host application can wire the Admin Query API into their own HTTP/UI layer outside the package.
 
 ### Phase 6 — Validation with PHPStan/Tests/Examples
 Ensure maximum static analysis coverage, complete unit and integration testing, and validation of all examples via syntax checks.
