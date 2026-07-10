@@ -748,10 +748,31 @@ private function findRawById(int $id): ?array
 
 ---
 
-## 22. The Package Is NOT Done Until
+## 22. CI Workflow Rules
+
+Every new standalone Composer package in the Maatify ecosystem must adhere to the CI workflow standards defined in [`CI_WORKFLOW_STANDARD.md`](CI_WORKFLOW_STANDARD.md).
+
+CI pipelines must be:
+- **path-scoped** (running only when relevant files change)
+- **framework-agnostic**
+- **host-agnostic**
+- **independent of host app dependencies**
+- **free of required secrets for baseline checks**
+- **enforcing PHPStan max**
+- **using real service integration tests** where package-owned persistence exists
+
+---
+
+## 23. The Package Is NOT Done Until
 
 - [ ] All PHPStan max errors resolved — zero errors, no suppressions
-- [ ] Tests and static analysis pass, and examples are syntax-checked
+- [ ] CI workflows exist and pass
+- [ ] CI workflows are path-scoped to relevant files
+- [ ] PHPStan max passes
+- [ ] PHPUnit suites pass where applicable
+- [ ] examples are syntax-checked where examples exist
+- [ ] DB integration tests use real service dependencies where applicable
+- [ ] no baseline CI depends on host app code, host schema, framework bindings, or secrets
 - [ ] `README.md` written with installation steps and quick examples
 - [ ] `CHANGELOG.md` written starting at `[1.0.0]`
 - [ ] `{PACKAGE}_PACKAGE_REFERENCE.md` complete — full API, design rules, extension guide

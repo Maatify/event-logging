@@ -153,6 +153,7 @@ The `examples/` directory contains plain PHP illustrative skeletons covering int
 ### Architecture
 * [Unified Logging Architecture](docs/architecture/LOGGING_ARCHITECTURE.md)
 * [Logging Domain Rules](docs/architecture/LOGGING_DOMAIN_RULES.md)
+* [CI Workflow Standard](docs/standards/CI_WORKFLOW_STANDARD.md)
 * [Storage & Schema Guarantees](docs/architecture/STORAGE_AND_SCHEMA.md)
 * [Deferred Scope & Future Considerations](docs/architecture/DEFERRED_SCOPE.md)
 * [Authoritative Audit Pipeline](docs/architecture/AUTHORITATIVE_AUDIT_PIPELINE.md)
