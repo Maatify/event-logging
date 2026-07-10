@@ -382,8 +382,11 @@ $where  = [];
 $params = [];
 
 if ($globalSearch !== null && trim($globalSearch) !== '') {
-    $where[]          = '(s.name LIKE :global OR s.code LIKE :global)';
-    $params['global'] = '%' . trim($globalSearch) . '%';
+    $globalSearchValue = '%' . trim($globalSearch) . '%';
+
+    $where[]              = '(s.name LIKE :global_name OR s.code LIKE :global_code)';
+    $params['global_name'] = $globalSearchValue;
+    $params['global_code'] = $globalSearchValue;
 }
 
 if (isset($columnFilters['id'])) {
