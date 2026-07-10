@@ -47,17 +47,19 @@ Implement a small, domain-scoped enhancement within a single domain (e.g., `Audi
 - Provide clear tests.
 - Ensure strict backward compatibility with existing primitive read capabilities.
 
-### Phase 2 — Inventory Current Domain Query Capabilities
-Audit existing primitive read capabilities across other domains and identify gaps needed for comprehensive domain-scoped admin querying.
+### Phase 2 — Apply Approved Domain-Scoped Query Pattern Across Remaining Domains
+Use the Phase 1 single-domain POC to validate the Admin Query API shape. Once accepted, apply that approved domain-scoped pattern to the remaining logging domains.
+- Proceed strictly domain-by-domain.
+- Do not introduce a generic repository, generic DTO, generic log table, generic search layer, or generic Admin folder.
+- Keep all work PHP-level only.
+- Keep all work inside domain boundaries.
+- No HTTP, controllers, routes, middleware, UI, permissions, exports, actor resolution, or localization.
 
-### Phase 3 — Define Domain-Scoped Query Contracts and DTO Boundaries
-Establish the PHP interfaces, criteria objects, and DTOs required for listing and filtering within each distinct domain.
-
-### Phase 4 — Add Dashboard and Reporting Summary Query Contracts
+### Phase 3 — Add Dashboard and Reporting Summary Query Contracts
 Implement and document the PHP read models required to support domain-scoped host dashboard metrics and periodic reporting, strictly maintaining domain boundaries.
 
-### Phase 5 — Add Integration Examples and Docs
+### Phase 4 — Add Integration Examples and Docs
 Update the documentation and provide illustrative PHP examples demonstrating how a host application can wire the domain-scoped Admin Query API into their own HTTP/UI layer outside the package.
 
-### Phase 6 — Validation with PHPStan/Tests/Examples
+### Phase 5 — Validation with PHPStan/Tests/Examples
 Ensure maximum static analysis coverage, complete unit and integration testing, and validation of all examples via syntax checks.
