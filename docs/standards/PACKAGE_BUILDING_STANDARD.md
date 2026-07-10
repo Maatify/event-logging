@@ -21,7 +21,7 @@ Every package must be:
 
 ## 2. Required Maatify Runtime Dependencies
 
-To maintain standalone Composer package boundaries and a framework-agnostic architecture while ensuring ecosystem consistency, packages must rely on the provided Maatify shared packages rather than reinventing the wheel.
+To maintain standalone Composer package boundaries and a framework-agnostic architecture while ensuring ecosystem consistency, packages must rely on the provided Maatify shared packages rather than defining package-local duplicates.
 
 - **Exceptions:** Package exceptions must depend on `maatify/exceptions`
   Repository: https://github.com/Maatify/exceptions
