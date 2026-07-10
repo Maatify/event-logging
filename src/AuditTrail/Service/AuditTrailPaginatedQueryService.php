@@ -52,7 +52,8 @@ class AuditTrailPaginatedQueryService implements AuditTrailPaginatedQueryInterfa
 
         $nextCursor = null;
         if ($hasMore && count($results) > 0) {
-            $lastItem = end($results);
+            $lastKey = array_key_last($results);
+            $lastItem = $results[$lastKey];
             $nextCursor = new AuditTrailQueryCursorDTO(
                 occurredAt: $lastItem->occurredAt,
                 id: $lastItem->id

@@ -118,4 +118,57 @@ class AuditTrailPaginatedQueryServiceTest extends TestCase
         $this->expectException(AuditTrailStorageException::class);
         $service->findPage($query);
     }
+
+    public function testItPassesAllOriginalFiltersToInternalQueryAndDoesNotMutateOriginalQuery(): void
+    {
+        $repo = $this->createMock(AuditTrailQueryInterface::class);
+
+        $afterDate = new DateTimeImmutable('2023-10-01T00:00:00+00:00');
+        $beforeDate = new DateTimeImmutable('2023-10-31T23:59:59+00:00');
+        $cursorDate = new DateTimeImmutable('2023-10-15T12:00:00+00:00');
+
+        $originalQuery = new AuditTrailQueryDTO(
+            actorType: 'admin',
+            actorId: 99,
+            eventKey: 'post.deleted',
+            entityType: 'post',
+            entityId: 42,
+            subjectType: 'user',
+            subjectId: 7,
+            requestId: 'req-123',
+            correlationId: 'corr-456',
+            after: $afterDate,
+            before: $beforeDate,
+            cursorOccurredAt: $cursorDate,
+            cursorId: 100,
+            limit: 5
+        );
+
+        $repo->expects($this->once())
+            ->method('find')
+            ->with($this->callback(function (AuditTrailQueryDTO $q) use ($afterDate, $beforeDate, $cursorDate) {
+                return $q->actorType === 'admin'
+                    && $q->actorId === 99
+                    && $q->eventKey === 'post.deleted'
+                    && $q->entityType === 'post'
+                    && $q->entityId === 42
+                    && $q->subjectType === 'user'
+                    && $q->subjectId === 7
+                    && $q->requestId === 'req-123'
+                    && $q->correlationId === 'corr-456'
+                    && $q->after === $afterDate
+                    && $q->before === $beforeDate
+                    && $q->cursorOccurredAt === $cursorDate
+                    && $q->cursorId === 100
+                    && $q->limit === 6; // Original limit (5) + 1
+            }))
+            ->willReturn([]);
+
+        $service = new AuditTrailPaginatedQueryService($repo);
+        $service->findPage($originalQuery);
+
+        // Assert that the original query object wasn't mutated
+        $this->assertSame(5, $originalQuery->limit);
+        $this->assertSame('admin', $originalQuery->actorType);
+    }
 }
