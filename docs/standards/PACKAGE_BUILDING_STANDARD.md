@@ -663,9 +663,9 @@ parameters:
 
 ### Testing Strategy
 
-- **PHPUnit Tests**: Use PHPUnit for all tests if applicable.
-- **Database Tests**: DB-dependent integration tests require an explicit real MySQL DSN (e.g. checked via environment variables).
-- **No SQLite**: SQLite fallback or support is strictly banned for this package to ensure real repository round-trips match production behavior.
+- **Testing Requirements**: Packages that own persistence/database behavior must provide integration tests where practical. Unit/Regression suites are required where applicable.
+- **Database Tests**: DB-dependent integration tests must use the real service targeted by the package-owned persistence. They must not depend on host application databases, host schemas, framework bindings, or secrets.
+- **MySQL & SQLite Rules**: For MySQL-owned packages, integration tests must use a real MySQL service/DSN, not SQLite. SQLite fallback/support is forbidden for MySQL-owned packages unless SQLite is explicitly declared as a real supported persistence target for that package.
 - **Example Code**: Must be purely illustrative, validated via syntax checks (`php -l`), devoid of real credentials or framework bindings.
 
 ### PDO fetch results — always annotate
