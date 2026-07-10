@@ -46,7 +46,8 @@ class SecuritySignalsPaginatedQueryServiceTest extends TestCase
 
         $this->assertTrue($page->hasMore);
         $this->assertSame([$item1, $item2], $page->items);
-        $this->assertNotContains($extra, $page->items, true);
+        $this->assertNotSame($extra, $page->items[0]);
+        $this->assertNotSame($extra, $page->items[1]);
         $this->assertNotNull($page->nextCursor);
         $this->assertSame($item2->id, $page->nextCursor->id);
         $this->assertSame($item2->occurredAt, $page->nextCursor->occurredAt);
