@@ -554,7 +554,33 @@ For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAu
 
 ---
 
-## 15. display_order Rules
+## 15. Read / Admin Query API Rules
+
+Packages that have persisted data intended to be viewed, searched, audited, monitored, or reported by host applications should expose framework-agnostic PHP read/query contracts where applicable.
+
+**Important:** This refers strictly to **PHP-level APIs** (e.g., PHP interfaces and DTOs), not HTTP APIs.
+
+These contracts may cover (where applicable and appropriate for the package's domain):
+- Admin listing
+- Search
+- Dashboard summaries
+- Reporting summaries
+
+**Explicitly forbidden inside the package:**
+- HTTP controllers
+- Routes
+- Middleware
+- Permissions
+- UI dashboards
+- CSV/PDF/Excel exports
+- Host-specific actor/name resolution
+- JOINs/FKs on host tables
+
+Remember to uphold the core principles: maintain a standalone, framework-agnostic, and host-agnostic architecture, prioritize domain boundaries over mandatory Admin/Customer folder structures, and ensure all public query capabilities have matching PHP contracts/interfaces.
+
+---
+
+## 16. display_order Rules
 
 - Auto-assigned on `create` via `ScopedOrderingManager::getNextPosition()`
 - Never in `CreateCommand` or `UpdateCommand`
@@ -565,7 +591,7 @@ For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAu
 
 ---
 
-## 16. Image Rules
+## 17. Image Rules
 
 - `image` column is `VARCHAR(255) NULL` — stores path or URL only, never binary data
 - Never in `CreateCommand` or `UpdateCommand`
@@ -575,7 +601,7 @@ For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAu
 
 ---
 
-## 17. Bootstrap / DI Rules
+## 18. Bootstrap / DI Rules
 
 **Composer packages must not require host-specific bindings.**
 
@@ -586,7 +612,7 @@ Rules:
 
 ---
 
-## 18. Decimal / Financial Rules
+## 19. Decimal / Financial Rules
 
 - All monetary values stored as `string` (DECIMAL precision — never `float`)
 - All arithmetic uses `bcmath` — never native PHP arithmetic on monetary values
@@ -602,7 +628,7 @@ if (! preg_match('/^\d+(?:\.\d{1,4})?$/', $value)) {
 
 ---
 
-## 19. PDO Named Placeholder Rule
+## 20. PDO Named Placeholder Rule
 
 PDO does not reliably support the same named placeholder more than once per statement.
 Every placeholder must appear exactly once per SQL string.
@@ -624,7 +650,7 @@ $params['country_code_block'] = $countryCode;
 
 ---
 
-## 20. PHPStan and Testing Rules
+## 21. PHPStan and Testing Rules
 
 ### `phpstan.neon`
 
@@ -722,7 +748,7 @@ private function findRawById(int $id): ?array
 
 ---
 
-## 21. The Package Is NOT Done Until
+## 22. The Package Is NOT Done Until
 
 - [ ] All PHPStan max errors resolved — zero errors, no suppressions
 - [ ] Tests and static analysis pass, and examples are syntax-checked
