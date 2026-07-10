@@ -64,6 +64,7 @@ final class BehaviorTraceRepositoryTest extends MysqlIntegrationTestCase
         );
 
         $recordDto = new BehaviorTraceEventDTO(
+            id: 0,
             eventId: 'beh-event-1',
             action: 'create_record',
             entityType: 'post',
@@ -107,9 +108,9 @@ final class BehaviorTraceRepositoryTest extends MysqlIntegrationTestCase
         $c1 = new BehaviorTraceContextDTO($actorType, 1, null, null, null, null, null, $now1);
         $c2 = new BehaviorTraceContextDTO($actorType, 1, null, null, null, null, null, $now2);
 
-        $dto1 = new BehaviorTraceEventDTO('evt-1', 'act', null, null, $c1, []);
-        $dto2 = new BehaviorTraceEventDTO('evt-2', 'act', null, null, $c2, []);
-        $dto3 = new BehaviorTraceEventDTO('evt-3', 'act', null, null, $c2, []);
+        $dto1 = new BehaviorTraceEventDTO(1, 'evt-1', 'act', null, null, $c1, []);
+        $dto2 = new BehaviorTraceEventDTO(2, 'evt-2', 'act', null, null, $c2, []);
+        $dto3 = new BehaviorTraceEventDTO(3, 'evt-3', 'act', null, null, $c2, []);
 
         $this->writer->write($dto1);
         $this->writer->write($dto2);

@@ -114,6 +114,7 @@ class BehaviorTraceRecorder
                 );
 
                 $dto = new BehaviorTraceEventDTO(
+                    id: 0,
                     eventId: Uuid::uuid4()->toString(),
                     action: $action,
                     entityType: $entityType,

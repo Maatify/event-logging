@@ -185,6 +185,7 @@ class BehaviorTraceQueryMysqlRepository implements BehaviorTraceQueryInterface
         }
 
         $occurredAtStr = is_string($row['occurred_at'] ?? null) ? $row['occurred_at'] : '1970-01-01 00:00:00';
+        $id = isset($row['id']) && is_numeric($row['id']) ? (int)$row['id'] : 0;
         $eventId = is_string($row['event_id'] ?? null) ? $row['event_id'] : '';
         $action = is_string($row['action'] ?? null) ? $row['action'] : 'unknown';
 
@@ -200,6 +201,7 @@ class BehaviorTraceQueryMysqlRepository implements BehaviorTraceQueryInterface
         );
 
         return new BehaviorTraceEventDTO(
+            id: $id,
             eventId: $eventId,
             action: $action,
             entityType: is_string($row['entity_type'] ?? null) ? $row['entity_type'] : null,
