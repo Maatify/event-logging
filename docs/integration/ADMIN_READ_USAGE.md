@@ -46,6 +46,8 @@ The primitive query interfaces enforce robust cursor pagination to ensure stable
 
 The queries rigidly maintain a stable `ORDER BY occurred_at DESC, id DESC` to guarantee consistent traversal of the log data.
 
+As a convenience for administrative interfaces, the AuditTrail domain includes a POC paginated query service (`AuditTrailPaginatedQueryService`) that wraps the primitive query repository to return an `AuditTrailQueryPageDTO`. This provides structured cursor tracking (`nextCursor` and `hasMore`) for simplified pagination building on the host application side without requiring manual derivation of cursor offsets from the raw result list.
+
 ## Supported Filters per Domain
 
 Each domain's query DTO exposes specific filter properties aligned with its context. Common filters include `actorType`, `actorId`, `after`, `before`, `requestId`, and `correlationId`.
