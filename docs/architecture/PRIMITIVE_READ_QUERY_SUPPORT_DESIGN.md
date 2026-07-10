@@ -27,13 +27,12 @@ Each domain MUST have a dedicated `QueryDTO` (e.g., `AuditTrailQueryDTO`). These
 ### View DTOs
 Each domain MUST have a dedicated `ViewDTO` (or `EventDTO` if completely overlapping) representing the structured output record. Metadata must be safely decoded to an array, defaulting to `null` on corruption, per the fail-open metadata policy.
 
-### Cursor Pagination Shape
-Pagination MUST be implemented using cursor-based pagination to support large datasets safely. The required shape for ALL domain `QueryDTO`s is:
-*   `cursorOccurredAt` (`?DateTimeImmutable`)
-*   `cursorId` (`?int`)
-*   `limit` (`int`, default: `50`)
+### Query Bounds and Pagination Standard
+Domain `QueryDTO`s may expose primitive filter criteria and a `limit` for bounded reads. Some domains retain `cursorOccurredAt` and `cursorId` fields for existing primitive query compatibility, but those fields are not an approved package-level pagination pattern and must not be wrapped in cursor page/cursor DTO services.
 
-Ordering MUST be stable across all domains: `ORDER BY occurred_at DESC, id DESC`.
+The source of truth for any future package-level pagination implementation is Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md`. No standard-based pagination implementation is defined in this primitive read design.
+
+Ordering should remain stable across query repositories where supported: `ORDER BY occurred_at DESC, id DESC`.
 
 ## 4. Allowed Filters Per Domain
 
@@ -56,7 +55,7 @@ Ordering MUST be stable across all domains: `ORDER BY occurred_at DESC, id DESC`
 **Library (Event Logging Package) owns:**
 *   Domain-specific `QueryInterface` and `QueryMysqlRepository`.
 *   Domain-specific `QueryDTO` and `ViewDTO`.
-*   Cursor pagination SQL logic.
+*   Domain-specific query SQL and bounded read behavior.
 *   Safe JSON metadata decoding behavior.
 
 **Host Application owns:**

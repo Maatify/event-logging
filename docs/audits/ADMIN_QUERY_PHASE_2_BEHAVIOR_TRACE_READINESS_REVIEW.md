@@ -1,5 +1,8 @@
 # Phase 2 Readiness Review: BehaviorTrace Admin Query API
 
+> Superseded: this readiness review discussed the now-rejected cursor-based paginated query service pattern. It is retained as audit history only; Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md` remains the source of truth.
+
+
 ## 1. Verdict
 **NEEDS IMPLEMENTATION FIX**
 

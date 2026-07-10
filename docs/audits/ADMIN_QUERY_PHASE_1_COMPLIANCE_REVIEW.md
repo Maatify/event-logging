@@ -1,5 +1,8 @@
 # Phase 1 Compliance Review: Admin Query API
 
+> Superseded: the cursor-based paginated query POC described in this audit was rejected and removed. Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md` remains the source of truth; no replacement pagination implementation is introduced by that cleanup.
+
+
 ## 1. Verdict
 **PASS**
 

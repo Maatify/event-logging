@@ -24,7 +24,7 @@ The package successfully provides the necessary foundations for host admin integ
 - [x] **Domain-specific `ViewDTO`:** Exists for all 6 domains.
 - [x] **Domain-specific `QueryMysqlRepository`:** Present and fully implemented.
 - [x] **Domain-specific Filters:** Available on each `QueryDTO` (e.g., AuthoritativeAudit correctly omits `requestId`).
-- [x] **Cursor Pagination:** Supported via `cursorOccurredAt`, `cursorId`, and `limit`.
+- [ ] **Cursor Pagination:** Not provided as an approved package pagination pattern; primitive cursor fields may remain for existing query compatibility only.
 - [x] **Stable Ordering:** Configured correctly (`ORDER BY occurred_at DESC, id DESC`).
 - [x] **Safe JSON Decode:** Handled seamlessly, where corrupt metadata/payload arrays return `null` instead of failing the whole row.
 - [x] **Domain-specific Storage Exceptions:** Read actions throw isolated, specific storage exceptions (e.g., `AuditTrailStorageException`), never swallowing failures.

@@ -1,5 +1,8 @@
 Verdict: BLOCKED
 
+> Superseded status update: the non-compliant cursor-based paginated query artifacts called out by this audit have been removed. This audit remains as historical justification; no standard-based pagination implementation is introduced by that cleanup.
+
+
 Summary:
 The current implementation of paginated queries across the implemented domains heavily utilizes a cursor-based approach (`limit + 1`, `nextCursor`, `hasMore`). This directly conflicts with the explicit requirements of Section 11 — Pagination Pattern in `PACKAGE_BUILDING_STANDARD.md`, which strictly defines an offset-based structure with `page`, `per_page`, `total`, and `filtered` values, built using three specific SQL queries.
 

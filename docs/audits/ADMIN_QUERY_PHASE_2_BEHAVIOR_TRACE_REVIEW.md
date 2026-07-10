@@ -1,5 +1,8 @@
 # BehaviorTrace Admin Query Phase 2 Compliance Review
 
+> Superseded: the cursor-based paginated query implementation described in this review was rejected and removed. Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md` remains the source of truth; no replacement pagination implementation is introduced by that cleanup.
+
+
 ## 1. Verdict
 **PASS**
 

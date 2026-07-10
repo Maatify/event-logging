@@ -24,7 +24,7 @@ The planned Admin Query API will reside entirely at the PHP level. It builds car
 - **Dashboard summary query contracts:** Optimized, domain-scoped PHP read interfaces for retrieving statistical or summary data for host dashboards.
 - **Reporting summary query contracts:** Domain-scoped PHP read interfaces designed to support host-level reporting needs.
 - **Stable DTOs:** Data Transfer Objects specifically tailored for consumption by host admin panels.
-- **Cursor/pagination/filter support:** Built-in PHP-level support for advanced pagination and filtering within specific domains.
+- **Standard pagination/filter support:** Future pagination work must follow Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md`; cursor-based paginated query services are not approved.
 - **Deferred / Optional Cross-domain admin search:** If implemented in the future, it must return strictly domain-tagged results, relying on individual domain boundaries without dissolving them into a generic repository or generic table.
 
 ## Architectural Constraints
@@ -48,7 +48,7 @@ Implement a small, domain-scoped enhancement within a single domain (e.g., `Audi
 - Ensure strict backward compatibility with existing primitive read capabilities.
 
 ### Phase 2 — Apply Approved Domain-Scoped Query Pattern Across Remaining Domains
-Use the Phase 1 single-domain POC to validate the Admin Query API shape. Once accepted, apply that approved domain-scoped pattern to the remaining logging domains.
+The previous cursor-based Phase 1/Phase 2 POC was rejected and removed. Any future Phase 2 work must first align with Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md` before applying a domain-scoped pattern to the remaining logging domains.
 - Proceed strictly domain-by-domain.
 - Do not introduce a generic repository, generic DTO, generic log table, generic search layer, or generic Admin folder.
 - Keep all work PHP-level only.

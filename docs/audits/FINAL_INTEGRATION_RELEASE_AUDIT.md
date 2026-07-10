@@ -54,7 +54,7 @@
   - All six domains have domain-specific query contracts/DTOs/view DTOs/repositories.
   - Expected filters exist per domain.
   - `AuthoritativeAudit` has no `requestId` filter.
-  - Cursor pagination uses `cursorOccurredAt`, `cursorId`, `limit`.
+  - Primitive reads remain bounded and ordered; cursor fields may exist for compatibility only and are not an approved package-level pagination pattern.
   - Stable ordering is `ORDER BY occurred_at DESC, id DESC`.
   - `BehaviorTrace` and `DiagnosticsTelemetry` kept legacy `read()` methods for backward compatibility.
 - [x] **Schema / Database Naming:**

@@ -36,17 +36,13 @@ $queryDto = new AuditTrailQueryDTO(
 $results = $repository->find($queryDto);
 ```
 
-## Cursor Pagination
+## Query Limits and Ordering
 
-The primitive query interfaces enforce robust cursor pagination to ensure stable ordering and efficient deep-linking. Pagination is handled using standard properties on the query DTOs:
+The primitive query interfaces expose domain-specific filters and a `limit` value for bounded reads. Some query DTOs and repositories still expose `cursorOccurredAt` and `cursorId` fields for existing primitive read traversal compatibility, but this package no longer provides a cursor-based paginated query service or page/cursor DTO abstraction.
 
-- `cursorOccurredAt`: The timestamp of the last record seen (descending).
-- `cursorId`: The database ID of the last record seen (descending, for tie-breaking).
-- `limit`: The maximum number of records to return.
+Do not treat those primitive cursor fields as an approved package pagination pattern. The package-level pagination source of truth is Section 11 of `docs/standards/PACKAGE_BUILDING_STANDARD.md`; no standard-based pagination implementation is provided here yet.
 
-The queries rigidly maintain a stable `ORDER BY occurred_at DESC, id DESC` to guarantee consistent traversal of the log data.
-
-As a convenience for administrative interfaces, the AuditTrail domain includes a POC paginated query service (`AuditTrailPaginatedQueryService`) that wraps the primitive query repository to return an `AuditTrailQueryPageDTO`. This provides structured cursor tracking (`nextCursor` and `hasMore`) for simplified pagination building on the host application side without requiring manual derivation of cursor offsets from the raw result list.
+The queries maintain stable `ORDER BY occurred_at DESC, id DESC` ordering where supported by the domain repository.
 
 ## Supported Filters per Domain
 
