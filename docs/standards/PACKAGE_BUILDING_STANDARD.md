@@ -19,7 +19,26 @@ Every package must be:
 
 ---
 
-## 2. Required Files
+## 2. Required Maatify Runtime Dependencies
+
+To maintain standalone Composer package boundaries and a framework-agnostic architecture while ensuring ecosystem consistency, packages must rely on the provided Maatify shared packages rather than defining package-local duplicates.
+
+- **Exceptions:** Package exceptions must depend on `maatify/exceptions`
+  Repository: https://github.com/Maatify/exceptions
+
+- **Clock/Date-Time:** Clock and date-time contracts must depend on `maatify/shared-common`
+  Repository: https://github.com/Maatify/SharedCommon
+
+**Rule:** Packages must not define a local duplicate exception hierarchy or local clock abstraction if the contract or base is available in Maatify shared packages.
+
+This ensures:
+- Explicit Composer/runtime dependencies only
+- Public API stability
+- Backward compatibility as much as possible
+
+---
+
+## 3. Required Files
 
 Every package must contain these files at its root (the repository root is the package root):
 
@@ -37,7 +56,7 @@ Every package must contain these files at its root (the repository root is the p
 
 ---
 
-## 3. Namespace
+## 4. Namespace
 
 Pattern: `Maatify\{PackageName}\`
 
@@ -50,7 +69,7 @@ Maatify\{NextPackage}\
 
 ---
 
-## 4. Directory Structure Inside `src/`
+## 5. Directory Structure Inside `src/`
 
 ```
 src/
@@ -74,7 +93,7 @@ src/
 
 ---
 
-## 5. Schema Rules
+## 6. Schema Rules
 
 - Allowed when the package owns persistence.
 - Table prefix: `maa_{package_short_name}_` (e.g. `maa_event_logging_`)
@@ -87,7 +106,7 @@ src/
 
 ---
 
-## 6. Exception Rules
+## 7. Exception Rules
 
 ### Standard Exception Types
 
@@ -168,7 +187,7 @@ It is rethrowing the original error after rollback — not creating a new except
 
 ---
 
-## 7. Command Rules
+## 8. Command Rules
 
 Commands are self-validating value objects:
 
@@ -202,7 +221,7 @@ Rules:
 
 ---
 
-## 8. DTO Rules
+## 9. DTO Rules
 
 ```php
 final readonly class SomethingDTO implements \JsonSerializable
@@ -242,7 +261,7 @@ final readonly class SomethingCollectionDTO implements \IteratorAggregate, \Json
 
 ---
 
-## 9. Repository Rules
+## 10. Repository Rules
 
 ### Command Repository Return Types
 
@@ -306,7 +325,7 @@ displayOrder: (is_int($displayOrder) || is_string($displayOrder)) ? (int) $displ
 
 ---
 
-## 10. Pagination Pattern
+## 11. Pagination Pattern
 
 ### The Return Shape — always this exact structure
 
@@ -406,7 +425,7 @@ Frontend uses both to render pagination controls correctly.
 
 ---
 
-## 11. Translation Pattern
+## 12. Translation Pattern
 
 ### Always support both paths
 
@@ -491,7 +510,7 @@ ORDER BY t.something_id ASC, t.language_id ASC
 
 ---
 
-## 12. Service Rules
+## 13. Service Rules
 
 Responsibility:
 - **Business orchestration** lives in Services
@@ -526,7 +545,7 @@ Services **never**:
 
 ---
 
-## 13. Admin vs Customer Separation
+## 14. Admin vs Customer Separation
 
 Some business modules may choose actor-specific namespaces (e.g., `Admin\` vs `Customer\`).
 
@@ -535,7 +554,7 @@ For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAu
 
 ---
 
-## 14. display_order Rules
+## 15. display_order Rules
 
 - Auto-assigned on `create` via `ScopedOrderingManager::getNextPosition()`
 - Never in `CreateCommand` or `UpdateCommand`
@@ -546,7 +565,7 @@ For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAu
 
 ---
 
-## 15. Image Rules
+## 16. Image Rules
 
 - `image` column is `VARCHAR(255) NULL` — stores path or URL only, never binary data
 - Never in `CreateCommand` or `UpdateCommand`
@@ -556,7 +575,7 @@ For example, in `event-logging`, the six logging domains (e.g., `AuthoritativeAu
 
 ---
 
-## 16. Bootstrap / DI Rules
+## 17. Bootstrap / DI Rules
 
 **Composer packages must not require host-specific bindings.**
 
@@ -567,7 +586,7 @@ Rules:
 
 ---
 
-## 17. Decimal / Financial Rules
+## 18. Decimal / Financial Rules
 
 - All monetary values stored as `string` (DECIMAL precision — never `float`)
 - All arithmetic uses `bcmath` — never native PHP arithmetic on monetary values
@@ -583,7 +602,7 @@ if (! preg_match('/^\d+(?:\.\d{1,4})?$/', $value)) {
 
 ---
 
-## 18. PDO Named Placeholder Rule
+## 19. PDO Named Placeholder Rule
 
 PDO does not reliably support the same named placeholder more than once per statement.
 Every placeholder must appear exactly once per SQL string.
@@ -605,7 +624,7 @@ $params['country_code_block'] = $countryCode;
 
 ---
 
-## 19. PHPStan and Testing Rules
+## 20. PHPStan and Testing Rules
 
 ### `phpstan.neon`
 
@@ -703,7 +722,7 @@ private function findRawById(int $id): ?array
 
 ---
 
-## 20. The Package Is NOT Done Until
+## 21. The Package Is NOT Done Until
 
 - [ ] All PHPStan max errors resolved — zero errors, no suppressions
 - [ ] Tests and static analysis pass, and examples are syntax-checked
@@ -718,4 +737,4 @@ private function findRawById(int $id): ?array
 - [ ] Schema docs align with MySQL/domain-owned tables, no generic `logs` or `event_logs` tables
 - [ ] Framework-agnostic boundaries preserved: no host app namespaces, no framework bindings required
 - [ ] No generic logger, recorder, or repository
-- [ ] Docs reflect current exception rules (using `SystemMaatifyException`) and clock contracts
+- [ ] Docs reflect current exception rules (using `SystemMaatifyException`), and the package explicitly relies on `maatify/exceptions` and `maatify/shared-common` instead of defining local duplicates
