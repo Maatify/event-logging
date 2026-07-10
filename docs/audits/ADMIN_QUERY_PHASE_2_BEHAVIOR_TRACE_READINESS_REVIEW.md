@@ -1,7 +1,7 @@
 # Phase 2 Readiness Review: BehaviorTrace Admin Query API
 
 ## 1. Verdict
-**DEFER**
+**NEEDS IMPLEMENTATION FIX**
 
 ## 2. Reviewed Files
 - `src/BehaviorTrace/Contract/BehaviorTraceQueryInterface.php`
@@ -20,22 +20,36 @@
 - Unlike `AuditTrail`, `AuthoritativeAudit`, and `SecuritySignals`, `BehaviorTrace` does not have a dedicated `ViewDTO` for query results.
 
 ## 4. Feasibility Analysis
-- **Can we apply the same pattern directly?** No.
+- **Can we apply the same pattern directly?** No, not until `id` is added to `BehaviorTraceEventDTO`.
 - **Can we build a valid nextCursor?** No. The established paginated query service pattern relies on extracting the `id` and `occurredAt` from the last actual item in the retrieved page to construct the next cursor.
 - **Is `id` available?** No. The `BehaviorTraceEventDTO` returned by the repository does not contain the database `id`, making it impossible to pass it back in the cursor.
 
-## 5. Risk Analysis
-- **Public API Risk:** Adding `id` to `BehaviorTraceEventDTO` mixes persistence details into an event DTO, breaking conceptual purity. Creating a new `BehaviorTraceViewDTO` and changing the return type of `BehaviorTraceQueryInterface::find()` would be a breaking change for existing consumers.
-- **Domain Boundary Risk:** Minimal, as any changes (like a new View DTO) would remain strictly within the `BehaviorTrace` namespace.
-- **Read/Streaming API Confusion Risk:** Using the existing `read()` method for the Admin API is architecturally incorrect. The `read()` method is designed for forward-streaming (ordered `ASC`, useful for exports or processing) rather than backward-facing, user-facing admin pagination (ordered `DESC`).
-- **Backward Compatibility Risk:** High if we modify the existing query interface. Safe if we introduce a dedicated admin query contract, but this requires a design decision.
+## 5. Architectural Decision & Reasoning
+The library is still prior to its first official release (pre-1.0.0). Therefore, modifying `BehaviorTraceEventDTO` to expose the database `id` is permitted and is not considered a breaking public API change.
 
-## 6. Recommended Path
-**Option C**
-**Reason:** `BehaviorTrace` currently lacks the `ViewDTO` structure necessary to support cursor pagination without structural API changes. It is better to defer this domain and maintain the momentum of Phase 2 by addressing a domain that already aligns with the established pattern (i.e., one that returns a `ViewDTO` containing an `id`).
+`BehaviorTraceQueryDTO` already accepts:
+- `cursorOccurredAt`
+- `cursorId`
+
+And `BehaviorTraceQueryMysqlRepository` effectively uses:
+- `occurred_at`
+- `id`
+
+for ordering and filtering in cursor pagination.
+
+Because of this, any DTO returned from the query layer without an `id` is considered incomplete for the Admin Query API. Leaving it out will create issues later in:
+- cursor pagination
+- admin read models
+- debugging
+- reconciliation
+- stable row references
+
+## 6. Required Implementation Fixes
+Before the paginated query pattern can be applied, the following fixes must be implemented:
+1. Modify `BehaviorTraceEventDTO` to contain the `id` property.
+2. Update `BehaviorTraceQueryMysqlRepository::mapRowToDTO()` to pass the `id`.
+3. Update any affected tests to reflect these changes.
 
 ## 7. Decision
-Do **NOT** send Codex to execute `BehaviorTrace` now. We will defer `BehaviorTrace` until a design decision is made regarding how to safely expose the `id` for pagination (e.g., introducing an Admin View DTO and a new contract). We will move to the next compatible domain.
-
-## 8. Next Domain
-`DeliveryOperations`
+`BehaviorTrace` is **NOT** deferred.
+Once the required implementation fixes outlined above are completed (exposing the `id` in the DTO), Codex can successfully execute the domain-scoped paginated query pattern on `BehaviorTrace`.
