@@ -29,10 +29,18 @@ The Authoritative Audit domain utilizes a transactional outbox (`maa_event_loggi
 
 For the current baseline, the outbox acts as the authoritative source of truth, and moving data from the outbox to the `maa_event_logging_authoritative_audit_log` (schema/read model) is the responsibility of host-implemented consumer workers.
 
-## 3. Host Application Responsibilities
+## 3. Host Application Responsibilities vs. Package Scope
 
-The package is strictly an infrastructure library. The following capabilities must be implemented by the host application and will never be provided by this package:
-- Operational dashboards and logging UIs.
-- Advanced search and reporting.
-- API endpoints (routes, controllers, middleware).
+The package is strictly an infrastructure library.
+
+**Strictly Forbidden (Always Host Responsibility):**
+The following capabilities must be implemented by the host application and will **never** be provided by this package:
+- UI dashboards and frontend components.
+- HTTP/API endpoints (routes, controllers, middleware).
 - Access control and permissions for viewing logs.
+- Host-specific search and reporting implementations (e.g., specific CSV exports or cross-table JOINs).
+
+**Future Package Scope (Deferred):**
+While the above are strictly forbidden, providing domain-scoped, framework-agnostic PHP-level query interfaces is considered future scope. See the [Admin Query API Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md) for details on planned:
+- PHP-level Admin Query API contracts and DTOs.
+- Domain-scoped admin listing and dashboard summary read models.
