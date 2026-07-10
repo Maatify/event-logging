@@ -47,6 +47,7 @@ class DiagnosticsTelemetryLoggerMysqlRepositoryTest extends TestCase
         );
 
         $dto = new DiagnosticsTelemetryEventDTO(
+            id: 0,
             eventId: 'evt_123',
             eventKey: 'db_query',
             severity: new DummyDiagSeverity('warning'),
@@ -93,6 +94,7 @@ class DiagnosticsTelemetryLoggerMysqlRepositoryTest extends TestCase
         );
 
         $dto = new DiagnosticsTelemetryEventDTO(
+            id: 0,
             eventId: 'evt_123',
             eventKey: 'db_query',
             severity: new DummyDiagSeverity('warning'),
@@ -125,6 +127,7 @@ class DiagnosticsTelemetryLoggerMysqlRepositoryTest extends TestCase
         );
 
         $dto = new DiagnosticsTelemetryEventDTO(
+            id: 0,
             eventId: 'evt_123',
             eventKey: 'db_query',
             severity: new DummyDiagSeverity('warning'),

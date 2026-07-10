@@ -9,6 +9,7 @@ use Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityI
 final readonly class DiagnosticsTelemetryEventDTO implements \JsonSerializable
 {
     /**
+     * @param int $id
      * @param string $eventId UUID
      * @param string $eventKey
      * @param DiagnosticsTelemetrySeverityInterface $severity
@@ -17,6 +18,7 @@ final readonly class DiagnosticsTelemetryEventDTO implements \JsonSerializable
      * @param array<mixed>|null $metadata
      */
     public function __construct(
+        public int $id,
         public string $eventId,
         public string $eventKey,
         public DiagnosticsTelemetrySeverityInterface $severity,
@@ -31,6 +33,7 @@ final readonly class DiagnosticsTelemetryEventDTO implements \JsonSerializable
     public function jsonSerialize(): mixed
     {
         return [
+            'id' => $this->id,
             'eventId' => $this->eventId,
             'eventKey' => $this->eventKey,
             'severity' => $this->severity->value(),

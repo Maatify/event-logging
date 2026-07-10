@@ -69,6 +69,7 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         };
 
         $recordDto = new DiagnosticsTelemetryEventDTO(
+            id: 0,
             eventId: 'diag-event-1',
             eventKey: 'http.request',
             severity: $severity,
@@ -89,6 +90,7 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         $this->assertCount(1, $results);
 
         $viewDto = $results[0];
+        $this->assertGreaterThan(0, $viewDto->id);
         $this->assertSame('diag-event-1', $viewDto->eventId);
         $this->assertSame('http.request', $viewDto->eventKey);
         $this->assertSame('INFO', $viewDto->severity->value());
@@ -116,9 +118,9 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         $c1 = new DiagnosticsTelemetryContextDTO($actorType, 1, null, null, null, null, null, $now1);
         $c2 = new DiagnosticsTelemetryContextDTO($actorType, 1, null, null, null, null, null, $now2);
 
-        $dto1 = new DiagnosticsTelemetryEventDTO('evt-1', 'sys.act', $severity, $c1, null, []);
-        $dto2 = new DiagnosticsTelemetryEventDTO('evt-2', 'sys.act', $severity, $c2, null, []);
-        $dto3 = new DiagnosticsTelemetryEventDTO('evt-3', 'sys.act', $severity, $c2, null, []);
+        $dto1 = new DiagnosticsTelemetryEventDTO(0, 'evt-1', 'sys.act', $severity, $c1, null, []);
+        $dto2 = new DiagnosticsTelemetryEventDTO(0, 'evt-2', 'sys.act', $severity, $c2, null, []);
+        $dto3 = new DiagnosticsTelemetryEventDTO(0, 'evt-3', 'sys.act', $severity, $c2, null, []);
 
         $this->logger->write($dto1);
         $this->logger->write($dto2);

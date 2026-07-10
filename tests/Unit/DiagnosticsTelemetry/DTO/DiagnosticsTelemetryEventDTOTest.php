@@ -28,6 +28,7 @@ class DiagnosticsTelemetryEventDTOTest extends TestCase
         );
 
         $dto = new DiagnosticsTelemetryEventDTO(
+            123,
             'evt-1',
             'API_CALL',
             DiagnosticsTelemetrySeverityEnum::INFO,
@@ -37,6 +38,7 @@ class DiagnosticsTelemetryEventDTOTest extends TestCase
         );
 
         $expected = [
+            'id' => 123,
             'eventId' => 'evt-1',
             'eventKey' => 'API_CALL',
             'severity' => 'INFO',
@@ -63,6 +65,7 @@ class DiagnosticsTelemetryEventDTOTest extends TestCase
         );
 
         $dto = new DiagnosticsTelemetryEventDTO(
+            123,
             'evt-1',
             'API_CALL',
             DiagnosticsTelemetrySeverityEnum::WARNING,

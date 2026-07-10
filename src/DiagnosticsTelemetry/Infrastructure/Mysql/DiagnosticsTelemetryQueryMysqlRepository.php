@@ -185,6 +185,7 @@ class DiagnosticsTelemetryQueryMysqlRepository implements DiagnosticsTelemetryQu
         }
 
         $occurredAtStr = is_string($row['occurred_at'] ?? null) ? $row['occurred_at'] : '1970-01-01 00:00:00';
+        $id = isset($row['id']) && is_numeric($row['id']) ? (int) $row['id'] : 0;
         $eventId = is_string($row['event_id'] ?? null) ? $row['event_id'] : '';
         $eventKey = is_string($row['event_key'] ?? null) ? $row['event_key'] : 'unknown';
 
@@ -200,6 +201,7 @@ class DiagnosticsTelemetryQueryMysqlRepository implements DiagnosticsTelemetryQu
         );
 
         return new DiagnosticsTelemetryEventDTO(
+            id: $id,
             eventId: $eventId,
             eventKey: $eventKey,
             severity: $severity,
