@@ -29,30 +29,68 @@ To maintain standalone Composer package boundaries and a framework-agnostic arch
 - **Clock/Date-Time:** Clock and date-time contracts must depend on `maatify/shared-common`
   Repository: https://github.com/Maatify/SharedCommon
 
-**Rule:** Packages must not define a local duplicate exception hierarchy or local clock abstraction if the contract or base is available in Maatify shared packages.
+- **Persistence Utilities:** Packages that require reusable PDO row-position/display-order management or pagination capabilities must depend on `maatify/persistence`
+  Repository: https://github.com/Maatify/persistence
+
+**Rule:** Packages MUST NOT define package-local duplicates of a capability that is available through a stable public API in a Maatify shared package. This prohibition includes exception hierarchies, clock abstractions, PDO row-position/display-order mechanics, and PDO pagination mechanics.
+
+A consuming package MUST declare the minimum stable dependency version that exposes every shared API it uses. Proposed architecture documents, unreleased branches, commits, and implementation contracts are not consumable public APIs and MUST NOT be copied into consumer packages.
+
+The declaration, constraint, ordering, and validation rules for these dependencies are governed by [COMPOSER_PACKAGE_STANDARD.md](COMPOSER_PACKAGE_STANDARD.md).
 
 This ensures:
 - Explicit Composer/runtime dependencies only
 - Public API stability
 - Backward compatibility as much as possible
+- One authoritative implementation for shared ecosystem capabilities
 
 ---
 
 ## 3. Required Files
 
+Repository presentation, governance-document identity, release-facing metadata, and visual consistency MUST follow [LIBRARY_PRESENTATION_STANDARD.md](LIBRARY_PRESENTATION_STANDARD.md).
+Composer package metadata, dependency declarations, autoloading, scripts, configuration, stability, and lock-file policy MUST follow [COMPOSER_PACKAGE_STANDARD.md](COMPOSER_PACKAGE_STANDARD.md).
+
+
 Every package must contain these files at its root (the repository root is the package root):
 
 ```
 ├── README.md                          ← installation, quick examples, what it does / does not
-├── CHANGELOG.md                       ← versioned history, starting at [1.0.0]
-├── {PACKAGE_NAME}_PACKAGE_REFERENCE.md ← complete API reference and design rules (e.g. docs/EVENT_LOGGING_MODULE_REFERENCE.md)
-├── composer.json                      ← library type, psr-4 autoload, explicit runtime/Composer dependencies only
-├── phpstan.neon                       ← level: max, paths: [src]
+├── CHANGELOG.md                       ← Keep a Changelog; release history begins at [1.0.0]
+├── {PACKAGE_NAME}_PACKAGE_REFERENCE.md ← canonical stable package contract (e.g. EVENT_LOGGING_MODULE_REFERENCE.md)
+├── composer.json                      ← governed by COMPOSER_PACKAGE_STANDARD.md
+├── phpstan.neon                       ← governed by Section 21
 ├── src/                               ← all PHP source code
 ├── tests/                             ← if applicable
 ├── schema/                            ← if the package owns SQL schema
-└── docs/                              ← for architecture/integration/audits
+└── docs/                              ← detailed architecture, integration, roadmap, and audit documents
 ```
+
+### Canonical Package Reference Location
+
+Every standalone Maatify package MUST maintain exactly one canonical Package Reference at the repository root.
+
+The canonical path is:
+
+```text
+/{PACKAGE_NAME}_PACKAGE_REFERENCE.md
+```
+
+The root Package Reference owns:
+
+- the complete stable package contract
+- the public Runtime API inventory
+- stable behavior and exception guarantees
+- package boundaries and non-goals
+- links to detailed supporting documentation
+
+Detailed architecture decisions, proposed implementation contracts, integration guides, roadmaps, deferred scope, and audits belong under `docs/`.
+
+Supporting documents under `docs/` MAY provide deeper detail, but they MUST NOT become a second competing Package Reference. They SHOULD link back to the root Package Reference when they define or explain part of the stable package contract.
+
+The root Package Reference SHOULD index the relevant detailed documents under `docs/`.
+
+A multi-domain package still has one canonical root Package Reference unless a domain is extracted into a separate Composer package with its own repository and package contract.
 
 ---
 
@@ -66,6 +104,27 @@ Maatify\{NextPackage}\
 ```
 
 *Note: Host app namespaces such as `App\`, `Athar`, or `EP4N` are strictly forbidden.*
+
+### Type Naming Convention
+
+Public and internal type names MUST make the declared artifact type immediately clear to implementers and reviewers.
+
+The required suffixes are:
+
+- every interface MUST end with `Interface`
+- every enum MUST end with `Enum`
+- every Data Transfer Object MUST end with `DTO`
+- every exception class MUST end with `Exception`
+
+Exception marker interfaces are not exempt from the interface rule. A new package marker MUST therefore use:
+
+```text
+{PackageName}ExceptionInterface
+```
+
+The PHP filename MUST match the declared type name.
+
+New packages and unpublished APIs MUST NOT introduce alternative names that omit the required suffix. Package-specific compatibility exceptions are permitted only under the legacy-public-API rule in Section 7.
 
 ---
 
@@ -110,15 +169,18 @@ src/
 
 ### Standard Exception Types
 
-Package exceptions must use the Maatify exception hierarchy where applicable.
-
-Storage/infrastructure exceptions in this package must be domain-specific and extend:
-`Maatify\Exceptions\Exception\System\SystemMaatifyException`
-
-They must use the appropriate Maatify error code enum, e.g.:
-`ErrorCodeEnum::DATABASE_CONNECTION_FAILED`
-
-*Note: `\RuntimeException` is explicitly **forbidden** as the base for storage exceptions.*
+1. Every package-defined exception MUST use the appropriate `maatify/exceptions` hierarchy.
+2. Every package MUST expose a package marker interface extending `\Throwable`.
+3. Stable, package-owned failure classifications SHOULD use named package exceptions.
+4. A known domain or storage condition MAY be converted to a named package exception when the package owns a stable semantic classification.
+5. Unknown or external `PDOException` / `Throwable` instances MAY propagate unchanged when preserving the original diagnostic contract is intentional.
+6. A package MUST document whether it wraps or propagates infrastructure errors.
+7. Blind catch-all wrapping is forbidden.
+8. Swallowing errors is forbidden.
+9. When wrapping, preserve the original throwable as `previous` where supported.
+10. Transaction catch blocks must rollback owned transactions and rethrow the original throwable unless an explicitly documented semantic conversion is performed.
+11. Rethrowing the original throwable after rollback is valid and is not a violation of named-exception rules.
+12. Packages MUST NOT be universally required to convert every external infrastructure failure into a package-defined exception. The chosen wrapping or propagation contract must follow the package-owned semantic boundary and be documented.
 
 ### Interface
 
@@ -126,7 +188,31 @@ They must use the appropriate Maatify error code enum, e.g.:
 interface {PackageName}ExceptionInterface extends \Throwable {}
 ```
 
-### Extending SystemMaatifyException
+The canonical package marker location is:
+
+```text
+Maatify\{PackageName}\Exception\{PackageName}ExceptionInterface
+```
+
+Every package-defined exception MUST implement this marker directly or indirectly. External `PDOException` or other propagated infrastructure throwables MUST NOT be forced to implement the package marker.
+
+### Legacy Published Marker Names
+
+A package that already published a stable marker interface without the required `Interface` suffix MAY retain that name when renaming it would require an otherwise unnecessary major release.
+
+This exception:
+
+- MUST be documented explicitly in the root Package Reference
+- MUST identify the affected major release line
+- MUST remain internally consistent throughout that major line
+- MUST require every package-defined exception added during that major line to implement the retained marker directly or indirectly
+- MUST NOT introduce a parallel marker solely to normalize naming
+- MUST remain package-specific and MUST NOT be copied into new packages
+- MUST be reconsidered only during a separately approved, meaningful future major release
+
+A major release MUST NOT be created solely to rename a legacy marker.
+
+### Example: Package-Defined Storage Exception
 
 ```php
 final class {Domain}DatabaseException extends \Maatify\Exceptions\Exception\System\SystemMaatifyException
@@ -136,14 +222,18 @@ final class {Domain}DatabaseException extends \Maatify\Exceptions\Exception\Syst
 }
 ```
 
-Named constructors should remain recommended/required where applicable — never `new SomeException('...')` at call site.
+Named constructors SHOULD be used when a stable semantic constructor exists.
+
+Direct construction MAY be used when no suitable named constructor exists and the package's documented exception contract permits it.
+
+Call sites MUST NOT construct generic or semantically misleading exceptions merely to avoid defining an appropriate package-owned classification.
 
 ### Fail-Open / Fail-Closed Behavior
 
 Behavior must stay domain-specific:
-- **Authoritative Domains** (e.g. `AuthoritativeAudit`) are fail-closed.
-- **Non-Authoritative Domains** are fail-open only at the recorder boundary.
-- **Repositories and Read Queries** must never swallow storage failures.
+- **Authoritative Domains** (e.g. `AuthoritativeAudit`) are fail-closed where required by the domain.
+- **Non-Authoritative Domains** may fail-open only at an explicitly documented boundary.
+- **Repositories and Read Queries** must never silently swallow storage failures.
 
 ### What the package catches and converts
 
@@ -157,35 +247,32 @@ Behavior must stay domain-specific:
 }
 ```
 
-### What the package does NOT catch
-
-- PDO infrastructure errors (connection failure, syntax error) should generally be wrapped in `SystemMaatifyException`.
-- Any `\Throwable` outside the package's business domain → propagate as-is.
-- Never wrap unknown errors in a named package exception if it obfuscates root causes for host.
-
 ### Transaction Pattern
 
 In any method that uses `beginTransaction()`:
 
 ```php
-$this->pdo->beginTransaction();
+        $this->pdo->beginTransaction();
 
-try {
-    // ... operations
-    $this->pdo->commit();
-    return true;
-} catch (\Throwable $e) {
-    if ($this->pdo->inTransaction()) {
-        $this->pdo->rollBack();
-    }
-    throw $e; // always rethrow — never swallow
-}
+        try {
+            // ...
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            // Optional documented semantic conversion may occur here.
+
+            throw $e;
+        }
 ```
 
-The `throw $e` inside the catch block is **not** a violation of the "use named exceptions" rule.
-It is rethrowing the original error after rollback — not creating a new exception.
-
----
+Only package-owned transactions are rolled back by this pattern.
+Rollback must be attempted only while the transaction is active.
+The original throwable is rethrown unless an explicitly documented semantic conversion is performed.
+Swallowing the throwable is forbidden.
+If a semantic conversion wraps the original throwable, the original should be retained as `previous` where supported.
 
 ## 8. Command Rules
 
@@ -213,10 +300,10 @@ final readonly class CreateSomethingCommand
 Rules:
 - `final readonly` — always
 - Validation only in the constructor — no business logic
-- Never contains `display_order` — auto-assigned on create
-- Never contains `image` — updated via dedicated method
+- Display-order inputs MUST follow Section 16; `CreateCommand` and `UpdateCommand` do not accept `display_order`
+- Image inputs MUST follow Section 17; `CreateCommand` and `UpdateCommand` do not accept `image`
 - Host IDs (e.g. `methodId`, `currencyId`) must be validated with `>= 1` guard
-- Decimal strings must be validated with `preg_match('/^\d+(?:\.\d{1,4})?$/', $value)` before any `bcmath` call
+- Monetary and fixed-precision decimal inputs MUST follow Section 19
 - Date/time strings must be validated with `new \DateTimeImmutable($value)` in a try/catch
 
 ---
@@ -270,11 +357,13 @@ final readonly class SomethingCollectionDTO implements \IteratorAggregate, \Json
 | `create()` | `int` | `lastInsertId()` |
 | `update()` | `bool` | `rowCount() > 0` |
 | `updateStatus()` | `bool` | `rowCount() > 0` |
-| `updateDisplayOrder()` | `bool` | delegated to `ScopedOrderingManager` |
+| `updateDisplayOrder()` | `bool` | delegated to `Maatify\Persistence\Pdo\Ordering\ScopedOrderingManager` from `maatify/persistence` |
 | `updateImage()` | `bool` | `rowCount() > 0` |
 | `softDelete()` | `bool` | `rowCount() > 0` |
 | `hardDelete()` | `bool` | `rowCount() > 0` after transaction |
 | `findById()` | `?DTO` | `null` if not found — Service decides whether to throw |
+
+This table defines Repository-level return contracts. A Service MAY expose `updateDisplayOrder(...): void`, call the Repository operation, and convert `false` into the approved not-found exception according to Section 13. The Repository and Service signatures belong to different layers and MUST NOT be treated as competing alternatives.
 
 ### `findById` Pattern
 
@@ -325,106 +414,111 @@ displayOrder: (is_int($displayOrder) || is_string($displayOrder)) ? (int) $displ
 
 ---
 
-## 11. Pagination Pattern
+## 11. Shared Ordering and Pagination Utilities
 
-### The Return Shape — always this exact structure
+This section governs how standalone Maatify packages consume shared PDO ordering and pagination capabilities. It is a dependency and integration policy, not an implementation blueprint.
 
-```php
-/**
- * @param  array<string, string|int>  $columnFilters
- * @return array{data: list<SomeListItemDTO>, pagination: array{page: int, per_page: int, total: int, filtered: int}}
- */
-public function list(
-    int     $page,
-    int     $perPage,
-    ?string $globalSearch,
-    array   $columnFilters,
-    ?int    $languageId = null,
-): array;
+The authoritative owner is:
+
+```text
+Package:    maatify/persistence
+Repository: https://github.com/Maatify/persistence
 ```
 
-### The SQL Pattern — three queries, always in this order
+### Non-Duplication Rule
 
-```php
-// 1. Total — unfiltered count of the entire table (no WHERE)
-$stmtTotal = $this->pdo->query('SELECT COUNT(*) FROM maa_something');
-if ($stmtTotal === false) {
-    throw SomeDomainDatabaseException::queryFailed('Failed to count maa_something');
-}
-$total = (int) $stmtTotal->fetchColumn();
+A consumer package MUST NOT create a local replacement for stable ordering or pagination behavior provided by `maatify/persistence`.
 
-// 2. Filtered count — same WHERE as data query, no LIMIT
-$stmtFiltered = $this->pdo->prepare(
-    "SELECT COUNT(s.id) FROM maa_something s {$joinSql} {$whereSql}"
-);
-$stmtFiltered->execute($params);
-$filtered = (int) $stmtFiltered->fetchColumn();
+Forbidden duplication includes:
 
-// 3. Data — with LIMIT + OFFSET
-$offset = ($page - 1) * $perPage;
-$stmt   = $this->pdo->prepare(
-    "SELECT ... FROM maa_something s {$joinSql} {$whereSql} ORDER BY ... LIMIT :limit OFFSET :offset"
-);
-foreach ($params as $key => $value) {
-    $stmt->bindValue(':' . $key, $value);
-}
-$stmt->bindValue(':limit',  $perPage, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset,  PDO::PARAM_INT);
-$stmt->execute();
+- ordering managers, position-shifting algorithms, scope-locking logic, and ordering transaction behavior
+- page and per-page normalization
+- total and filtered count orchestration
+- pagination offset calculation
+- whitelist-based sorting and deterministic tie-breaker behavior
+- canonical pagination result objects and metadata
+- package-local copies of persistence exceptions or public value objects
+
+A consumer package MUST NOT copy Runtime code, tests, internal algorithms, or documentation-only contracts from `maatify/persistence`.
+
+### Capability Availability and Composer Dependency
+
+A package may consume only an API that exists in a stable published release of `maatify/persistence`.
+
+The consumer MUST:
+
+- declare `maatify/persistence` as a direct Composer dependency when its public API is referenced
+- require the minimum stable version that contains the needed capability
+- confirm availability from the published package reference and stable release documentation
+- avoid depending on an unreleased branch, commit, proposed contract, or target version as though it were an available Runtime API
+
+A documentation-only architecture contract inside `maatify/persistence` establishes ownership and future implementation rules. It does not authorize another package to implement or consume the proposed API before a stable release publishes it.
+
+### Ordering Integration
+
+In this section, `Ordering` means reusable row-position and display-order management exposed by `Maatify\Persistence\Pdo\Ordering`. It does not include ordinary consumer-owned read-query sorting expressed through `ORDER BY`.
+
+Reusable row-position and display-order operations covered by the stable `maatify/persistence` Ordering API MUST use:
+
+```text
+Maatify\Persistence\Pdo\Ordering
 ```
 
-Note: The exception thrown in the total count guard above must be a domain-specific storage exception (extending `SystemMaatifyException`), in line with the package exception policy. Creating a raw `\RuntimeException` here is forbidden.
+The consumer Repository / Service may:
 
-### The WHERE Builder Pattern
+- provide the PDO connection
+- construct trusted ordering configuration from its own table and column identifiers
+- pass domain ids, scope values, and requested positions
+- translate the stable persistence result into its own existing public contract through a thin adapter
 
-```php
-$where  = [];
-$params = [];
+The consumer MUST NOT reproduce ordering SQL shifts, transaction ownership, scope locking, identifier validation, or persistence exception behavior locally.
 
-if ($globalSearch !== null && trim($globalSearch) !== '') {
-    $globalSearchValue = '%' . trim($globalSearch) . '%';
+### Pagination Integration
 
-    $where[]              = '(s.name LIKE :global_name OR s.code LIKE :global_code)';
-    $params['global_name'] = $globalSearchValue;
-    $params['global_code'] = $globalSearchValue;
-}
+After a stable `maatify/persistence` release publishes the Pagination API, paginated Repository / QueryReader operations MUST delegate reusable pagination mechanics to the stable public API under:
 
-if (isset($columnFilters['id'])) {
-    $where[]      = 's.id = :id';
-    $params['id'] = (int) $columnFilters['id'];
-}
-
-if (isset($columnFilters['is_active'])) {
-    $where[]             = 's.is_active = :is_active';
-    $params['is_active'] = (int) $columnFilters['is_active'];
-}
-
-if (isset($columnFilters['deleted'])) {
-    $where[] = (int) $columnFilters['deleted'] === 1
-        ? 's.deleted_at IS NOT NULL'
-        : 's.deleted_at IS NULL';
-}
-
-$whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+```text
+Maatify\Persistence\Pdo\Pagination
 ```
 
-### The Return Array
+The consumer remains responsible for domain-owned concerns:
 
-```php
-return [
-    'data'       => $items,
-    'pagination' => [
-        'page'     => $page,
-        'per_page' => $perPage,
-        'total'    => $total,     // unfiltered — entire table count
-        'filtered' => $filtered,  // count after WHERE applied
-    ],
-];
-```
+- mandatory security, tenant, ownership, visibility, and soft-delete constraints
+- optional search and filter construction
+- JOINs and selected columns
+- trusted SQL and matching parameter values
+- semantic alignment between count and data queries
+- row mapping into the consumer's array or DTO
+- preserving its own existing public response contract
 
-`total` = rows in the table regardless of any filter.
-`filtered` = rows that match the current search/filters.
-Frontend uses both to render pagination controls correctly.
+`maatify/persistence` owns the reusable mechanics exposed by its stable API, including normalization, count execution, deterministic sorting, limit/offset handling, mapper invocation, and canonical pagination metadata.
+
+Adopting the shared paginator MUST NOT silently change an existing endpoint, DTO, or package return shape. A thin consumer-owned adapter MAY preserve an established public contract.
+
+### Thin Adapters
+
+A consumer-owned adapter is permitted only when it:
+
+- translates domain inputs into the stable `maatify/persistence` API
+- delegates the shared operation without reimplementing its algorithms
+- maps the returned result into an already approved consumer contract
+- adds no competing exception hierarchy, pagination engine, or ordering engine
+
+An adapter MUST NOT become a fork of the shared capability.
+
+### Missing Capability
+
+When a required reusable behavior is absent from the stable public API, the default action is to propose and review the capability in `maatify/persistence`.
+
+A package-local alternative is forbidden unless an explicit owner-approved architectural decision proves that the behavior is domain-specific and outside the shared package's scope.
+
+Temporary copying of an unpublished persistence contract is not an acceptable workaround.
+
+### Source of Truth
+
+Consumer packages MUST follow the stable public API, package reference, and published integration documentation in `maatify/persistence`.
+
+Exact class signatures, internal formulas, SQL assembly rules, exception classifications, and verification requirements belong in the owning repository. They MUST NOT be duplicated in this general package-building standard or independently redefined by consumer packages.
 
 ---
 
@@ -585,22 +679,44 @@ Remember to uphold the core principles: maintain a standalone, framework-agnosti
 
 ## 16. display_order Rules
 
-- Auto-assigned on `create` via `ScopedOrderingManager::getNextPosition()`
-- Never in `CreateCommand` or `UpdateCommand`
-- Updated via dedicated `updateDisplayOrder(int $id, int $displayOrder): void`
-- `ScopedOrderingManager::moveWithinScope()` handles shift + clamp to valid range
-- Soft delete: **no compact** — record still exists in DB
-- Hard delete: `compactScopeAfterRemoval()` inside transaction — closes the gap
+When persisted entities expose mutable row-position or display-order behavior, the package MUST consume the stable public Ordering API from `maatify/persistence`.
+
+The package-level integration contract is:
+
+- `display_order` MUST NOT be accepted by `CreateCommand` or `UpdateCommand`
+- creation-time position assignment MUST delegate to the stable Ordering API when automatic assignment applies
+- movement MUST be exposed through a dedicated package operation rather than a generic update command
+- the Command Repository operation MUST return `bool` to report whether the target row existed and was moved
+- a Service MAY expose a `void` operation and convert a Repository `false` result into the approved not-found exception
+- shifting, clamping, scope locking, transaction ownership, identifier validation, and persistence exception behavior MUST remain delegated to `maatify/persistence`
+- a consumer MUST NOT reproduce or fork the Ordering engine locally
+
+Exact class names, method signatures, transaction behavior, and Runtime semantics are owned by the stable `maatify/persistence` public API and `PERSISTENCE_PACKAGE_REFERENCE.md`.
+
+### Deferred Hard-Delete Ordering Compaction
+
+The stable `maatify/persistence` Ordering API currently does not expose a hard-delete compaction operation.
+
+The package-specific decision to preserve scoped ordering compaction as a future candidate is recorded in [ADR 0002 — Ordering Hard-Delete Compaction](../adr/0002-ordering-hard-delete-compaction.md).
+
+Until a stable Runtime API is separately approved, implemented, released, and recorded in `PERSISTENCE_PACKAGE_REFERENCE.md`:
+
+- consuming projects retain ownership of entity deletion and project-specific hard-delete orchestration
+- consumers MUST NOT claim or depend on an unreleased Persistence compaction API
+- this Standard does not prescribe a method signature, locking strategy, transaction-participation contract, or release target for the deferred capability
+- the deferred decision MUST NOT be treated as an expansion of the `v1.1.0` Pagination scope
 
 ---
 
 ## 17. Image Rules
 
-- `image` column is `VARCHAR(255) NULL` — stores path or URL only, never binary data
-- Never in `CreateCommand` or `UpdateCommand`
-- Updated via dedicated `updateImage(int $id, ?string $image): void`
-- `null` clears the image (column set to NULL)
-- Translation images follow the same rule via `updateTranslationImage(int $id, ?string $image): void`
+- An `image` column is `VARCHAR(255) NULL` and stores a path or URL only, never binary data
+- `image` MUST NOT be accepted by `CreateCommand` or `UpdateCommand`
+- image changes MUST be exposed through dedicated package operations rather than generic update commands
+- the Command Repository image-update operation MUST return `bool` to report whether the target row existed and was updated
+- a Service MAY expose a `void` image-update operation and convert a Repository `false` result into the approved not-found exception
+- `null` clears the image by setting the column to `NULL`
+- translation-image updates MUST follow the same Repository `bool` / Service `void` layer contract
 
 ---
 
@@ -664,12 +780,24 @@ parameters:
         - src
 ```
 
+The `src` path is mandatory.
+
+When a `tests/` directory exists, it MUST also be included in `parameters.paths`:
+
+```neon
+parameters:
+    paths:
+        - src
+        - tests
+```
+
+Repositories MUST configure PHPStan from their actual package-owned paths and MUST NOT reference a non-existent path merely to copy this example. Existing package-owned tests MUST NOT be excluded from static analysis.
+
 ### Testing Strategy
 
-- **Testing Requirements**: Packages that own persistence/database behavior must provide integration tests where practical. Unit/Regression suites are required where applicable.
-- **Database Tests**: DB-dependent integration tests must use the real service targeted by the package-owned persistence. They must not depend on host application databases, host schemas, framework bindings, or secrets.
-- **MySQL & SQLite Rules**: For MySQL-owned packages, integration tests must use a real MySQL service/DSN, not SQLite. SQLite fallback/support is forbidden for MySQL-owned packages unless SQLite is explicitly declared as a real supported persistence target for that package.
-- **Example Code**: Must be purely illustrative, validated via syntax checks (`php -l`), devoid of real credentials or framework bindings.
+- Packages that own persistence, database, or external-service behavior MUST define appropriate Integration coverage. Unit and Regression suites remain required where applicable.
+- Package-owned test behavior, fixtures, and suite responsibilities belong to the package architecture and reference documentation.
+- CI execution requirements — including real-service provisioning, MySQL/SQLite enforcement, PHP matrices, cleanup/repeatability checks, and example syntax validation — are governed exclusively by [`CI_WORKFLOW_STANDARD.md`](CI_WORKFLOW_STANDARD.md).
 
 ### PDO fetch results — always annotate
 
@@ -681,40 +809,9 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ```
 
-### IteratorAggregate — generic annotations required
+### DTO and Hydration Annotations
 
-```php
-/** @implements \IteratorAggregate<int, SomethingDTO> */
-final readonly class SomethingCollectionDTO implements \IteratorAggregate, \JsonSerializable
-
-/** @return \ArrayIterator<int, SomethingDTO> */
-public function getIterator(): \ArrayIterator
-```
-
-### list type annotations
-
-```php
-/** @var list<SomethingDTO> */
-private array $items;
-
-/** @param list<SomethingDTO> $items */
-public function __construct(array $items)
-```
-
-### Hydration — extract before cast
-
-```php
-// ❌ PHPStan max rejects direct cast of mixed
-isActive:     (bool) ($row['is_active']     ?? false),
-displayOrder: (int)  ($row['display_order'] ?? 0),
-
-// ✅ extract, check type, then cast
-$isActive     = $row['is_active']     ?? null;
-$displayOrder = $row['display_order'] ?? null;
-
-isActive:     (is_int($isActive)     || is_string($isActive)) && (int) $isActive === 1,
-displayOrder: (is_int($displayOrder) || is_string($displayOrder)) ? (int) $displayOrder : 0,
-```
+Collection generics and list annotations are governed by Section 9. PDO-row hydration and mixed-value extraction rules are governed by Section 10. This section MUST NOT redefine those contracts.
 
 ### LIMIT / OFFSET — always PDO::PARAM_INT
 
@@ -755,31 +852,20 @@ private function findRawById(int $id): ?array
 
 Every new standalone Composer package in the Maatify ecosystem must adhere to the CI workflow standards defined in [`CI_WORKFLOW_STANDARD.md`](CI_WORKFLOW_STANDARD.md).
 
-CI pipelines must be:
-- **path-scoped** (running only when relevant files change)
-- **framework-agnostic**
-- **host-agnostic**
-- **independent of host app dependencies**
-- **free of required secrets for baseline checks**
-- **enforcing PHPStan max**
-- **using real service integration tests** where package-owned persistence exists
+`CI_WORKFLOW_STANDARD.md` is the single detailed source of truth for workflow architecture, path relevance, dependency resolution, PHP compatibility matrices, quality checks, real-service Integration execution, security audit, workflow linting, permissions, immutable action pinning, execution reliability, and stable required gates.
+
+Compliance requires the repository's CI to pass the current Compliance Checklist defined by that Standard. This Package Building Standard MUST NOT independently redefine those CI mechanics.
 
 ---
 
 ## 23. The Package Is NOT Done Until
 
-- [ ] All PHPStan max errors resolved — zero errors, no suppressions
-- [ ] CI workflows exist and pass
-- [ ] CI workflows are path-scoped to relevant files
-- [ ] PHPStan max passes
-- [ ] PHPUnit suites pass where applicable
-- [ ] examples are syntax-checked where examples exist
-- [ ] DB integration tests use real service dependencies where applicable
-- [ ] no baseline CI depends on host app code, host schema, framework bindings, or secrets
+- [ ] CI workflows exist, pass, and satisfy the current Compliance Checklist in `CI_WORKFLOW_STANDARD.md`
+- [ ] Package-owned runtime and test architecture is represented in CI where applicable
 - [ ] `README.md` written with installation steps and quick examples
-- [ ] `CHANGELOG.md` written starting at `[1.0.0]`
+- [ ] `CHANGELOG.md` follows `LIBRARY_PRESENTATION_STANDARD.md`, retains `[Unreleased]` at the top, and begins release history at `[1.0.0]`
 - [ ] `{PACKAGE}_PACKAGE_REFERENCE.md` complete — full API, design rules, extension guide
-- [ ] `composer.json` metadata is correct and lists explicit runtime/Composer dependencies only (no phantom extensions)
+- [ ] `composer.json` complies with [COMPOSER_PACKAGE_STANDARD.md](COMPOSER_PACKAGE_STANDARD.md).
 - [ ] Every public service/repository capability intended for infrastructure substitution has a matching contract (interface)
 - [ ] Domain-specific failure semantics are documented
 - [ ] Transaction catch blocks rethrow the original `\Throwable` after rollback — never swallow
@@ -787,4 +873,4 @@ CI pipelines must be:
 - [ ] Schema docs align with MySQL/domain-owned tables, no generic `logs` or `event_logs` tables
 - [ ] Framework-agnostic boundaries preserved: no host app namespaces, no framework bindings required
 - [ ] No generic logger, recorder, or repository
-- [ ] Docs reflect current exception rules (using `SystemMaatifyException`), and the package explicitly relies on `maatify/exceptions` and `maatify/shared-common` instead of defining local duplicates
+- [ ] Docs reflect current exception rules, package-defined exceptions use `maatify/exceptions`, and any clock/date-time contract uses `maatify/shared-common` instead of a local duplicate
