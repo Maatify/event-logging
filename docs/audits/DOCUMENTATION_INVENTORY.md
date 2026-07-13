@@ -3,8 +3,7 @@
 | Path | Category | Status | Purpose | Notes / Required Action |
 |---|---|---|---|---|
 | `./CHANGELOG.md` | Root / Package Docs | Active | Tracks changes between releases |  |
-| `./EVENT_LOGGING_MODULE_REFERENCE.md` | Root / Package Docs | Active | Package level documentation | Safe guardrail wording: mentions generic logger/recorder/repo within prohibited architecture context. |
-| `./PUBLIC_API.md` | Root / Package Docs | Active | Package level documentation |  |
+| `./EVENT_LOGGING_PACKAGE_REFERENCE.md` | Root / Package Docs | Active | Canonical stable package contract and public Runtime API source of truth | Safe guardrail wording: mentions generic logger/recorder/repo within prohibited architecture context. |
 | `./README.md` | Root / Package Docs | Active | Main entry point and package overview | Contains current guardrail wording: explicitly not self-contained, no generic logger/DTO/recorder/table, no SQLite examples. No cleanup required unless wording becomes ambiguous. |
 | `./TESTING_STRATEGY.md` | Root / Package Docs | Active | Package-wide testing strategy | Safe guardrail wording: mentions generic logger/recorder/repo as regression test targets. |
 | `./docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
@@ -83,7 +82,7 @@
 
 ### 1. Manual Review of Flagged Files
 - The first step is to perform a manual review of all files marked with `Needs manual review` to separate false positives (safe guardrail wording) from actual contradictions (unsafe wording).
-- Examples of correctly verified guardrail files include `README.md`, `EVENT_LOGGING_MODULE_REFERENCE.md`, `TESTING_STRATEGY.md`, and `docs/examples/EXAMPLES_COVERAGE_PLAN.md`.
+- Examples of correctly verified guardrail files include `README.md`, `EVENT_LOGGING_PACKAGE_REFERENCE.md`, `TESTING_STRATEGY.md`, and `docs/examples/EXAMPLES_COVERAGE_PLAN.md`.
 
 ### 2. Files for Potential Consolidation / Merge
 - Some `Standards / Architecture Docs` such as multiple logging rule files in `docs/architecture/logging/` could be merged to reduce fragmentation.

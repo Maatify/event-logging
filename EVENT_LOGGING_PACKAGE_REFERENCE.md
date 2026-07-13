@@ -242,6 +242,19 @@ The DI binding contract is intentionally minimal:
 - no package code requires a framework container package; and
 - no route, middleware, controller, HTTP, console-kernel, or application runtime binding is part of this package.
 
+### Extensibility contract
+
+Hosts may customize supported domain behavior through explicit domain-specific extension points only. The stable extension points are the public policy interfaces and enum interfaces exposed by each domain.
+
+Supported customization includes:
+
+- domain-specific policy interfaces such as `AuthoritativeAuditPolicyInterface`, `AuditTrailPolicyInterface`, `SecuritySignalsPolicyInterface`, `BehaviorTracePolicyInterface`, `DiagnosticsTelemetryPolicyInterface`, and `DeliveryOperationsPolicyInterface`;
+- enum interfaces where the current domain exposes them, such as authoritative audit actor types, behavior-trace actor types, diagnostics-telemetry actor types and severities, and delivery actor types;
+- custom actor types, severities, validation rules, and metadata normalization policies where the relevant domain contract supports those values; and
+- factory and recorder injection of documented policy interfaces where supported by the current constructors and factory `create()` methods.
+
+Extensibility remains domain-specific. Custom implementations must preserve the owning domain's command, DTO, writer/repository, schema, and failure-boundary contracts. Extensibility must not introduce a generic logger, generic DTO, generic recorder, generic table, shared cross-domain policy, or cross-domain write/read behavior.
+
 ## 18. Package boundaries and explicit non-goals
 
 The package must not introduce:
@@ -270,19 +283,19 @@ These non-goals preserve independent failure semantics, retention policies, sche
 
 ## 20. Index of detailed supporting documentation
 
-- `README.md` — package overview and links.
-- `schema/README.md` — schema index and table ownership.
-- `TESTING_STRATEGY.md` — testing strategy.
-- `docs/architecture/LOGGING_ARCHITECTURE.md` — architecture overview.
-- `docs/architecture/LOGGING_DOMAIN_RULES.md` — domain isolation rules.
-- `docs/architecture/STORAGE_AND_SCHEMA.md` — storage and schema guarantees.
-- `docs/architecture/AUTHORITATIVE_AUDIT_PIPELINE.md` — authoritative audit outbox pipeline.
-- `docs/architecture/INTEGRATION_SURFACE_DESIGN.md` — integration surface design.
-- `docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` — primitive read/query design.
-- `docs/integration/INSTALLATION.md` — installation guide.
-- `docs/integration/FACTORY_USAGE.md` — factory/provider usage.
-- `docs/integration/MANUAL_WIRING.md` — manual wiring guide.
-- `docs/integration/DI_BINDINGS.md` — optional DI binding guide.
-- `docs/integration/ADMIN_READ_USAGE.md` — admin read usage.
-- `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` — admin query roadmap.
-- `docs/standards/PACKAGE_BUILDING_STANDARD.md` — generic package-reference standard using `{PACKAGE_NAME}_PACKAGE_REFERENCE.md`.
+- [README](README.md) — package overview and links.
+- [Schema index](schema/README.md) — schema index and table ownership.
+- [Testing strategy](TESTING_STRATEGY.md) — package testing strategy.
+- [Logging architecture](docs/architecture/LOGGING_ARCHITECTURE.md) — architecture overview.
+- [Logging domain rules](docs/architecture/LOGGING_DOMAIN_RULES.md) — domain isolation rules.
+- [Storage and schema](docs/architecture/STORAGE_AND_SCHEMA.md) — storage and schema guarantees.
+- [Authoritative audit pipeline](docs/architecture/AUTHORITATIVE_AUDIT_PIPELINE.md) — authoritative audit outbox pipeline.
+- [Integration surface design](docs/architecture/INTEGRATION_SURFACE_DESIGN.md) — integration surface design.
+- [Primitive read/query support design](docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md) — primitive read/query design.
+- [Installation guide](docs/integration/INSTALLATION.md) — installation guide.
+- [Factory usage](docs/integration/FACTORY_USAGE.md) — factory/provider usage.
+- [Manual wiring](docs/integration/MANUAL_WIRING.md) — manual wiring guide.
+- [DI bindings](docs/integration/DI_BINDINGS.md) — optional DI binding guide.
+- [Admin read usage](docs/integration/ADMIN_READ_USAGE.md) — admin read usage.
+- [Admin query API roadmap](docs/roadmap/ADMIN_QUERY_API_ROADMAP.md) — admin query roadmap.
+- [Package building standard](docs/standards/PACKAGE_BUILDING_STANDARD.md) — generic package-reference standard using `{PACKAGE_NAME}_PACKAGE_REFERENCE.md`.
