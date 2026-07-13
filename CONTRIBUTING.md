@@ -54,13 +54,13 @@ Before submitting a Pull Request, please ensure all tests and static analysis ch
    ```
 
    **Note on Integration Tests**:
-   Integration tests require a real MySQL database. By default, the tests use the following environment variables (which match the GitHub Actions CI environment):
+   Integration tests require a real MySQL database. `EVENT_LOGGING_TEST_MYSQL_DSN` must be set; otherwise integration tests are skipped. For example, to match the GitHub Actions environment, you might use:
    ```bash
    EVENT_LOGGING_TEST_MYSQL_DSN="mysql:host=127.0.0.1;port=3306;dbname=event_logging_test"
    EVENT_LOGGING_TEST_MYSQL_USER="root"
    EVENT_LOGGING_TEST_MYSQL_PASSWORD="root"
    ```
-   Please configure these variables in your environment or `phpunit.xml` if your local MySQL setup differs.
+   Contributors should export or provide these environment variables in their local execution environment.
 
 ## Architectural Rules
 
@@ -83,7 +83,7 @@ To maintain the integrity and standalone nature of this package, all contributio
 * **Keep PRs focused:** Try to solve one specific issue per Pull Request.
 * **Update tests and docs:** If you change behavior, you must update the relevant tests and documentation.
 * **Mention BC impact:** If your change breaks backward compatibility (BC), clearly state this in the PR description.
-* **Do not change public API casually:** Architectural or public API changes require prior discussion and approval in an issue before a PR is submitted.
+* **Do not change public API casually:** Architectural or public API changes require prior discussion and owner approval before implementation.
 * **Update CHANGELOG:** For notable changes, please update `CHANGELOG.md` adhering to the "Keep a Changelog" format.
 
 ## Security
