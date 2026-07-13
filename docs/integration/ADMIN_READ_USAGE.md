@@ -1,6 +1,12 @@
 # Admin Read Usage
 
-> **Scope Boundary Notice:** This guide focuses on the currently supported primitive `v1.0.0` read/query path. The existing post-v1 pagination wrappers (`*PaginatedQueryService`) are superseded experiments and must not be used for new integrations. For the future replacement path, see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> **Scope Boundary Notice:** This guide focuses on the currently supported primitive `v1.0.0` read/query path. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> - `*PaginatedQueryInterface`
+> - `*QueryCursorDTO`
+> - `*QueryPageDTO`
+> - `*PaginatedQueryService`
+>
+> For the future replacement path, see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 The `maatify/event-logging` library provides primitive read/query contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 

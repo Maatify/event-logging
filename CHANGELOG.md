@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - Removed superseded Admin Query cursor-wrapper audit documents.
-- Removed partial domain `PUBLIC_API.md` references.
+- Removed partial domain `PUBLIC_API.md` files.
 - Aligned current Runtime, primitive-read, integration, and roadmap documentation with the approved post-v1 architecture.
 - Confirmed that this documentation cleanup introduces no Runtime, Composer, schema, or test behavior change.
 

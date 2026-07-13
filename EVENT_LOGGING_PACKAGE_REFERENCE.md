@@ -166,7 +166,7 @@ Query repositories read stored rows and hydrate view DTOs. They are primitive re
 
 ## 11. Primitive cursor-based read/query contracts
 
-The package exposes only domain-specific primitive query contracts, DTOs, services, and MySQL repositories for host-owned admin viewing foundations. It does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, CRUD APIs, joins, aggregations, or arbitrary filtering.
+The package exposes only domain-specific primitive query contracts, DTOs, and MySQL repositories for host-owned admin viewing foundations. It does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, CRUD APIs, joins, aggregations, or arbitrary filtering.
 
 - Authoritative audit: `AuthoritativeAuditQueryInterface`, `AuthoritativeAuditQueryDTO`, `AuthoritativeAuditViewDTO`, and `AuthoritativeAuditQueryMysqlRepository` query `maa_event_logging_authoritative_audit_log` with actor, target, action, correlation, date-range, cursor, and limit filters. There is intentionally no `requestId` filter because the authoritative audit log table does not store `request_id`.
 - Audit trail: `AuditTrailQueryInterface`, `AuditTrailQueryDTO`, `AuditTrailViewDTO`, and `AuditTrailQueryMysqlRepository` support actor, event key, entity, subject, request, correlation, date-range, cursor, and limit filters.

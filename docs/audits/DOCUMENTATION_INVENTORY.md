@@ -11,8 +11,7 @@
 | `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Architecture Docs | Active | Protected `v1.0.0` primitive design | Scope explicitly restricted to v1 primitive path; host owns presentation and cross-system analytics. |
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Architecture Docs | Active | Approved post-v1 architecture |  |
 | `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap |  |
-| `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Historical Audit Docs | Active | Current audited compatibility inventory |  |
-| `./docs/audits/DIAGNOSTICS_TELEMETRY_IDENTITY_FIX_REVIEW.md` | Audit Docs | Historical Implementation Context | Historical Audit Report |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Active Audit Docs | Active | Current audited compatibility inventory |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/GLOBAL_LOGGING_RULES.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/LOGGING_MODULE_BLUEPRINT.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
