@@ -51,18 +51,33 @@ jobs:
           fi
 
           changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
-          printf '%s\n' "$changed_files"
+          CHANGED_FILES="$changed_files" python3 <<'PY'
+          import os
 
-          heavy=false
-          while IFS= read -r path; do
-            case "$path" in
-              src/*.php|src/**/*.php|src/*.sql|src/**/*.sql|tests/*.php|tests/**/*.php|tests/*.sql|tests/**/*.sql|examples/*.php|examples/**/*.php|schema/*.sql|schema/**/*.sql|composer.json|phpstan.neon|phpunit.xml.dist|.github/workflows/*.yml|.github/workflows/**/*.yml)
-                heavy=true
-                ;;
-            esac
-          done <<< "$changed_files"
+          def under_with_suffix(path, directory, suffix):
+              return path.startswith(f"{directory}/") and path.endswith(suffix)
 
-          echo "heavy=$heavy" >> "$GITHUB_OUTPUT"
+          def is_relevant(path):
+              return (
+                  under_with_suffix(path, "src", ".php")
+                  or under_with_suffix(path, "src", ".sql")
+                  or under_with_suffix(path, "tests", ".php")
+                  or under_with_suffix(path, "tests", ".sql")
+                  or under_with_suffix(path, "examples", ".php")
+                  or under_with_suffix(path, "schema", ".sql")
+                  or path in {"composer.json", "phpstan.neon", "phpunit.xml.dist"}
+                  or under_with_suffix(path, ".github/workflows", ".yml")
+              )
+
+          changed_files = os.environ["CHANGED_FILES"].splitlines()
+          for path in changed_files:
+              print(path)
+
+          heavy = any(is_relevant(path) for path in changed_files)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output_file:
+              output_file.write(f"heavy={str(heavy).lower()}\n")
+          PY
 
   workflow-lint:
     name: Workflow Lint
@@ -89,7 +104,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./actionlint .github/workflows/*.yml
+          mapfile -d '' workflow_files < <(find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 | sort -z)
+          ./actionlint "${workflow_files[@]}"
 
   quality:
     name: Quality (PHP 8.2)
@@ -298,10 +314,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Enforce CI results
-        shell: python
+        shell: bash
         env:
           NEEDS_CONTEXT: ${{ toJson(needs) }}
         run: |
+          set -euo pipefail
+          python3 <<'PY'
           import json
           import os
           import sys
@@ -327,3 +345,4 @@ jobs:
               sys.exit(1)
 
           print("CI Gate passed")
+          PY
