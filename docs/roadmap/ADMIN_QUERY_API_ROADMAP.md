@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 In Progress / Runtime Implementation Blocked
+**Status:** Phase 0 Complete / Runtime Implementation Blocked
 
 ## 1. Overview
 This roadmap outlines the plan for introducing the Admin Query API. The current Primitive Read/Query Runtime relies on a standalone cursor-based implementation. It is independent and its behavior will not be generalized to further domains. The true Admin Query API relies on external offset-based pagination mechanics provided by `maatify/persistence v1.1.0`. Implementation is strictly deferred pending Owner approval.
@@ -9,7 +9,7 @@ This roadmap outlines the plan for introducing the Admin Query API. The current 
 
 ### Phase 0 — Documentation and Architecture Alignment
 * **Goal:** Align all documentation to separate the current Primitive Read/Query Runtime from the future Admin Query API.
-* **Status:** In Progress.
+* **Status:** Complete.
 
 ### Phase 1 — Current Runtime and Compatibility Inventory
 * **Goal:** Audit current domain schema, queries, and DTO implementations to ensure readiness for offset pagination.

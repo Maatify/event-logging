@@ -3,14 +3,15 @@
 | Path | Category | Status | Purpose | Notes / Required Action |
 |---|---|---|---|---|
 | `./CHANGELOG.md` | Root / Package Docs | Active | Tracks changes between releases |  |
-| `./EVENT_LOGGING_PACKAGE_REFERENCE.md` | Root / Package Docs | Active | Canonical stable package contract and public Runtime API source of truth | Safe guardrail wording: mentions generic logger/recorder/repo within prohibited architecture context. |
-| `./README.md` | Root / Package Docs | Active | Main entry point and package overview | Contains current guardrail wording: explicitly not self-contained, no generic logger/DTO/recorder/table, no SQLite examples. No cleanup required unless wording becomes ambiguous. |
+| `./EVENT_LOGGING_PACKAGE_REFERENCE.md` | Root / Package Docs | Active — Current Runtime Truth | Canonical stable package contract and public Runtime API source of truth | Safe guardrail wording: mentions generic logger/recorder/repo within prohibited architecture context. |
+| `./README.md` | Root / Package Docs | Active — Current Runtime Overview | Main entry point and package overview | Contains current guardrail wording: explicitly not self-contained, no generic logger/DTO/recorder/table, no SQLite examples. No cleanup required unless wording becomes ambiguous. |
 | `./TESTING_STRATEGY.md` | Root / Package Docs | Active | Package-wide testing strategy | Safe guardrail wording: mentions generic logger/recorder/repo as regression test targets. |
 | `./docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Standards / Architecture Docs | Active — Current Runtime Design | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Standards / Architecture Docs | Active — Approved Future Architecture | Architectural rules and logging patterns | Added for completeness |
 | `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active — Implementation Deferred | Future plans and readiness tracks |  |
+| `./docs/audits/ADMIN_QUERY_DOCUMENTATION_ALIGNMENT_AUDIT.md` | Audit Docs | Active — Current Alignment Audit | Audit of architecture alignment | Added for completeness |
 | `./docs/audits/ADMIN_QUERY_PAGINATION_STANDARD_COMPLIANCE_AUDIT.md` | Audit Docs | Historical Decision Point | Historical Audit Report |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_1_COMPLIANCE_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_2_AUTHORITATIVE_AUDIT_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
@@ -50,7 +51,7 @@
 | `./docs/audits/STANDALONE_WORDING_CLARIFICATION_AUDIT.md` | Historical Audit Docs | Historical | Past audit record (not active) | Historical wording: mentions zero-dependency standalone, self-contained, dependency-free |
 | `./docs/audits/WHOLE_LIBRARY_GAP_AUDIT.md` | Historical Audit Docs | Historical | Past audit record (not active) | Historical wording: mentions SQLite support, RuntimeException as storage exception, Common ClockInterface, framework bindings (Slim, PHP-DI, etc), host app namespaces (App, Athar, EP4N) |
 | `./docs/examples/EXAMPLES_COVERAGE_PLAN.md` | Examples Docs | Active | Code example coverage and plans | Safe guardrail wording: explicitly states SQLite must not be presented as compatible. |
-| `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package |  |
+| `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active — Current Runtime Integration | Instructions for integrating the package |  |
 | `./docs/integration/FACTORY_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package |  |
 | `./docs/integration/INSTALLATION.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/integration/MANUAL_WIRING.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
