@@ -16,7 +16,7 @@ This roadmap outlines the plan for introducing the Admin Query API. The current 
 * **Status:** Complete. ([View Audit](../audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md))
 
 ### Phase 2 — Single-Domain Admin Pagination POC using `maatify/persistence`
-* **Goal:** Implement the Admin Query API adapter in one domain (e.g. `AuthoritativeAudit`) using `maatify/persistence` to validate the design.
+* **Goal:** Implement the Admin Query API adapter in the `AuditTrail` domain (selected from the Phase 1 inventory) using `maatify/persistence` to validate the design. This requires explicit Owner approval and a Phase 2 blueprint.
 * **Status:** Pending Owner Approval.
 
 ### Phase 3 — Domain-by-Domain Adoption after POC approval

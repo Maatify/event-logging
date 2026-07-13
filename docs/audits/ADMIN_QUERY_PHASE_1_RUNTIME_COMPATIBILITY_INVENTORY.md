@@ -40,8 +40,8 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-- **Query Scopes:** Total-count, filtered-count, and data-query scopes are aligned.
-- **Semantic-alignment risks:** None, provided identical where-clause logic applies to count and data queries.
+
+
 
 ### AuditTrail
 - **Primitive query interface:** `src/AuditTrail/Contract/AuditTrailQueryInterface.php`
@@ -73,8 +73,8 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-- **Query Scopes:** Total-count, filtered-count, and data-query scopes are aligned.
-- **Semantic-alignment risks:** None, provided identical where-clause logic applies.
+
+
 
 ### SecuritySignals
 - **Primitive query interface:** `src/SecuritySignals/Contract/SecuritySignalsQueryInterface.php`
@@ -105,7 +105,7 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
+
 
 ### BehaviorTrace
 - **Primitive query interface:** `src/BehaviorTrace/Contract/BehaviorTraceQueryInterface.php`
@@ -138,7 +138,7 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
+
 
 ### DiagnosticsTelemetry
 - **Primitive query interface:** `src/DiagnosticsTelemetry/Contract/DiagnosticsTelemetryQueryInterface.php`
@@ -172,7 +172,7 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
+
 
 ### DeliveryOperations
 - **Primitive query interface:** `src/DeliveryOperations/Contract/DeliveryOperationsQueryInterface.php`
@@ -205,7 +205,7 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
+
 
 *(Note: The primitive query contracts remain unchanged. All tables declare an index on `(occurred_at, id)` natively enabling deterministic backward index scans for ordering.)*
 
@@ -253,25 +253,25 @@ Four domains implement the old paginated wrapper experiment:
 - **`PageRequest`:**
   ```php
   public function __construct(
-      public readonly int|string|null $page = null,
-      public readonly int|string|null $perPage = null,
-      public readonly ?string $sortBy = null,
-      public readonly ?string $sortDirection = null
+      public int|string|null $page = null,
+      public int|string|null $perPage = null,
+      public ?string $sortBy = null,
+      public ?string $sortDirection = null
   )
   ```
 - **`PageResult`:**
   ```php
   public function __construct(
-      public readonly array $data,
-      public readonly int $page,
-      public readonly int $perPage,
-      public readonly int $total,
-      public readonly int $filtered,
-      public readonly int $totalPages,
-      public readonly bool $hasNext,
-      public readonly bool $hasPrevious,
-      public readonly string $sortBy,
-      public readonly SortDirectionEnum $sortDirection
+      public array $data,
+      public int $page,
+      public int $perPage,
+      public int $total,
+      public int $filtered,
+      public int $totalPages,
+      public bool $hasNext,
+      public bool $hasPrevious,
+      public string $sortBy,
+      public SortDirectionEnum $sortDirection
   )
   ```
 - **`PaginationConfig`:**
@@ -302,12 +302,12 @@ Four domains implement the old paginated wrapper experiment:
 - **`PdoPaginationQueryDescriptor`:**
   ```php
   public function __construct(
-      public readonly string $totalSql,
-      public readonly array $totalParams,
-      public readonly string $filteredCountSql,
-      public readonly array $filteredCountParams,
-      public readonly string $dataSql,
-      public readonly array $dataParams,
+      public string $totalSql,
+      public array $totalParams,
+      public string $filteredCountSql,
+      public array $filteredCountParams,
+      public string $dataSql,
+      public array $dataParams,
   )
   ```
 - **`PdoPaginator`:**
@@ -363,16 +363,24 @@ Phase 2 design must specify the approved contract for:
 
 ## 6. POC Candidate Matrix & Recommendation
 
-| Domain | Assessment | Selection | Reason for Rejection/Selection |
-| :--- | :--- | :--- | :--- |
-| **AuditTrail** | Complex filtering requirements (actor, eventKey, entity, subject) test paginator thoroughly. Contains wrapper artifacts. Mature read model. | **RECOMMENDED** | Selected as it represents a mature read-heavy domain, its indexes support the required filters well, and its testing footprint provides a strong foundation for validating `PdoPaginator`. |
-| **AuthoritativeAudit** | Has wrapper artifacts, strict fail-closed requirements. | Rejected | Operational criticality and strict governance requirements make it an unsafe choice for an initial experimental POC. |
-| **SecuritySignals** | Has wrapper artifacts, fail-open design, simpler filtering. | Rejected | While safe, it has fewer filtering dimensions than AuditTrail, making it less representative for validating complex query alignment. |
-| **BehaviorTrace** | Has wrapper artifacts, complex mutations, fail-open. | Rejected | Operational activity tracking for mutations is not the canonical "read" focus like AuditTrail. |
-| **DiagnosticsTelemetry** | No wrapper artifacts. | Rejected | Absence of wrapper experiments makes migration comparisons difficult. |
-| **DeliveryOperations** | No wrapper artifacts, heavy index structure. | Rejected | Complex index and enum structures without existing wrapper experiments. |
+| Domain | Schema Simplicity | Hydration Complexity | Filter Breadth | Operational Risk | Selection |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **AuditTrail** | Straightforward entity/subject model | Decoding JSON metadata | Broad (actor, eventKey, entity, subject) | Moderate | **RECOMMENDED** |
+| **AuthoritativeAudit** | Outbox vs. materialized log duality | Decoding JSON changes | Broad | High (fail-closed) | Rejected |
+| **SecuritySignals** | Straightforward | Decoding JSON metadata | Narrow (actor, signalType, severity) | Low | Rejected |
+| **BehaviorTrace** | Straightforward | Decoding JSON metadata | Moderate | Low | Rejected |
+| **DiagnosticsTelemetry** | Includes duration and routing fields | Decoding JSON metadata | Narrow | Low | Rejected |
+| **DeliveryOperations** | Complex enum states and provider tracking | Decoding JSON metadata | Very Broad | Moderate | Rejected |
 
-## 7. Blockers & Constraints
+**Rejection Reasons:**
+- **AuthoritativeAudit:** Rejected because its strict fail-closed requirements and outbox-vs-log duality make it an unsafe choice for an initial experimental POC.
+- **SecuritySignals:** Rejected because it has fewer filtering dimensions and a narrower use-case, making it less representative for validating complex count/data semantic alignment.
+- **BehaviorTrace:** Rejected because it focuses on tracking operational activity for mutations rather than the canonical read/listing purpose that AuditTrail serves.
+- **DiagnosticsTelemetry:** Rejected because its schema focuses purely on internal system/routing diagnostics, making it less representative of typical user-facing entity listings.
+- **DeliveryOperations:** Rejected because its schema complexity (multiple state enums, delivery attempt tracking) would overcomplicate the validation of base pagination and extraction mechanics.
+
+**Final Recommendation:** **AuditTrail**.
+Selected because it has broad, representative filters, a clear domain read/listing purpose, suitable indexes, existing query and integration-test coverage, and moderate operational risk. It provides the ideal foundation to validate count/data semantic alignment, mapper extraction, sorting, and exception translation.## 7. Blockers & Constraints
 
 - **Blockers to entering Phase 2 design:** None.
 - **Mandatory decisions that Phase 2 design must resolve:** Mapper reuse strategy, exception translation strategy, result contract, SQL semantic-alignment, filtering, and sort contracts.
