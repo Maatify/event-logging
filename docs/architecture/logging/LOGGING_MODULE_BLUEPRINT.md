@@ -65,7 +65,7 @@ ModuleName/
 │   ├── {Name}Recorder.php
 │   └── {Name}DefaultPolicy.php
 ├── README.md          # Usage Documentation
-├── PUBLIC_API.md      # Strict Surface Definition
+├── {PACKAGE_NAME}_PACKAGE_REFERENCE.md # Canonical Package Reference
 └── TESTING_STRATEGY.md # Testing Rules
 ```
 
@@ -259,7 +259,7 @@ Use this checklist to certify a module as "Blueprint Compliant".
 - [ ] **Fail-Open**: Recorder catches all exceptions.
 - [ ] **Policy Isolated**: Validation logic is in a separate class.
 - [ ] **Primitive Reader**: A cursor-based reader is present.
-- [ ] **Documentation**: `PUBLIC_API.md` exists.
+- [ ] **Documentation**: `{PACKAGE_NAME}_PACKAGE_REFERENCE.md` exists as the canonical Package Reference.
 
 ---
 

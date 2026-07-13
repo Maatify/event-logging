@@ -49,7 +49,7 @@ The optional `EventLoggingBindings` helper exists only as a convenience map for 
 
 ## 4. Public Contracts
 
-The existing public services, repositories, and contracts defined in `PUBLIC_API.md` will remain public.
+The existing public services, repositories, and contracts defined in `EVENT_LOGGING_PACKAGE_REFERENCE.md` will remain public.
 
 *   `Command\*`: Public input structures for logging.
 *   `Contract\*`: Interfaces for recorders and writers, useful for testing or swapping infrastructure.
@@ -63,6 +63,6 @@ A new optional interface for the Provider/Service Map may be introduced, but it 
 This design adheres to all constraints:
 *   **Framework-agnostic:** Optional DI binding helpers are pure PHP convenience maps only; no Slim/Laravel/Symfony dependencies or required container packages.
 *   **Standalone boundaries:** Library logic is isolated from host logic.
-*   **API Stability:** Existing contracts in `PUBLIC_API.md` are unaffected.
+*   **API Stability:** Existing contracts in `EVENT_LOGGING_PACKAGE_REFERENCE.md` are unaffected.
 *   **Prohibited Patterns Avoided:** No `GenericLogger`, generic DTOs, generic recorders, generic tables, or auto-routing.
 *   **Module Building Standard:** Aligns with standard namespace boundaries and public contract requirements, utilizing documented exceptions for DI bindings and Admin/Customer splits.
