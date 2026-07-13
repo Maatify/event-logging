@@ -3,7 +3,7 @@
 **Status:** Phase 0 Complete / Runtime Implementation Blocked
 
 ## 1. Overview
-This roadmap outlines the plan for introducing the Admin Query API. The current Primitive Read/Query Runtime relies on a standalone cursor-based implementation. It is independent and its behavior will not be generalized to further domains. The true Admin Query API relies on external offset-based pagination mechanics provided by `maatify/persistence v1.1.0`. Implementation is strictly deferred pending Owner approval.
+This roadmap outlines the plan for introducing the Admin Query API. The current Primitive Read/Query Runtime relies on primitive cursor query repositories that already exist across all six logging domains and will remain unchanged. A separate paginated wrapper experiment exists only in four domains (`AuditTrail`, `AuthoritativeAudit`, `SecuritySignals`, and `BehaviorTrace`); this wrapper experiment will not be generalized or extended to `DiagnosticsTelemetry` or `DeliveryOperations`. The true Admin Query API is a completely separate offset/page-based execution path that relies on external pagination mechanics provided by `maatify/persistence v1.1.0`. Implementation of the true Admin Query API is strictly deferred pending Owner approval.
 
 ## 2. Roadmap Phases
 

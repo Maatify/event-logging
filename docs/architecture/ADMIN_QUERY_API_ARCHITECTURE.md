@@ -59,7 +59,7 @@ The host application consuming the package retains absolute control over integra
 ## 4. Current Contract Precedence
 - The [EVENT_LOGGING_PACKAGE_REFERENCE.md](../../EVENT_LOGGING_PACKAGE_REFERENCE.md) remains the canonical current stable Runtime and public API contract.
 - This future architecture document does not change the current public API, current Runtime behavior, Composer dependencies, or compatibility guarantees.
-- Until a separately approved implementation is released, the current primitive read/query rules defined in the [PACKAGE_BUILDING_STANDARD.md](../standards/PACKAGE_BUILDING_STANDARD.md) remain authoritative.
+- Until a separately approved implementation is released, the current primitive read/query rules defined in the [EVENT_LOGGING_PACKAGE_REFERENCE.md](../../EVENT_LOGGING_PACKAGE_REFERENCE.md) and [PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md](PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md) remain authoritative. The [PACKAGE_BUILDING_STANDARD.md](../standards/PACKAGE_BUILDING_STANDARD.md) acts as the governing standards reference.
 - The future Admin Query API architecture becomes Runtime truth only after a separately approved implementation and release update. For more details on deferred scope see [DEFERRED_SCOPE.md](DEFERRED_SCOPE.md) and the [ADMIN_QUERY_API_ROADMAP.md](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 ## 5. Absolute Prohibitions
