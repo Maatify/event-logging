@@ -47,7 +47,7 @@ abstract class MysqlIntegrationTestCase extends TestCase
     }
 
     abstract protected function getDomainSchemaFile(): string;
-        /**
+    /**
      * @return array<int, string>
      */
     abstract protected function getTableNames(): array;

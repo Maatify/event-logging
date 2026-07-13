@@ -21,6 +21,7 @@
   "authors": [
     {
       "name": "Maatify",
+      "email": "support@maatify.com",
       "homepage": "https://maatify.dev"
     }
   ],
@@ -57,8 +58,9 @@
   "scripts": {
     "analyse": "phpstan analyse src tests --level=max",
     "test": "phpunit",
-    "test:integration": "phpunit --testsuite Integration",
-    "test:unit": "phpunit --testsuite Unit"
+    "test:unit": "phpunit --testsuite Unit",
+    "test:regression": "phpunit --testsuite Regression",
+    "test:integration": "phpunit --testsuite Integration"
   },
   "config": {
     "optimize-autoloader": true,
