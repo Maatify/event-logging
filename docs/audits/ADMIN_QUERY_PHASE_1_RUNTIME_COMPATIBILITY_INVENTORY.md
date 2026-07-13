@@ -16,340 +16,370 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 ### AuthoritativeAudit
 - **Primitive query interface:** `src/AuthoritativeAudit/Contract/AuthoritativeAuditQueryInterface.php`
 - **Method signature:** `public function find(AuthoritativeAuditQueryDTO $query): array;`
-- **Query DTO:** `AuthoritativeAuditQueryDTO` (Fields: `after`, `before`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `cursorOccurredAt`, `cursorId`, `limit` default 50).
-- **View DTO:** `AuthoritativeAuditViewDTO` (includes `id`, `eventId`, `actorType`, `actorId`, `action`, `targetType`, `targetId`, `ipAddress`, `userAgent`, `correlationId`, `changes`, `occurredAt`).
+- **Query DTO:** `AuthoritativeAuditQueryDTO(public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?string $actorType = null, public ?int $actorId = null, public ?string $targetType = null, public ?int $targetId = null, public ?string $action = null, public ?string $correlationId = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
+- **View DTO:** `AuthoritativeAuditViewDTO`
 - **MySQL repository:** `src/AuthoritativeAudit/Infrastructure/Mysql/AuthoritativeAuditQueryMysqlRepository.php`
-- **Table name:** `maa_event_logging_authoritative_audit_log`
-- **Existing filters:** `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, `before`.
-- **Cursor fields:** `cursorOccurredAt`, `cursorId`.
-- **Limit behavior:** `limit` capped at max(1, query->limit). Default is 50.
-- **Existing ordering:** `ORDER BY occurred_at DESC, id DESC`
 - **Exception behavior:** Throws `AuthoritativeAuditStorageException`.
-- **Hydration:** Private method `mapRowToDTO(array $row)`. Safely handles missing/corrupt JSON by mapping to null.
-- **Tests:** `tests/Integration/AuthoritativeAudit/AuthoritativeAuditRepositoryTest.php` covers write, query, cursor pagination. Unit/Regression coverage available.
-- **Examples:** None directly demonstrating pagination.
+- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON `changes` safely decoded or mapped to null if invalid.
+- **Tests:** `tests/Integration/AuthoritativeAudit/AuthoritativeAuditRepositoryTest.php` covers write, query, and cursor pagination roundtrips.
+- **Examples:** None.
+
+**SQL Analysis:**
+- **Table:** `maa_event_logging_authoritative_audit_log` (Materialized audit log). The authoritative outbox (`maa_event_logging_authoritative_audit_outbox`) MUST NOT be queried for admin listings.
+- **Columns:** `id`, `event_id`, `actor_type`, `actor_id`, `action`, `target_type`, `target_id`, `changes`, `ip_address`, `user_agent`, `correlation_id`, `occurred_at`.
+- **Nullable columns:** `actor_id`, `target_id`, `changes`, `ip_address`, `user_agent`, `correlation_id`.
+- **JSON columns:** `changes`
+- **Enum-like columns:** `actor_type`, `target_type`, `action`.
+- **Indexes:**
+  - `idx_auth_audit_log_time (occurred_at, id)`
+  - `idx_auth_audit_log_actor_time (actor_type, actor_id, occurred_at)`
+  - `idx_auth_audit_log_target_time (target_type, target_id, occurred_at)`
+  - `idx_auth_audit_log_action_time (action, occurred_at)`
+- **Leftmost-prefix analysis:** `actor_type`, `target_type`, and `action` support leftmost prefix querying.
+- **Unsupported/Standalone filter risk:** `actor_id` or `target_id` queried without their respective `_type` will skip the index prefix and result in wider scans.
+- **Sort keys:** `occurred_at`.
+- **Default ordering:** `occurred_at DESC, id DESC`.
+- **Tie-breaker:** `id`.
+- **Query Scopes:** Total-count, filtered-count, and data-query scopes are aligned.
+- **Semantic-alignment risks:** None, provided identical where-clause logic applies to count and data queries.
 
 ### AuditTrail
 - **Primitive query interface:** `src/AuditTrail/Contract/AuditTrailQueryInterface.php`
 - **Method signature:** `public function find(AuditTrailQueryDTO $query): array;`
-- **Query DTO:** `AuditTrailQueryDTO` (Fields: `after`, `before`, `actorType`, `actorId`, `eventKey`, `entityType`, `entityId`, `subjectType`, `subjectId`, `correlationId`, `cursorOccurredAt`, `cursorId`, `limit` default 50).
-- **View DTO:** `AuditTrailViewDTO` (includes `id`, `eventId`, `actorType`, `actorId`, `eventKey`, `entityType`, `entityId`, `subjectType`, `subjectId`, `referrerRouteName`, `referrerPath`, `referrerHost`, `correlationId`, `requestId`, `routeName`, `ipAddress`, `userAgent`, `metadata`, `occurredAt`).
+- **Query DTO:** `AuditTrailQueryDTO(public ?string $actorType = null, public ?int $actorId = null, public ?string $eventKey = null, public ?string $entityType = null, public ?int $entityId = null, public ?string $subjectType = null, public ?int $subjectId = null, public ?string $requestId = null, public ?string $correlationId = null, public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
+- **View DTO:** `AuditTrailViewDTO`
 - **MySQL repository:** `src/AuditTrail/Infrastructure/Mysql/AuditTrailQueryMysqlRepository.php`
-- **Table name:** `maa_event_logging_audit_trail`
-- **Existing filters:** `actorType`, `actorId`, `eventKey`, `entityType`, `entityId`, `subjectType`, `subjectId`, `correlationId`, `after`, `before`.
-- **Cursor fields:** `cursorOccurredAt`, `cursorId`.
-- **Limit behavior:** Default 50, strictly positive.
-- **Existing ordering:** `ORDER BY occurred_at DESC, id DESC`
 - **Exception behavior:** Throws `AuditTrailStorageException`.
-- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON metadata safely decoded.
-- **Tests:** `tests/Integration/AuditTrail/AuditTrailRepositoryTest.php` covers write/query roundtrip and cursor pagination.
-- **Examples:** `examples/11-audit-trail-paginated.php`.
+- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON `metadata` safely decoded.
+- **Tests:** `tests/Integration/AuditTrail/AuditTrailRepositoryTest.php` covers write, query, and cursor pagination roundtrips.
+- **Examples:** None directly for primitive read.
+
+**SQL Analysis:**
+- **Table:** `maa_event_logging_audit_trail`
+- **Columns:** `id`, `event_id`, `actor_type`, `actor_id`, `event_key`, `entity_type`, `entity_id`, `subject_type`, `subject_id`, `referrer_route_name`, `referrer_path`, `referrer_host`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`, `metadata`, `occurred_at`.
+- **Nullable columns:** `actor_id`, `entity_id`, `subject_type`, `subject_id`, `referrer_route_name`, `referrer_path`, `referrer_host`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`.
+- **JSON columns:** `metadata`
+- **Enum-like columns:** `actor_type`, `event_key`, `entity_type`, `subject_type`.
+- **Indexes:**
+  - `idx_el_audit_trail_time (occurred_at, id)`
+  - `idx_el_audit_trail_actor_time (actor_type, actor_id, occurred_at)`
+  - `idx_el_audit_trail_event_time (event_key, occurred_at)`
+  - `idx_el_audit_trail_entity_time (entity_type, entity_id, occurred_at)`
+  - `idx_el_audit_trail_subject_time (subject_type, subject_id, occurred_at)`
+  - `idx_el_audit_trail_corr_time (correlation_id, occurred_at)`
+  - `idx_el_audit_trail_request_time (request_id, occurred_at)`
+- **Leftmost-prefix analysis:** `actor_type`, `event_key`, `entity_type`, and `subject_type` support prefix scanning.
+- **Unsupported/Standalone filter risk:** Filtering by ID fields (`actor_id`, `entity_id`, `subject_id`) without their type prefix skips the index.
+- **Sort keys:** `occurred_at`.
+- **Default ordering:** `occurred_at DESC, id DESC`.
+- **Tie-breaker:** `id`.
+- **Query Scopes:** Total-count, filtered-count, and data-query scopes are aligned.
+- **Semantic-alignment risks:** None, provided identical where-clause logic applies.
 
 ### SecuritySignals
 - **Primitive query interface:** `src/SecuritySignals/Contract/SecuritySignalsQueryInterface.php`
 - **Method signature:** `public function find(SecuritySignalsQueryDTO $query): array;`
-- **Query DTO:** `SecuritySignalsQueryDTO` (Fields: `after`, `before`, `actorType`, `actorId`, `signalType`, `severity`, `correlationId`, `cursorOccurredAt`, `cursorId`, `limit` default 50).
+- **Query DTO:** `SecuritySignalsQueryDTO(public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?string $actorType = null, public ?int $actorId = null, public ?string $signalType = null, public ?string $severity = null, public ?string $correlationId = null, public ?string $requestId = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
 - **View DTO:** `SecuritySignalsViewDTO`
 - **MySQL repository:** `src/SecuritySignals/Infrastructure/Mysql/SecuritySignalsQueryMysqlRepository.php`
-- **Table name:** `maa_event_logging_security_signals`
-- **Existing filters:** `actorType`, `actorId`, `signalType`, `severity`, `correlationId`, `after`, `before`.
-- **Cursor fields:** `cursorOccurredAt`, `cursorId`.
-- **Limit behavior:** Default 50.
-- **Existing ordering:** `ORDER BY occurred_at DESC, id DESC`
 - **Exception behavior:** Throws `SecuritySignalsStorageException`.
-- **Hydration:** Private method `mapRowToDTO(array $row)`.
-- **Tests:** `tests/Integration/SecuritySignals/SecuritySignalsRepositoryTest.php`
-- **Examples:** None directly demonstrating pagination.
+- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON metadata decoded.
+- **Tests:** `tests/Integration/SecuritySignals/SecuritySignalsRepositoryTest.php` covers write and find query execution, and cursor pagination.
+- **Examples:** None.
+
+**SQL Analysis:**
+- **Table:** `maa_event_logging_security_signals`
+- **Columns:** `id`, `event_id`, `actor_type`, `actor_id`, `signal_type`, `severity`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`, `metadata`, `occurred_at`.
+- **Nullable columns:** `actor_id`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`.
+- **JSON columns:** `metadata`
+- **Enum-like columns:** `actor_type`, `signal_type`, `severity`.
+- **Indexes:**
+  - `idx_el_security_signals_time (occurred_at, id)`
+  - `idx_el_security_signals_actor_time (actor_type, actor_id, occurred_at)`
+  - `idx_el_security_signals_type_time (signal_type, occurred_at)`
+  - `idx_el_security_signals_severity_time (severity, occurred_at)`
+  - `idx_el_security_signals_corr_time (correlation_id, occurred_at)`
+  - `idx_el_security_signals_request_time (request_id, occurred_at)`
+- **Leftmost-prefix analysis:** `actor_type`, `signal_type`, and `severity` support prefix scanning.
+- **Unsupported/Standalone filter risk:** `actor_id` without `actor_type` skips the index.
+- **Sort keys:** `occurred_at`.
+- **Default ordering:** `occurred_at DESC, id DESC`.
+- **Tie-breaker:** `id`.
+- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
 
 ### BehaviorTrace
 - **Primitive query interface:** `src/BehaviorTrace/Contract/BehaviorTraceQueryInterface.php`
-- **Method signature:** Exposes both `public function find(BehaviorTraceQueryDTO $query): array;` and legacy `public function read(?BehaviorTraceCursorDTO $cursor = null, int $limit = 100): array;`
-- **Query DTO:** `BehaviorTraceQueryDTO`
-- **View DTO:** `BehaviorTraceEventDTO` (Raw Event DTO).
+- **Method signatures:**
+  - `public function find(BehaviorTraceQueryDTO $query): array;`
+  - `public function read(?BehaviorTraceCursorDTO $cursor, int $limit = 100): iterable;`
+- **Query DTO:** `BehaviorTraceQueryDTO(public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?string $actorType = null, public ?int $actorId = null, public ?string $action = null, public ?string $entityType = null, public ?int $entityId = null, public ?string $correlationId = null, public ?string $requestId = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
+- **View DTO:** `BehaviorTraceEventDTO`
 - **MySQL repository:** `src/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceQueryMysqlRepository.php`
-- **Table name:** `maa_event_logging_behavior_trace`
-- **Existing filters:** `actorType`, `actorId`, `action`, `entityType`, `entityId`, `correlationId`, `after`, `before`.
-- **Cursor fields:** `cursorOccurredAt`, `cursorId`.
-- **Limit behavior:** Default 50.
-- **Existing ordering:** `ORDER BY occurred_at DESC, id DESC`
 - **Exception behavior:** Throws `BehaviorTraceStorageException`.
-- **Hydration:** Private method `mapRowToDTO(array $row)`.
-- **Tests:** `tests/Integration/BehaviorTrace/BehaviorTraceRepositoryTest.php`
-- **Examples:** None directly demonstrating pagination.
+- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON metadata decoded.
+- **Tests:** `tests/Integration/BehaviorTrace/BehaviorTraceRepositoryTest.php` covers legacy read and find.
+- **Examples:** None.
+
+**SQL Analysis:**
+- **Table:** `maa_event_logging_behavior_trace`
+- **Columns:** `id`, `event_id`, `actor_type`, `actor_id`, `action`, `entity_type`, `entity_id`, `metadata`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`, `occurred_at`.
+- **Nullable columns:** `actor_id`, `entity_type`, `entity_id`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`.
+- **JSON columns:** `metadata`
+- **Enum-like columns:** `actor_type`, `action`, `entity_type`.
+- **Indexes:**
+  - `idx_el_behavior_trace_time (occurred_at, id)`
+  - `idx_el_behavior_trace_actor_time (actor_type, actor_id, occurred_at)`
+  - `idx_el_behavior_trace_action_time (action, occurred_at)`
+  - `idx_el_behavior_trace_entity_time (entity_type, entity_id, occurred_at)`
+  - `idx_el_behavior_trace_corr_time (correlation_id, occurred_at)`
+  - `idx_el_behavior_trace_request_time (request_id, occurred_at)`
+- **Leftmost-prefix analysis:** `actor_type`, `action`, `entity_type` support prefix scanning.
+- **Unsupported/Standalone filter risk:** `actor_id` or `entity_id` without their `_type` skip the index.
+- **Sort keys:** `occurred_at`.
+- **Default ordering:** `occurred_at DESC, id DESC`.
+- **Tie-breaker:** `id`.
+- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
 
 ### DiagnosticsTelemetry
 - **Primitive query interface:** `src/DiagnosticsTelemetry/Contract/DiagnosticsTelemetryQueryInterface.php`
-- **Method signature:** Exposes both `public function find(DiagnosticsTelemetryQueryDTO $query): array;` and legacy `public function read(?DiagnosticsTelemetryCursorDTO $cursor = null, int $limit = 100): array;`
-- **Query DTO:** `DiagnosticsTelemetryQueryDTO`
-- **View DTO:** `DiagnosticsTelemetryEventDTO` (Raw Event DTO).
+- **Method signatures:**
+  - `public function find(DiagnosticsTelemetryQueryDTO $query): array;`
+  - `public function read(?DiagnosticsTelemetryCursorDTO $cursor, int $limit = 100): iterable;`
+- **Query DTO:** `DiagnosticsTelemetryQueryDTO(public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?string $actorType = null, public ?int $actorId = null, public ?string $eventKey = null, public ?string $severity = null, public ?string $correlationId = null, public ?string $requestId = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
+- **View DTO:** `DiagnosticsTelemetryEventDTO`
 - **MySQL repository:** `src/DiagnosticsTelemetry/Infrastructure/Mysql/DiagnosticsTelemetryQueryMysqlRepository.php`
-- **Table name:** `maa_event_logging_diagnostics_telemetry`
-- **Existing filters:** `actorType`, `actorId`, `eventKey`, `severity`, `requestId`, `correlationId`, `after`, `before`.
-- **Cursor fields:** `cursorOccurredAt`, `cursorId`.
-- **Limit behavior:** Default 50.
-- **Existing ordering:** `ORDER BY occurred_at DESC, id DESC`
 - **Exception behavior:** Throws `DiagnosticsTelemetryStorageException`.
-- **Hydration:** Private method `mapRowToDTO(array $row)`.
-- **Tests:** Integration and unit tests verify persistence and legacy read.
-- **Examples:** None directly demonstrating pagination.
+- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON metadata decoded.
+- **Tests:** `tests/Integration/DiagnosticsTelemetry/DiagnosticsTelemetryRepositoryTest.php` covers legacy read and find.
+- **Examples:** None.
+
+**SQL Analysis:**
+- **Table:** `maa_event_logging_diagnostics_telemetry`
+- **Columns:** `id`, `event_id`, `event_key`, `severity`, `actor_type`, `actor_id`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`, `duration_ms`, `metadata`, `occurred_at`.
+- **Nullable columns:** `actor_id`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`, `duration_ms`, `metadata`.
+- **JSON columns:** `metadata`
+- **Enum-like columns:** `actor_type`, `event_key`, `severity`.
+- **Indexes:**
+  - `idx_diag_telemetry_time (occurred_at, id)`
+  - `idx_diag_telemetry_actor_time (actor_type, actor_id, occurred_at)`
+  - `idx_diag_telemetry_event_time (event_key, occurred_at)`
+  - `idx_diag_telemetry_severity_time (severity, occurred_at)`
+  - `idx_diag_telemetry_correlation_time (correlation_id, occurred_at)`
+  - `idx_diag_telemetry_request_time (request_id, occurred_at)`
+  - `idx_diag_telemetry_route_time (route_name, occurred_at)`
+- **Leftmost-prefix analysis:** `actor_type`, `event_key`, `severity` support prefix scanning.
+- **Unsupported/Standalone filter risk:** `actor_id` without `actor_type` skips the index.
+- **Sort keys:** `occurred_at`.
+- **Default ordering:** `occurred_at DESC, id DESC`.
+- **Tie-breaker:** `id`.
+- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
 
 ### DeliveryOperations
 - **Primitive query interface:** `src/DeliveryOperations/Contract/DeliveryOperationsQueryInterface.php`
 - **Method signature:** `public function find(DeliveryOperationsQueryDTO $query): array;`
-- **Query DTO:** `DeliveryOperationsQueryDTO`
+- **Query DTO:** `DeliveryOperationsQueryDTO(public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?string $actorType = null, public ?int $actorId = null, public ?string $targetType = null, public ?int $targetId = null, public ?string $channel = null, public ?string $operationType = null, public ?string $status = null, public ?string $correlationId = null, public ?string $requestId = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
 - **View DTO:** `DeliveryOperationsViewDTO`
 - **MySQL repository:** `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsQueryMysqlRepository.php`
-- **Table name:** `maa_event_logging_delivery_operations`
-- **Existing filters:** `actorType`, `actorId`, `targetType`, `targetId`, `channel`, `operationType`, `status`, `requestId`, `correlationId`, `after`, `before`.
-- **Cursor fields:** `cursorOccurredAt`, `cursorId`.
-- **Limit behavior:** Default 50.
-- **Existing ordering:** `ORDER BY occurred_at DESC, id DESC`
 - **Exception behavior:** Throws `DeliveryOperationsStorageException`.
-- **Hydration:** Private method `mapRowToDTO(array $row)`.
-- **Tests:** Validation in unit/integration suites.
-- **Examples:** None directly demonstrating pagination.
+- **Hydration:** Private method `mapRowToDTO(array $row)`. JSON metadata decoded.
+- **Tests:** `tests/Integration/DeliveryOperations/DeliveryOperationsRepositoryTest.php` covers write, find queries, cursor logic and timezone tests.
+- **Examples:** None.
 
-**Note:** All existing primitive contracts must remain unchanged.
+**SQL Analysis:**
+- **Table:** `maa_event_logging_delivery_operations`
+- **Columns:** `id`, `event_id`, `channel`, `operation_type`, `actor_type`, `actor_id`, `target_type`, `target_id`, `status`, `attempt_no`, `scheduled_at`, `completed_at`, `correlation_id`, `request_id`, `provider`, `provider_message_id`, `error_code`, `error_message`, `metadata`, `occurred_at`.
+- **Nullable columns:** `actor_type`, `actor_id`, `target_type`, `target_id`, `scheduled_at`, `completed_at`, `correlation_id`, `request_id`, `provider`, `provider_message_id`, `error_code`, `error_message`.
+- **JSON columns:** `metadata`
+- **Enum-like columns:** `channel`, `operation_type`, `status`, `actor_type`, `target_type`.
+- **Indexes:**
+  - `idx_delivery_ops_time (occurred_at, id)`
+  - `idx_delivery_ops_actor_time (actor_type, actor_id, occurred_at)`
+  - `idx_delivery_ops_channel_time (channel, occurred_at)`
+  - `idx_delivery_ops_type_time (operation_type, occurred_at)`
+  - `idx_delivery_ops_status_time (status, occurred_at)`
+  - `idx_delivery_ops_target_time (target_type, target_id, occurred_at)`
+  - `idx_delivery_ops_correlation_time (correlation_id, occurred_at)`
+  - `idx_delivery_ops_request_time (request_id, occurred_at)`
+- **Leftmost-prefix analysis:** `actor_type`, `channel`, `operation_type`, `status`, `target_type` support prefix scanning.
+- **Unsupported/Standalone filter risk:** `actor_id` or `target_id` without their `_type` skip the index.
+- **Sort keys:** `occurred_at`.
+- **Default ordering:** `occurred_at DESC, id DESC`.
+- **Tie-breaker:** `id`.
+- **Query Scopes & Risks:** Scopes aligned; no semantic divergence if where-clauses match.
+
+*(Note: The primitive query contracts remain unchanged. All tables declare an index on `(occurred_at, id)` natively enabling deterministic backward index scans for ordering.)*
 
 ## 3. Paginated-Wrapper Inventory
-The following domains contain the old wrapper experiment:
-- **AuthoritativeAudit:** `src/AuthoritativeAudit/Contract/AuthoritativeAuditPaginatedQueryInterface.php`, `DTO/AuthoritativeAuditQueryCursorDTO.php`, `DTO/AuthoritativeAuditQueryPageDTO.php`, `Service/AuthoritativeAuditPaginatedQueryService.php`. Tests: `Unit/AuthoritativeAudit/Service/AuthoritativeAuditPaginatedQueryServiceTest.php`. Example: none.
-- **AuditTrail:** `src/AuditTrail/Contract/AuditTrailPaginatedQueryInterface.php`, `DTO/AuditTrailQueryCursorDTO.php`, `DTO/AuditTrailQueryPageDTO.php`, `Service/AuditTrailPaginatedQueryService.php`. Tests: `Unit/AuditTrail/Service/AuditTrailPaginatedQueryServiceTest.php`. Example: `examples/11-audit-trail-paginated.php`.
-- **SecuritySignals:** `src/SecuritySignals/Contract/SecuritySignalsPaginatedQueryInterface.php`, `DTO/SecuritySignalsQueryCursorDTO.php`, `DTO/SecuritySignalsQueryPageDTO.php`, `Service/SecuritySignalsPaginatedQueryService.php`. Tests: `Unit/SecuritySignals/Service/SecuritySignalsPaginatedQueryServiceTest.php`. Example: none.
-- **BehaviorTrace:** `src/BehaviorTrace/Contract/BehaviorTracePaginatedQueryInterface.php`, `DTO/BehaviorTraceQueryCursorDTO.php`, `DTO/BehaviorTraceQueryPageDTO.php`, `Service/BehaviorTracePaginatedQueryService.php`. Tests: `Unit/BehaviorTrace/Service/BehaviorTracePaginatedQueryServiceTest.php`. Example: none.
+Four domains implement the old paginated wrapper experiment:
 
-**DiagnosticsTelemetry and DeliveryOperations** explicitly do not implement these paginated wrapper artifacts.
+- **AuthoritativeAudit:**
+  - `src/AuthoritativeAudit/Contract/AuthoritativeAuditPaginatedQueryInterface.php`
+  - `src/AuthoritativeAudit/DTO/AuthoritativeAuditQueryCursorDTO.php`
+  - `src/AuthoritativeAudit/DTO/AuthoritativeAuditQueryPageDTO.php`
+  - `src/AuthoritativeAudit/Service/AuthoritativeAuditPaginatedQueryService.php`
+  - Tests: `tests/Unit/AuthoritativeAudit/Service/AuthoritativeAuditPaginatedQueryServiceTest.php` covers empty limit, cursor generation, and exception pass-through.
+  - Examples: None found.
 
-## 4. Per-Domain SQL Analysis
+- **AuditTrail:**
+  - `src/AuditTrail/Contract/AuditTrailPaginatedQueryInterface.php`
+  - `src/AuditTrail/DTO/AuditTrailQueryCursorDTO.php`
+  - `src/AuditTrail/DTO/AuditTrailQueryPageDTO.php`
+  - `src/AuditTrail/Service/AuditTrailPaginatedQueryService.php`
+  - Tests: `tests/Unit/AuditTrail/Service/AuditTrailPaginatedQueryServiceTest.php` covers empty limit, cursor generation, and exception pass-through.
+  - Examples: None found. (Note: previous assumed example file does not exist).
 
-### AuthoritativeAudit
-- **Distinction:** The system utilizes an authoritative outbox (`maa_event_logging_authoritative_audit_outbox`) and a materialized audit log (`maa_event_logging_authoritative_audit_log`). The Admin listing POC must strictly target the materialized log and must not query or redefine the outbox authority contract unless separately approved.
-- **Table:** `maa_event_logging_authoritative_audit_log`
-- **Primary key:** `id`
-- **Timestamp:** `occurred_at`
-- **Relevant indexes:** `idx_auth_audit_log_time (occurred_at, id)`, `idx_auth_audit_log_actor_time (actor_type, actor_id, occurred_at)`, `idx_auth_audit_log_target_time (target_type, target_id, occurred_at)`, `idx_auth_audit_log_action_time (action, occurred_at)`.
-- **Prefix support:** `actor_type`, `target_type`, `action` are fully supported as leftmost index prefixes.
-- **Candidate sort keys:** `occurred_at`.
-- **Candidate default sort:** `occurred_at`.
-- **Deterministic tie-breaker:** `id`.
-- **Nullable columns:** `actor_id`, `target_id`, `changes`, `ip_address`, `user_agent`, `correlation_id`.
-- **JSON columns:** `changes`
-- **Enum-like columns:** `actor_type`, `target_type`, `action`, `risk_level`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** Filters like `target_id` or `actor_id` used independently (without their `_type` counterpart) will result in partial or non-indexed full table scans.
+- **SecuritySignals:**
+  - `src/SecuritySignals/Contract/SecuritySignalsPaginatedQueryInterface.php`
+  - `src/SecuritySignals/DTO/SecuritySignalsQueryCursorDTO.php`
+  - `src/SecuritySignals/DTO/SecuritySignalsQueryPageDTO.php`
+  - `src/SecuritySignals/Service/SecuritySignalsPaginatedQueryService.php`
+  - Tests: `tests/Unit/SecuritySignals/Service/SecuritySignalsPaginatedQueryServiceTest.php` covers empty limit, cursor generation, and exception pass-through.
+  - Examples: None found.
 
-### AuditTrail
-- **Table:** `maa_event_logging_audit_trail`
-- **Primary key:** `id`
-- **Timestamp:** `occurred_at`
-- **Relevant indexes:** `idx_el_audit_trail_time (occurred_at, id)`, `idx_el_audit_trail_actor_time (actor_type, actor_id, occurred_at)`, `idx_el_audit_trail_event_time (event_key, occurred_at)`.
-- **Prefix support:** `actor_type`, `event_key` are full index prefixes. `actor_id` alone without `actor_type` would not hit prefix.
-- **Candidate sort keys:** `occurred_at`.
-- **Candidate default sort:** `occurred_at`.
-- **Deterministic tie-breaker:** `id`.
-- **Nullable columns:** `actor_id`, `entity_id`, `subject_type`, `subject_id`, `referrer_route_name`, `referrer_path`, `referrer_host`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`.
-- **JSON columns:** `metadata`
-- **Enum-like columns:** `actor_type`, `channel`, `operation_type`, `status`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` without `actor_type` will skip prefix.
-- **Enum-like columns:** `actor_type`, `event_key`, `severity`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` without `actor_type`, or `requestId` without time prefix.
-- **Enum-like columns:** `actor_type`, `action`, `entity_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` or `entity_id` without their `_type` will skip the index prefix.
-- **Enum-like columns:** `actor_type`, `signal_type`, `severity`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` without `actor_type`, or `severity` alone (which is indexed with time, but might not be fully selective) may require wider scans.
-- **Enum-like columns:** `actor_type`, `event_key`, `entity_type`, `subject_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id`, `entity_id`, or `subject_id` used without their `_type` counterpart will fail to hit the index prefix.
+- **BehaviorTrace:**
+  - `src/BehaviorTrace/Contract/BehaviorTracePaginatedQueryInterface.php`
+  - `src/BehaviorTrace/DTO/BehaviorTraceQueryCursorDTO.php`
+  - `src/BehaviorTrace/DTO/BehaviorTraceQueryPageDTO.php`
+  - `src/BehaviorTrace/Service/BehaviorTracePaginatedQueryService.php`
+  - Tests: `tests/Unit/BehaviorTrace/Service/BehaviorTracePaginatedQueryServiceTest.php` covers empty limit, cursor generation, and exception pass-through.
+  - Examples: None found.
 
-### SecuritySignals
-- **Table:** `maa_event_logging_security_signals`
-- **Primary key:** `id`
-- **Timestamp:** `occurred_at`
-- **Relevant indexes:** `idx_el_security_signals_time (occurred_at, id)`, `idx_el_security_signals_actor_time (actor_type, actor_id, occurred_at)`, `idx_el_security_signals_type_time (signal_type, occurred_at)`.
-- **Prefix support:** `actor_type`, `signal_type` are full index prefixes.
-- **Candidate sort keys:** `occurred_at`.
-- **Candidate default sort:** `occurred_at`.
-- **Deterministic tie-breaker:** `id`.
-- **JSON columns:** `metadata`
-- **Enum-like columns:** `actor_type`, `signal_type`, `severity`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` without `actor_type`, or `severity` alone (which is indexed with time, but might not be fully selective) may require wider scans.
-- **Enum-like columns:** `actor_type`, `event_key`, `entity_type`, `subject_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id`, `entity_id`, or `subject_id` used without their `_type` counterpart will fail to hit the index prefix.
+**DiagnosticsTelemetry and DeliveryOperations** explicitly DO NOT implement these paginated wrapper artifacts.
 
-### BehaviorTrace
-- **Table:** `maa_event_logging_behavior_trace`
-- **Primary key:** `id`
-- **Timestamp:** `occurred_at`
-- **Relevant indexes:** `idx_el_behavior_trace_time (occurred_at, id)`, `idx_el_behavior_trace_actor_time (actor_type, actor_id, occurred_at)`, `idx_el_behavior_trace_action_time (action, occurred_at)`.
-- **Prefix support:** `actor_type`, `action` are full index prefixes.
-- **Candidate sort keys:** `occurred_at`.
-- **Candidate default sort:** `occurred_at`.
-- **Deterministic tie-breaker:** `id`.
-- **JSON columns:** `metadata`
-- **Enum-like columns:** `actor_type`, `action`, `entity_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` or `entity_id` without their `_type` will skip the index prefix.
-- **Enum-like columns:** `actor_type`, `event_key`, `entity_type`, `subject_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id`, `entity_id`, or `subject_id` used without their `_type` counterpart will fail to hit the index prefix.
-
-### DiagnosticsTelemetry
-- **Table:** `maa_event_logging_diagnostics_telemetry`
-- **Primary key:** `id`
-- **Timestamp:** `occurred_at`
-- **Relevant indexes:** `idx_diag_telemetry_time (occurred_at, id)`, `idx_diag_telemetry_actor_time (actor_type, actor_id, occurred_at)`, `idx_diag_telemetry_event_time (event_key, occurred_at)`.
-- **Prefix support:** `actor_type`, `event_key` are full index prefixes.
-- **Candidate sort keys:** `occurred_at`.
-- **Candidate default sort:** `occurred_at`.
-- **Deterministic tie-breaker:** `id`.
-- **JSON columns:** `metadata`
-- **Enum-like columns:** `actor_type`, `event_key`, `severity`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` without `actor_type`, or `requestId` without time prefix.
-- **Enum-like columns:** `actor_type`, `event_key`, `entity_type`, `subject_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id`, `entity_id`, or `subject_id` used without their `_type` counterpart will fail to hit the index prefix.
-
-### DeliveryOperations
-- **Table:** `maa_event_logging_delivery_operations`
-- **Primary key:** `id`
-- **Timestamp:** `occurred_at`
-- **Relevant indexes:** `idx_delivery_ops_time (occurred_at, id)`, `idx_delivery_ops_actor_time (actor_type, actor_id, occurred_at)`, `idx_delivery_ops_channel_time (channel, occurred_at)`, `idx_delivery_ops_status_time (status, occurred_at)`.
-- **Prefix support:** `actor_type`, `channel`, `status` are full index prefixes.
-- **Candidate sort keys:** `occurred_at`.
-- **Candidate default sort:** `occurred_at`.
-- **Deterministic tie-breaker:** `id`.
-- **JSON columns:** `metadata`
-- **Enum-like columns:** `actor_type`, `channel`, `operation_type`, `status`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id` without `actor_type` will skip prefix.
-- **Enum-like columns:** `actor_type`, `event_key`, `entity_type`, `subject_type`.
-- **Total-count query scope:** Unfiltered count of all records.
-- **Filtered-count query scope:** Count restricted by active filters.
-- **Data-query scope:** Filtered rows with pagination limits.
-- **Risk of divergence:** None, provided the same semantic where-clause logic is utilized across all three scopes.
-- **Non-indexed behavior:** `actor_id`, `entity_id`, or `subject_id` used without their `_type` counterpart will fail to hit the index prefix.
-
-*(Note for all tables: `(occurred_at, id)` is declared as a composite index. Backward index scanning is natively supported for descending sort when ordered by `occurred_at DESC, id DESC`.)*
-
-## 5. Stable Persistence API (maatify/persistence v1.1.0)
+## 4. Stable Persistence API (maatify/persistence v1.1.0)
 
 **Namespace:** `Maatify\Persistence\Pdo\Pagination`
 
-- **`PageRequest`:** `__construct(public readonly int|string|null $page = null, public readonly int|string|null $perPage = null, public readonly ?string $sortBy = null, public readonly ?string $sortDirection = null)`
-- **`PageResult`:** `__construct(public readonly array $data, public readonly int $page, public readonly int $perPage, public readonly int $total, public readonly int $filtered, public readonly int $totalPages, public readonly bool $hasNext, public readonly bool $hasPrevious, public readonly string $sortBy, public readonly SortDirectionEnum $sortDirection)`
-- **`PaginationConfig`:** `__construct(public readonly int $defaultPerPage, public readonly int $minPerPage, public readonly int $maxPerPage, public readonly SortWhitelist $sortWhitelist, public readonly string $defaultSortBy, public readonly SortDirectionEnum $defaultSortDirection, public readonly string $tieBreakerSortBy, public readonly SortDirectionEnum $tieBreakerDirection)`
-- **`SortWhitelist`:** `__construct(array $sorts)`. Throws `InvalidPaginationConfigurationException` on bad keys/paths.
-- **`SortDirectionEnum`:** `enum SortDirectionEnum: string { case ASC; case DESC; }`
-- **`PdoPaginationQueryDescriptor`:** `__construct(public readonly string $totalSql, public readonly array $totalParams, public readonly string $filteredCountSql, public readonly array $filteredCountParams, public readonly string $dataSql, public readonly array $dataParams)`
-- **`PdoPaginator`:** `public function paginate(PDO $pdo, PdoPaginationQueryDescriptor $query, PageRequest $request, PaginationConfig $config, callable $mapper): PageResult`
+- **`PageRequest`:**
+  ```php
+  public function __construct(
+      public readonly int|string|null $page = null,
+      public readonly int|string|null $perPage = null,
+      public readonly ?string $sortBy = null,
+      public readonly ?string $sortDirection = null
+  )
+  ```
+- **`PageResult`:**
+  ```php
+  public function __construct(
+      public readonly array $data,
+      public readonly int $page,
+      public readonly int $perPage,
+      public readonly int $total,
+      public readonly int $filtered,
+      public readonly int $totalPages,
+      public readonly bool $hasNext,
+      public readonly bool $hasPrevious,
+      public readonly string $sortBy,
+      public readonly SortDirectionEnum $sortDirection
+  )
+  ```
+- **`PaginationConfig`:**
+  ```php
+  public function __construct(
+      public SortWhitelist $sortWhitelist,
+      public string $defaultSortBy,
+      public SortDirectionEnum $defaultSortDirection,
+      public string $tieBreakerSortBy,
+      public SortDirectionEnum $tieBreakerDirection,
+      public int $defaultPerPage = 20,
+      public int $minPerPage = 1,
+      public int $maxPerPage = 200,
+  )
+  ```
+- **`SortWhitelist`:**
+  ```php
+  public function __construct(array $sorts)
+  ```
+- **`SortDirectionEnum`:**
+  ```php
+  enum SortDirectionEnum: string
+  {
+      case ASC = 'ASC';
+      case DESC = 'DESC';
+  }
+  ```
+- **`PdoPaginationQueryDescriptor`:**
+  ```php
+  public function __construct(
+      public readonly string $totalSql,
+      public readonly array $totalParams,
+      public readonly string $filteredCountSql,
+      public readonly array $filteredCountParams,
+      public readonly string $dataSql,
+      public readonly array $dataParams,
+  )
+  ```
+- **`PdoPaginator`:**
+  ```php
+  public function paginate(
+      PDO $pdo,
+      PdoPaginationQueryDescriptor $query,
+      PageRequest $request,
+      PaginationConfig $config,
+      callable $mapper
+  ): PageResult
+  ```
 
-**Explicit Guarantees:**
+**Exceptions:**
+- `Maatify\Persistence\Exception\InvalidPaginationConfigurationException`
+- `Maatify\Persistence\Exception\InvalidPaginationQueryException`
+- `Maatify\Persistence\Exception\PaginationExecutionException`
+
+**Explicit Guarantees & Restrictions:**
 - `PdoPaginator` normalizes invalid/missing page values to 1.
+- Resets a page greater than the last page to page 1.
 - Clamps `perPage` according to `PaginationConfig`.
-- Resets page > totalPages to 1.
 - Resolves sort keys strictly through `SortWhitelist`.
-- Appends deterministic `ORDER BY`, `LIMIT`, and `OFFSET` to the provided `dataSql` (consumer must not append these).
-- Requires count queries to return exactly one row and one column.
-- Requires mapper output to be an array or object.
+- Appends deterministic `ORDER BY`, `LIMIT`, and `OFFSET` to the provided `dataSql`.
+- Consumer `dataSql` must not contain the paginator-owned ordering and pagination suffix.
+- Count queries must return exactly one row and one column.
+- Mapper output must be an array or object.
 - Returns `PageResult`.
-- Throws persistence exceptions (`PaginationExecutionException`, `InvalidPaginationConfigurationException`) on failure.
-- **Reserved pagination parameters:** `__pagination_limit` and `__pagination_offset`.
+- Throws persistence pagination exceptions on invalid configuration, query, or execution state.
+- **Descriptor Restrictions:** SQL must not be empty, must not contain `;`, must not reference reserved `__pagination_*` parameters. Parameter keys must not start with `:`, must match the allowed identifier pattern, and must not use the reserved prefix. Values are strictly `string|int|bool|null`.
 
-## 6. Compatibility Decisions (Mandatory Phase 2 Design)
+## 5. Compatibility Decisions (Mandatory Phase 2 Design)
 
 **Hydration reuse:**
-The existing mappers (like `mapRowToDTO()` in `AuditTrailQueryMysqlRepository`) are `private`. Thus, they cannot be reused directly by a separate adapter. Phase 2 must explicitly approve one of these alternatives:
-1. Extract an internal domain row mapper shared by both paths.
-2. Place new pagination execution behind a repository design that can call the existing mapper without changing the current public contract.
-3. Introduce a separately approved Admin DTO and mapper.
+The existing mappers (`mapRowToDTO()`) in the repositories are `private` and cannot be reused directly by a separate adapter. Phase 2 must select a strategy:
+- Extract an internal domain row mapper shared by both paths.
+- Place new pagination execution behind a repository design that can call the existing mapper without changing the current public contract.
+- Introduce a separately approved Admin DTO and mapper.
 
 **Exception translation:**
-`PdoPaginator` throws persistence-layer exceptions, whereas existing package contracts strictly expose domain storage exceptions. Phase 2 design must decide:
+`PdoPaginator` throws persistence exceptions (e.g., `PaginationExecutionException`), but event-logging query contracts expose domain storage exceptions. Phase 2 design must decide:
 - Which persistence exceptions are translated and which domain exception is exposed.
 - How the original throwable is preserved as `previous`.
-- Strict alignment with existing package exception policies (e.g. `SystemMaatifyException` inheritance).
+- How compatibility with existing package exception policy is maintained.
 
 **Result contract:**
-Decide only at Phase 2 design whether the public result will be `PageResult<ExistingDomainDTO>`, a domain-owned Admin page DTO wrapping `PageResult`, or another approved domain contract.
+Decide at Phase 2 design whether the public result will be `PageResult<ExistingDomainDTO>`, a domain-owned Admin page DTO wrapping `PageResult`, or another approved domain contract.
 
 **SQL contract:**
-Phase 2 design must define approved structures for:
-- Total, Filtered count, and Data SQL generation (or shared filter builders ensuring semantic alignment).
-- Sort whitelist mappings.
-- Security and visibility constraints.
+Phase 2 design must specify the approved contract for:
+- Total SQL, Filtered count SQL, and Data SQL generation (or shared filter builder mechanism for semantic alignment).
+- Sort whitelist, default sorting, tie-breaker, parameter normalization, and security/visibility constraints.
 
-## 7. POC Candidate Matrix & Recommendation
+## 6. POC Candidate Matrix & Recommendation
 
-| Domain | Simplicity | Indexes | Filters | Hydration | Tests | Wrapper Status | Risk | Selection |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **AuditTrail** | High | Strong | Mod | Mod | Strong | Present | Low | **RECOMMENDED** |
-| **AuthoritativeAudit** | Mod | Strong | Mod | Mod | Strong | Present | High (Fail-closed) | Rejected |
-| **SecuritySignals** | High | Mod | Low | Mod | Mod | Present | Low | Rejected |
-| **BehaviorTrace** | High | Strong | Mod | Mod | Mod | Present | Low | Rejected |
-| **DiagnosticsTelemetry** | High | Strong | Mod | Mod | Mod | None | Low | Rejected |
-| **DeliveryOperations** | Mod | Strong | High | Mod | Mod | None | Low | Rejected |
+| Domain | Assessment | Selection | Reason for Rejection/Selection |
+| :--- | :--- | :--- | :--- |
+| **AuditTrail** | Complex filtering requirements (actor, eventKey, entity, subject) test paginator thoroughly. Contains wrapper artifacts. Mature read model. | **RECOMMENDED** | Selected as it represents a mature read-heavy domain, its indexes support the required filters well, and its testing footprint provides a strong foundation for validating `PdoPaginator`. |
+| **AuthoritativeAudit** | Has wrapper artifacts, strict fail-closed requirements. | Rejected | Operational criticality and strict governance requirements make it an unsafe choice for an initial experimental POC. |
+| **SecuritySignals** | Has wrapper artifacts, fail-open design, simpler filtering. | Rejected | While safe, it has fewer filtering dimensions than AuditTrail, making it less representative for validating complex query alignment. |
+| **BehaviorTrace** | Has wrapper artifacts, complex mutations, fail-open. | Rejected | Operational activity tracking for mutations is not the canonical "read" focus like AuditTrail. |
+| **DiagnosticsTelemetry** | No wrapper artifacts. | Rejected | Absence of wrapper experiments makes migration comparisons difficult. |
+| **DeliveryOperations** | No wrapper artifacts, heavy index structure. | Rejected | Complex index and enum structures without existing wrapper experiments. |
 
-**Rejection Reasons:**
-- `AuthoritativeAudit`: High operational criticality and strict fail-closed requirements make it an unsafe choice for an experimental integration.
-- `SecuritySignals`: Though safe (fail-open), it has fewer complex filtering requirements than `AuditTrail`, making it less representative for fully proving the `PdoPaginator`.
-- `BehaviorTrace`: Similar to AuditTrail, but AuditTrail is canonically the primary "Views/Reads/Export" track.
-- `DiagnosticsTelemetry`, `DeliveryOperations`: Both lack existing wrapper artifacts, making them poor candidates for early migration validation.
+## 7. Blockers & Constraints
 
-**Final Recommendation:** **AuditTrail**.
+- **Blockers to entering Phase 2 design:** None.
+- **Mandatory decisions that Phase 2 design must resolve:** Mapper reuse strategy, exception translation strategy, result contract, SQL semantic-alignment, filtering, and sort contracts.
+- **Blockers to beginning Phase 2 implementation:** The 10 explicit entry conditions listed below.
+*(The Phase 1 verdict strictly does not authorize Composer changes, runtime implementation, new DTOs, new repositories, or new tests.)*
 
-## 8. Blockers & Constraints
-
-**Blockers to entering Phase 2 design:** None.
-**Mandatory decisions that Phase 2 design must resolve:** Result contract, hydration reuse strategy, SQL semantic alignment, exception translation policy.
-**Blockers to beginning Phase 2 implementation:** A fully approved Phase 2 design (see Entry Conditions below).
-
-## 9. Exact Phase 2 Entry Conditions
+## 8. Exact Phase 2 Entry Conditions
 1. Phase 1 audit accepted and merged.
 2. Owner approves the selected POC domain.
 3. Owner approves a Phase 2 implementation blueprint.
@@ -361,5 +391,5 @@ Phase 2 design must define approved structures for:
 9. Test matrix approved.
 10. Only then may a separate implementation PR add `maatify/persistence ^1.1.0`.
 
-## 10. Final Verdict
+## 9. Final Verdict
 READY FOR PHASE 2 DESIGN APPROVAL
