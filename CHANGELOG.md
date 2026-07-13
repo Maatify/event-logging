@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Polished Composer metadata (`composer.json`) to accurately reflect package scope, requirements, and dependencies.
 
 ### Documentation
+- Completed Phase 1 Admin Query Runtime and persistence compatibility inventory (strictly documentation and audit).
 - Unified future Admin Query API architecture (`ADMIN_QUERY_API_ARCHITECTURE.md`) and roadmap.
 - Documented explicit separation between current primitive read APIs and the target Admin pagination.
 - Recorded future dependency on `maatify/persistence` for standardized pagination mechanics while explicitly deferring implementation until owner approval.

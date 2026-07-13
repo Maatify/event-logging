@@ -12,6 +12,7 @@
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Standards / Architecture Docs | Active — Approved Future Architecture | Architectural rules and logging patterns | Added for completeness |
 | `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active — Implementation Deferred | Future plans and readiness tracks |  |
 | `./docs/audits/ADMIN_QUERY_DOCUMENTATION_ALIGNMENT_AUDIT.md` | Audit Docs | Active — Current Alignment Audit | Audit of architecture alignment | Added for completeness |
+| `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Audit Docs | Active — Current Phase 1 Runtime Inventory | Phase 1 Admin Query compatibility audit |  |
 | `./docs/audits/ADMIN_QUERY_PAGINATION_STANDARD_COMPLIANCE_AUDIT.md` | Audit Docs | Historical Decision Point | Historical Audit Report |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_1_COMPLIANCE_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_2_AUTHORITATIVE_AUDIT_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
