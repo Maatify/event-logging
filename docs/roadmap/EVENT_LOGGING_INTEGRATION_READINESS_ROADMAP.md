@@ -1,4 +1,6 @@
-Event Logging Integration Readiness Roadmap
+# Event Logging Integration Readiness Roadmap
+
+> **Status Notice:** This is a completed historical roadmap for the preparation of the `v1.0.0` release baseline. It is not the current post-v1 Admin Query execution roadmap. Current post-v1 work is governed by `ADMIN_QUERY_API_ROADMAP.md`.
 
 Current Status
 

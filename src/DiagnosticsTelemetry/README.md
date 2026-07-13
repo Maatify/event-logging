@@ -125,8 +125,7 @@ The module is designed to support future archiving via the `DiagnosticsTelemetry
 >
 > The read-side provided by this module is a **primitive, cursor-based reader**
 > intended strictly for archiving and sequential processing.
-> It is **not designed** for UI-driven querying such as search, filtering,
-> pagination, or analytics.
+> Statements saying the reader is not designed for UI pagination, searching, or analytics apply only to this protected primitive `v1.0.0` reader. It does not imply that the entire domain can never contain the future separate Admin Query API.
 
 
 ### Constraints & Guards

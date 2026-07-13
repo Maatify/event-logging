@@ -3,22 +3,15 @@
 | Path | Category | Status | Purpose | Notes / Required Action |
 |---|---|---|---|---|
 | `./CHANGELOG.md` | Root / Package Docs | Active | Tracks changes between releases |  |
-| `./EVENT_LOGGING_PACKAGE_REFERENCE.md` | Root / Package Docs | Active — Current Runtime Truth | Canonical stable package contract and public Runtime API source of truth | Safe guardrail wording: mentions generic logger/recorder/repo within prohibited architecture context. |
+| `./EVENT_LOGGING_PACKAGE_REFERENCE.md` | Core | Active | Current Runtime truth; primitive cursor contracts | Post-v1 pagination wrappers are documented as superseded experiments. |
 | `./README.md` | Root / Package Docs | Active — Current Runtime Overview | Main entry point and package overview | Contains current guardrail wording: explicitly not self-contained, no generic logger/DTO/recorder/table, no SQLite examples. No cleanup required unless wording becomes ambiguous. |
 | `./TESTING_STRATEGY.md` | Root / Package Docs | Active | Package-wide testing strategy | Safe guardrail wording: mentions generic logger/recorder/repo as regression test targets. |
 | `./docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
-| `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
-| `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Standards / Architecture Docs | Active — Current Runtime Design | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
-| `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Standards / Architecture Docs | Active — Approved Future Architecture | Architectural rules and logging patterns | Added for completeness |
-| `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active — Implementation Deferred | Future plans and readiness tracks |  |
-| `./docs/audits/ADMIN_QUERY_DOCUMENTATION_ALIGNMENT_AUDIT.md` | Audit Docs | Active — Current Alignment Audit | Audit of architecture alignment | Added for completeness |
-| `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Audit Docs | Active — Current Phase 1 Runtime Inventory | Phase 1 Admin Query compatibility audit |  |
-| `./docs/audits/ADMIN_QUERY_PAGINATION_STANDARD_COMPLIANCE_AUDIT.md` | Audit Docs | Historical Decision Point | Historical Audit Report |  |
-| `./docs/audits/ADMIN_QUERY_PHASE_1_COMPLIANCE_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
-| `./docs/audits/ADMIN_QUERY_PHASE_2_AUTHORITATIVE_AUDIT_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
-| `./docs/audits/ADMIN_QUERY_PHASE_2_BEHAVIOR_TRACE_READINESS_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
-| `./docs/audits/ADMIN_QUERY_PHASE_2_BEHAVIOR_TRACE_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
-| `./docs/audits/ADMIN_QUERY_PHASE_2_SECURITY_SIGNALS_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
+| `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Architecture Docs | Active | Architectural rules and logging patterns | Clarified that package may own domain-scoped reporting and dashboard summary contracts; host owns presentation. |
+| `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Architecture Docs | Active | Protected `v1.0.0` primitive design | Scope explicitly restricted to v1 primitive path; host owns presentation and cross-system analytics. |
+| `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Architecture Docs | Active | Approved post-v1 architecture |  |
+| `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Historical Audit Docs | Active | Current audited compatibility inventory |  |
 | `./docs/audits/DIAGNOSTICS_TELEMETRY_IDENTITY_FIX_REVIEW.md` | Audit Docs | Historical Implementation Context | Historical Audit Report |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/GLOBAL_LOGGING_RULES.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
@@ -52,65 +45,35 @@
 | `./docs/audits/STANDALONE_WORDING_CLARIFICATION_AUDIT.md` | Historical Audit Docs | Historical | Past audit record (not active) | Historical wording: mentions zero-dependency standalone, self-contained, dependency-free |
 | `./docs/audits/WHOLE_LIBRARY_GAP_AUDIT.md` | Historical Audit Docs | Historical | Past audit record (not active) | Historical wording: mentions SQLite support, RuntimeException as storage exception, Common ClockInterface, framework bindings (Slim, PHP-DI, etc), host app namespaces (App, Athar, EP4N) |
 | `./docs/examples/EXAMPLES_COVERAGE_PLAN.md` | Examples Docs | Active | Code example coverage and plans | Safe guardrail wording: explicitly states SQLite must not be presented as compatible. |
-| `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active — Current Runtime Integration | Instructions for integrating the package |  |
+| `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package | Added scope notice; removed superseded cursor wrappers. |
 | `./docs/integration/FACTORY_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package |  |
 | `./docs/integration/INSTALLATION.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/integration/MANUAL_WIRING.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/reference/logging/ASCII_FLOW_LEGENDS.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/reference/logging/LOGGING_ASCII_OVERVIEW.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/reference/logging/LOGGING_LIBRARY_STRUCTURE_CANONICAL.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
-| `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Reviewed: previous exception-policy wording was corrected; remaining generic/framework mentions are historical roadmap context or guardrails. |
-| `./docs/roadmap/EVENT_LOGGING_RELEASE_READINESS_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks |  |
+| `./docs/roadmap/EVENT_LOGGING_INTEGRATION_READINESS_ROADMAP.md` | Roadmap Docs | Historical | Completed historical v1.0.0 roadmap | Added status banner identifying it as historical. |
+| `./docs/roadmap/EVENT_LOGGING_RELEASE_READINESS_ROADMAP.md` | Roadmap Docs | Historical | Completed historical v1.0.0 roadmap | Added status banner identifying it as historical. |
 | `./docs/roadmap/TESTING_AND_EXAMPLES_HARDENING_ROADMAP.md` | Roadmap Docs | Active | Future plans and readiness tracks | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/standards/PACKAGE_BUILDING_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Resolved (Updated to Package Standard): `RuntimeException` is completely forbidden and replaced with `SystemMaatifyException`; no longer recommends framework bindings. |
-| `./docs/testing/TEST_COVERAGE_MATRIX.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
+| `./docs/testing/TEST_COVERAGE_MATRIX.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Pagination row explicitly named "Primitive v1.0 Cursor Pagination (DESC)". |
 | `./schema/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/archive/domain-docs/AuditTrail/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
 | `./docs/archive/domain-docs/AuditTrail/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
-| `./src/AuditTrail/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/AuditTrail/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/AuditTrail/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 | `./src/AuthoritativeAudit/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/BehaviorTrace/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
 | `./docs/archive/domain-docs/BehaviorTrace/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
-| `./src/BehaviorTrace/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
-| `./src/BehaviorTrace/README.md` | Domain Docs | Active | Domain overview |  |
+| `./src/BehaviorTrace/README.md` | Domain Docs | Active | Domain overview | Read scope boundary clarified. |
 | `./docs/archive/domain-docs/BehaviorTrace/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 | `./src/DeliveryOperations/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist | Needs manual review: mentions host app namespaces (App, Athar, EP4N) |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/OPEN_QUESTIONS.md` | Domain Docs | Archived | Domain-specific internal documentation (Resolved) |  |
-| `./src/DiagnosticsTelemetry/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
-| `./src/DiagnosticsTelemetry/README.md` | Domain Docs | Active | Domain overview |  |
+| `./src/DiagnosticsTelemetry/README.md` | Domain Docs | Active | Domain overview | Read scope boundary clarified. |
 | `./docs/archive/domain-docs/DiagnosticsTelemetry/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 | `./docs/archive/domain-docs/SecuritySignals/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
 | `./docs/archive/domain-docs/SecuritySignals/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
-| `./src/SecuritySignals/PUBLIC_API.md` | Domain Docs | Candidate for Archive | Domain public API |  |
 | `./src/SecuritySignals/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/SecuritySignals/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
-
-## Recommended Cleanup Plan
-
-### 1. Manual Review of Flagged Files
-- The first step is to perform a manual review of all files marked with `Needs manual review` to separate false positives (safe guardrail wording) from actual contradictions (unsafe wording).
-- Examples of correctly verified guardrail files include `README.md`, `EVENT_LOGGING_PACKAGE_REFERENCE.md`, `TESTING_STRATEGY.md`, and `docs/examples/EXAMPLES_COVERAGE_PLAN.md`.
-
-### 2. Files for Potential Consolidation / Merge
-- Some `Standards / Architecture Docs` such as multiple logging rule files in `docs/architecture/logging/` could be merged to reduce fragmentation.
-- Public Integration Docs (`docs/integration/`) might be consolidated into a single comprehensive guide if appropriate.
-
-### 3. Files to Transition to Historical/Archive
-- All domain-level supplementary docs (e.g., `CHECKLIST.md`, `CANONICAL_ARCHITECTURE.md`, `PUBLIC_API.md`, `TESTING_STRATEGY.md`) currently marked as `Candidate for Archive`.
-- Several older audits in `docs/audits/` are already historical but should remain for reference.
-
-### 4. Files Requiring Wording Updates (After Manual Review)
-- For files confirmed to have unsafe wording:
-  - Replace "standalone" / "zero-dependency" / "self-contained" / "dependency-free" with "framework-agnostic standalone Composer package" (explicitly noting dependencies like `psr/log`, `ext-json`, `ext-pdo`).
-  - Remove references to `SQLite` and `RuntimeException` for storage exceptions.
-  - Remove references to generic loggers or repositories; enforce strict domain-isolated contracts.
-  - Ensure no framework bindings (Slim, PHP-DI, Laravel) are implied as part of the package itself.
-  - Remove references to host app namespaces (`App\`, `Athar`, `EP4N`).
-
-### 5. Files for Potential Removal (No action to be taken yet)
-- Older audit files that have been superseded by final architecture audits.
-- Redundant translation files (`unified-logging-system.ar.md`, `unified-logging-system.en.md`) if a single source of truth is preferred.
