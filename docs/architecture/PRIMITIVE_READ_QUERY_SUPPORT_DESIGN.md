@@ -3,8 +3,15 @@
 **Status:** Approved
 **Phase:** 3
 
+
+## Scope Boundary Notice
+
+*   This document governs only the protected `v1.0.0` primitive cursor read/query path.
+*   Its cursor requirements do not govern the separate post-v1 Admin Query API.
+*   It must not be used to justify extending the superseded cursor-wrapper experiment.
+
 ## 1. Overview
-This design document outlines the required primitive read/query support for the `maatify/event-logging` library, allowing host applications to build admin viewing functionality. It defines strict boundaries: the package provides pure query contracts and DTOs, while the host application owns controllers, UI, permissions, and complex analytics.
+This design document outlines the required primitive read/query support for the `maatify/event-logging` library, allowing host applications to build admin viewing functionality. It defines strict boundaries: the package provides pure query contracts and DTOs, while the host application owns controllers, dashboard UI, presentation, permissions, localization, exports, and complex host-specific analytics. Future domain-scoped reporting/dashboard summary contracts may be package-owned under the approved Admin Query architecture.
 
 ## 2. Public Read/Query Contracts
 Each domain MUST implement its own isolated query interface. There MUST NOT be any shared or generic readers.
@@ -61,10 +68,13 @@ Ordering MUST be stable across all domains: `ORDER BY occurred_at DESC, id DESC`
 
 **Host Application owns:**
 *   Controllers, routing, and middleware.
-*   Admin UI and presentation layers.
-*   Permissions, actor resolution, and authorization logic.
-*   Exports, dashboards, and complex analytics.
-*   Localization and labeling.
+*   Dashboard UI and presentation.
+*   HTTP/controllers/routes.
+*   Permissions and authorization.
+*   Actor/entity name resolution.
+*   Localization.
+*   Export generation.
+*   Host-specific orchestration and cross-system analytics.
 
 ## 6. Architecture Constraints
 To strictly maintain domain isolation and align with `PACKAGE_BUILDING_STANDARD.md`:

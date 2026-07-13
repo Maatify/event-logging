@@ -1,5 +1,13 @@
 # Admin Read Usage
 
+> **Scope Boundary Notice:** This guide focuses on the currently supported primitive `v1.0.0` read/query path. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> - `*PaginatedQueryInterface`
+> - `*QueryCursorDTO`
+> - `*QueryPageDTO`
+> - `*PaginatedQueryService`
+>
+> For the future replacement path, see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+
 The `maatify/event-logging` library provides primitive read/query contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
 **Note: The package does not provide generic readers, admin controllers, routes, middleware, permissions, UI dashboards, exports, complex analytics, labels/localization, or actor resolution.** The host application retains complete responsibility for building out those features on top of these primitive query interfaces.
@@ -45,8 +53,6 @@ The primitive query interfaces enforce robust cursor pagination to ensure stable
 - `limit`: The maximum number of records to return.
 
 The queries rigidly maintain a stable `ORDER BY occurred_at DESC, id DESC` to guarantee consistent traversal of the log data.
-
-As a convenience for administrative interfaces, the AuditTrail domain includes a POC paginated query service (`AuditTrailPaginatedQueryService`) that wraps the primitive query repository to return an `AuditTrailQueryPageDTO`. This provides structured cursor tracking (`nextCursor` and `hasMore`) for simplified pagination building on the host application side without requiring manual derivation of cursor offsets from the raw result list.
 
 ## Supported Filters per Domain
 

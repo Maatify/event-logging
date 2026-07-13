@@ -166,18 +166,32 @@ Query repositories read stored rows and hydrate view DTOs. They are primitive re
 
 ## 11. Primitive cursor-based read/query contracts
 
-The package exposes only domain-specific primitive query contracts, DTOs, services, and MySQL repositories for host-owned admin viewing foundations. It does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, CRUD APIs, joins, aggregations, or arbitrary filtering.
+The package exposes only domain-specific primitive query contracts, DTOs, and MySQL repositories for host-owned admin viewing foundations. It does not provide generic readers, admin controllers, routes, middleware, permissions, exports, analytics, CRUD APIs, joins, aggregations, or arbitrary filtering.
 
-- Authoritative audit: `AuthoritativeAuditQueryInterface`, `AuthoritativeAuditQueryDTO`, `AuthoritativeAuditViewDTO`, `AuthoritativeAuditPaginatedQueryInterface`, `AuthoritativeAuditQueryCursorDTO`, `AuthoritativeAuditQueryPageDTO`, `AuthoritativeAuditPaginatedQueryService`, and `AuthoritativeAuditQueryMysqlRepository` query `maa_event_logging_authoritative_audit_log` with actor, target, action, correlation, date-range, cursor, and limit filters. There is intentionally no `requestId` filter because the authoritative audit log table does not store `request_id`.
-- Audit trail: `AuditTrailQueryInterface`, `AuditTrailQueryDTO`, `AuditTrailViewDTO`, `AuditTrailPaginatedQueryInterface`, `AuditTrailQueryCursorDTO`, `AuditTrailQueryPageDTO`, `AuditTrailPaginatedQueryService`, and `AuditTrailQueryMysqlRepository` support actor, event key, entity, subject, request, correlation, date-range, cursor, and limit filters.
-- Security signals: `SecuritySignalsQueryInterface`, `SecuritySignalsQueryDTO`, `SecuritySignalsViewDTO`, `SecuritySignalsPaginatedQueryInterface`, `SecuritySignalsQueryCursorDTO`, `SecuritySignalsQueryPageDTO`, `SecuritySignalsPaginatedQueryService`, and `SecuritySignalsQueryMysqlRepository` support actor, signal type, severity, request, correlation, date-range, cursor, and limit filters.
-- Behavior trace: `BehaviorTraceQueryInterface::find(BehaviorTraceQueryDTO $query)`, `BehaviorTraceQueryDTO`, `BehaviorTraceEventDTO`, `BehaviorTracePaginatedQueryInterface`, `BehaviorTraceQueryCursorDTO`, `BehaviorTraceQueryPageDTO`, `BehaviorTracePaginatedQueryService`, and `BehaviorTraceQueryMysqlRepository` support actor, entity, action, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?BehaviorTraceCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
+- Authoritative audit: `AuthoritativeAuditQueryInterface`, `AuthoritativeAuditQueryDTO`, `AuthoritativeAuditViewDTO`, and `AuthoritativeAuditQueryMysqlRepository` query `maa_event_logging_authoritative_audit_log` with actor, target, action, correlation, date-range, cursor, and limit filters. There is intentionally no `requestId` filter because the authoritative audit log table does not store `request_id`.
+- Audit trail: `AuditTrailQueryInterface`, `AuditTrailQueryDTO`, `AuditTrailViewDTO`, and `AuditTrailQueryMysqlRepository` support actor, event key, entity, subject, request, correlation, date-range, cursor, and limit filters.
+- Security signals: `SecuritySignalsQueryInterface`, `SecuritySignalsQueryDTO`, `SecuritySignalsViewDTO`, and `SecuritySignalsQueryMysqlRepository` support actor, signal type, severity, request, correlation, date-range, cursor, and limit filters.
+- Behavior trace: `BehaviorTraceQueryInterface::find(BehaviorTraceQueryDTO $query)`, `BehaviorTraceQueryDTO`, `BehaviorTraceEventDTO`, and `BehaviorTraceQueryMysqlRepository` support actor, entity, action, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?BehaviorTraceCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
 - Diagnostics telemetry: `DiagnosticsTelemetryQueryInterface::find(DiagnosticsTelemetryQueryDTO $query)`, `DiagnosticsTelemetryQueryDTO`, `DiagnosticsTelemetryEventDTO`, and `DiagnosticsTelemetryQueryMysqlRepository` support actor, event key, severity, request, correlation, date-range, cursor, and limit filters. The legacy cursor `read(?DiagnosticsTelemetryCursorDTO $cursor, int $limit = 100)` method remains for backward compatibility.
 - Delivery operations: `DeliveryOperationsQueryInterface`, `DeliveryOperationsQueryDTO`, `DeliveryOperationsViewDTO`, and `DeliveryOperationsQueryMysqlRepository` support actor, target, channel, operation type, status, request, correlation, date-range, cursor, and limit filters.
 
 All primitive query repositories order results by `occurred_at DESC, id DESC`, apply descending cursor pagination with `cursorOccurredAt` and `cursorId`, safely decode JSON payload/metadata fields to arrays, return `null` for corrupt JSON, wrap read/storage failures in the domain-specific storage exception, and provide fail-safe hydration by gracefully handling invalid persisted enum-like values through sanitizing or fallback behavior rather than throwing from hydration.
 
-The primitive read side is designed for archiving, sequential processing, export jobs, and migration jobs. Advanced query utilities must be built at application level outside this package.
+The primitive read side is designed for archiving, sequential processing, export jobs, and migration jobs.
+
+### Superseded Post-v1 Pagination Artifacts
+
+The following pagination artifacts were added after the `v1.0.0` release and are considered superseded experiments pending replacement by the approved Admin Query API:
+
+- `*PaginatedQueryInterface`
+- `*QueryCursorDTO`
+- `*QueryPageDTO`
+- `*PaginatedQueryService`
+
+These artifacts currently exist in the `AuthoritativeAudit`, `AuditTrail`, `SecuritySignals`, and `BehaviorTrace` domains. They must not be used as the architecture for new integrations or extended to additional domains. Advanced domain-scoped Admin Query and reporting contracts are future package work governed by the approved architecture and roadmap.
+
+Advanced querying (UI-driven generic search, arbitrary filtering, complex host analytics) remains the responsibility of the host application outside this package.
+
 
 ## 12. Public MySQL infrastructure adapters and composition-only status
 
@@ -298,4 +312,5 @@ These non-goals preserve independent failure semantics, retention policies, sche
 - [DI bindings](docs/integration/DI_BINDINGS.md) — optional DI binding guide.
 - [Admin read usage](docs/integration/ADMIN_READ_USAGE.md) — admin read usage.
 - [Admin query API roadmap](docs/roadmap/ADMIN_QUERY_API_ROADMAP.md) — admin query roadmap.
+- [Admin query API architecture](docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md) — admin query architecture.
 - [Package building standard](docs/standards/PACKAGE_BUILDING_STANDARD.md) — generic package-reference standard using `{PACKAGE_NAME}_PACKAGE_REFERENCE.md`.

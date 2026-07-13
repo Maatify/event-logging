@@ -18,7 +18,7 @@ This matrix provides a high-level overview of the intended test coverage spread 
 | **Integration Tests (MySQL)**| | | | | | | |
 | Schema Creation & DB Init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
 | Insert & Query Roundtrip | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
-| Pagination (Cursor DESC) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
+| Primitive v1.0 Cursor Pagination (DESC) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
 | Date Filters (`after`, `before`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
 | Actor Filters | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |
 | Request/Correlation Filters | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | N/A |

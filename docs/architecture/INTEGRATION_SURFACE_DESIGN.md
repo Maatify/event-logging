@@ -12,6 +12,9 @@ The boundary between the `maatify/event-logging` library and host applications i
 *   Persistence contracts (`Contract\*`)
 *   Domain repositories (`Infrastructure\Mysql\*`)
 *   Optional framework-agnostic construction helpers (Factories and DI binding helpers)
+*   Domain-scoped Admin Query contracts
+*   Domain filters and trusted query construction
+*   Domain-scoped reporting and dashboard summary contracts
 
 **Host Application owns:**
 *   PDO connection creation and configuration
@@ -19,8 +22,11 @@ The boundary between the `maatify/event-logging` library and host applications i
 *   Dependency Injection (DI) and container wiring
 *   Controllers, routes, and middleware
 *   Permissions, authorization, and actor resolution
-*   Admin UI, dashboards, and complex analytics
+*   Dashboard UI and presentation
 *   Export generation
+*   Host-specific orchestration and cross-system analytics
+*   Localization
+*   Actor/entity name resolution
 *   Framework-specific service providers (e.g., Laravel ServiceProvider, Symfony Bundle)
 
 ## 2. EventLoggingManager Decision
