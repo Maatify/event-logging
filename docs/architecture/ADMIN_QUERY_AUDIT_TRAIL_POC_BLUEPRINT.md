@@ -411,6 +411,11 @@ The implementation PR must follow this exact sequence:
 | No Framework-Specific API | `PACKAGE_BUILDING_STANDARD.md` | Agnostic contracts | Clean implementation | No Controllers | No Conflict |
 | Old-Artifact Retirement | `ADMIN_QUERY_API_ROADMAP.md` | Obsolete POC Removal | Exact file list added | Covered in retirement | No Conflict |
 
+### Standards Conflict Discovered
+**Conflict:** The `PACKAGE_BUILDING_STANDARD.md` rule `No generic cross-domain DTOs or query abstractions` (and Section 15 Read/Admin Query API Rules) directly forbids returning the exact persistence boundary abstractions (`PageResult`, `PageRequest`) to the caller. However, `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` (and `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md`) implied that `maatify/persistence` is the sole owner of generic pagination mechanics.
+**Impact:** To satisfy both, the domain MUST wrap the persistence input/output types in its own specific `AuditTrailAdminQueryRequestDTO` and `AuditTrailAdminPageResultDTO`.
+**Blueprint Decision:** Blocked at this decision until Owner approves. The blueprint proposes wrapping the persistence layer precisely within the domain adapter to avoid leaking generic page abstractions while relying on `maatify/persistence` internally.
+
 ## 14. Validation Gate
 
 The later implementation PR must require successful execution of:
