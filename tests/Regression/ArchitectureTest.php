@@ -21,6 +21,7 @@ use RegexIterator;
 
 class ArchitectureTest extends TestCase
 {
+    /** @return array<int, string> */
     private function getSrcFiles(): array
     {
         $directory = new RecursiveDirectoryIterator(__DIR__ . '/../../src');
@@ -29,11 +30,14 @@ class ArchitectureTest extends TestCase
 
         $files = [];
         foreach ($regex as $file) {
-            $files[] = $file[0];
+            if (is_array($file) && isset($file[0]) && is_string($file[0])) {
+                $files[] = $file[0];
+            }
         }
         return $files;
     }
 
+    /** @return array<int, string> */
     private function getSqlFiles(): array
     {
         $directory = new RecursiveDirectoryIterator(__DIR__ . '/../../');
@@ -42,9 +46,11 @@ class ArchitectureTest extends TestCase
 
         $files = [];
         foreach ($regex as $file) {
-            // Only care about schema directory or src/.../Database directory
-            if (str_contains($file[0], '/schema/') || str_contains($file[0], '/Database/')) {
-                $files[] = $file[0];
+            if (is_array($file) && isset($file[0]) && is_string($file[0])) {
+                // Only care about schema directory or src/.../Database directory
+                if (str_contains($file[0], '/schema/') || str_contains($file[0], '/Database/')) {
+                    $files[] = $file[0];
+                }
             }
         }
         return $files;
@@ -74,7 +80,7 @@ class ArchitectureTest extends TestCase
                 );
             }
 
-            $content = file_get_contents($file);
+            $content = (string) file_get_contents((string) $file);
             foreach ($bannedClasses as $bannedClass) {
                 $this->assertDoesNotMatchRegularExpression(
                     '/\bclass\s+' . preg_quote($bannedClass, '/') . '\b/i',
@@ -95,7 +101,7 @@ class ArchitectureTest extends TestCase
         ];
 
         foreach ($this->getSqlFiles() as $file) {
-            $content = file_get_contents($file);
+            $content = (string) file_get_contents((string) $file);
             foreach ($bannedTables as $bannedTable) {
                 $this->assertDoesNotMatchRegularExpression(
                     '/\bTABLE\s+(IF\s+NOT\s+EXISTS\s+)?`?' . preg_quote($bannedTable, '/') . '`?\b/i',
@@ -128,7 +134,7 @@ class ArchitectureTest extends TestCase
         ];
 
         foreach ($this->getSrcFiles() as $file) {
-            $content = file_get_contents($file);
+            $content = (string) file_get_contents((string) $file);
             $code = $this->stripComments($content);
             foreach ($bannedNamespaces as $bannedNamespace) {
                 $this->assertStringNotContainsString(
@@ -158,7 +164,7 @@ class ArchitectureTest extends TestCase
         ];
 
         foreach ($this->getSrcFiles() as $file) {
-            $content = file_get_contents($file);
+            $content = (string) file_get_contents((string) $file);
             $code = $this->stripComments($content);
 
             // Remove 'routeName' to avoid false positives
@@ -209,7 +215,7 @@ class ArchitectureTest extends TestCase
                 );
             }
 
-            $content = file_get_contents($file);
+            $content = (string) file_get_contents((string) $file);
             $code = $this->stripComments($content);
 
             $code = str_ireplace('routeName', '', $code);
@@ -231,17 +237,22 @@ class ArchitectureTest extends TestCase
         $composerJsonPath = __DIR__ . '/../../composer.json';
         $this->assertFileExists($composerJsonPath);
 
-        $composerData = json_decode(file_get_contents($composerJsonPath), true);
-        $this->assertNotNull($composerData, "composer.json must be valid JSON");
+        $composerData = json_decode((string) file_get_contents($composerJsonPath), true);
+        $this->assertIsArray($composerData, "composer.json must be valid JSON array/object");
 
         $this->assertEquals('maatify/event-logging', $composerData['name'] ?? null);
         $this->assertEquals('library', $composerData['type'] ?? null);
         $this->assertEquals('MIT', $composerData['license'] ?? null);
 
-        $this->assertArrayHasKey('psr-4', $composerData['autoload'] ?? []);
-        $this->assertArrayHasKey('Maatify\\EventLogging\\', $composerData['autoload']['psr-4']);
-        $this->assertEquals('src/', $composerData['autoload']['psr-4']['Maatify\\EventLogging\\']);
+        /** @var array<string, mixed> $autoload */
+        $autoload = $composerData['autoload'] ?? [];
+        $this->assertArrayHasKey('psr-4', $autoload);
+        /** @var array<string, string> $psr4 */
+        $psr4 = $autoload['psr-4'] ?? [];
+        $this->assertArrayHasKey('Maatify\\EventLogging\\', $psr4);
+        $this->assertEquals('src/', $psr4['Maatify\\EventLogging\\'] ?? null);
 
+        /** @var array<string, string> $require */
         $require = $composerData['require'] ?? [];
         $this->assertSame('^1.1', $require['maatify/exceptions'] ?? null);
         $this->assertSame('^1.0', $require['maatify/shared-common'] ?? null);
@@ -252,7 +263,7 @@ class ArchitectureTest extends TestCase
             foreach ($bannedRequires as $banned) {
                 $this->assertStringNotContainsString(
                     $banned,
-                    $package,
+                    (string) $package,
                     "composer.json requires banned framework package: $package"
                 );
             }
@@ -309,8 +320,9 @@ class ArchitectureTest extends TestCase
         $authAuditFactoryRef = new ReflectionClass(AuthoritativeAuditFactory::class);
         $createMethod = $authAuditFactoryRef->getMethod('create');
         foreach ($createMethod->getParameters() as $param) {
-            if ($param->getType() !== null) {
-                $typeName = $param->getType()->getName();
+            $type = $param->getType();
+            if ($type instanceof \ReflectionNamedType) {
+                $typeName = $type->getName();
                 $this->assertStringNotContainsString(
                     'LoggerInterface',
                     $typeName,
@@ -336,7 +348,7 @@ class ArchitectureTest extends TestCase
         $this->assertFileDoesNotExist(__DIR__ . '/../../src/Common/ClockInterface.php');
 
         foreach ($this->getSrcFiles() as $file) {
-            $content = file_get_contents($file);
+            $content = (string) file_get_contents((string) $file);
 
             $this->assertStringNotContainsString(
                 'Maatify\\EventLogging\\Common\\ClockInterface',
@@ -348,7 +360,9 @@ class ArchitectureTest extends TestCase
         $factoryRef = new ReflectionClass(EventLoggingProviderFactory::class);
         $clockParameter = $factoryRef->getMethod('createDefault')->getParameters()[1] ?? null;
         $this->assertNotNull($clockParameter);
-        $this->assertSame(ClockInterface::class, $clockParameter->getType()?->getName());
+        $type = $clockParameter->getType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $type);
+        $this->assertSame(ClockInterface::class, $type->getName());
     }
 
     public function testStorageExceptionsUseSystemMaatifyException(): void
@@ -364,7 +378,7 @@ class ArchitectureTest extends TestCase
 
         foreach ($exceptionClasses as $exceptionClass) {
             $ref = new ReflectionClass($exceptionClass);
-            $content = file_get_contents($ref->getFileName());
+            $content = (string) file_get_contents((string) $ref->getFileName());
 
             $this->assertTrue($ref->isSubclassOf(SystemMaatifyException::class));
             $this->assertStringContainsString('extends SystemMaatifyException', $content);
@@ -398,13 +412,15 @@ class ArchitectureTest extends TestCase
             $bannedSuffixes = ['DTO', 'Recorder', 'Repository'];
 
             foreach ($regex as $file) {
-                $filename = basename($file[0], '.php');
-                foreach ($bannedSuffixes as $suffix) {
-                    $this->assertStringEndsNotWith(
-                        $suffix,
-                        $filename,
-                        "src/Common must not contain shared cross-domain classes: $filename"
-                    );
+                if (is_array($file) && isset($file[0]) && is_string($file[0])) {
+                    $filename = basename($file[0], '.php');
+                    foreach ($bannedSuffixes as $suffix) {
+                        $this->assertStringEndsNotWith(
+                            $suffix,
+                            $filename,
+                            "src/Common must not contain shared cross-domain classes: $filename"
+                        );
+                    }
                 }
             }
         }

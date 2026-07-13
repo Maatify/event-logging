@@ -17,6 +17,7 @@ class FakePdo extends PDO
     {
     }
 
+    /** @param array<int, mixed> $options */
     public function prepare(string $query, array $options = []): PDOStatement|false
     {
         $stmt = new FakeStatement();

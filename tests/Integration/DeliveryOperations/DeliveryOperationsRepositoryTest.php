@@ -35,6 +35,9 @@ final class DeliveryOperationsRepositoryTest extends MysqlIntegrationTestCase
         return 'src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql';
     }
 
+    /**
+     * @return array<int, string>
+     */
     protected function getTableNames(): array
     {
         return [

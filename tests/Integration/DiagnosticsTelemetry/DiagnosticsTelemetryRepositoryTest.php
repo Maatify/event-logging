@@ -38,6 +38,9 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         return 'src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql';
     }
 
+    /**
+     * @return array<int, string>
+     */
     protected function getTableNames(): array
     {
         return [
@@ -131,7 +134,14 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         $this->assertCount(1, $res1);
         $this->assertSame('evt-3', $res1[0]->eventId);
 
+        if ($this->pdo === null) {
+            $this->markTestSkipped('PDO not initialized.');
+        }
+
         $stmt = $this->pdo->query("SELECT id FROM maa_event_logging_diagnostics_telemetry WHERE event_id = 'evt-3'");
+        if ($stmt === false) {
+            $this->fail('Failed to execute PDO query.');
+        }
         $evt3Id = (int)$stmt->fetchColumn();
 
         $query2 = new DiagnosticsTelemetryQueryDTO(
@@ -143,7 +153,14 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         $this->assertCount(1, $res2);
         $this->assertSame('evt-2', $res2[0]->eventId);
 
+        if ($this->pdo === null) {
+            $this->markTestSkipped('PDO not initialized.');
+        }
+
         $stmt = $this->pdo->query("SELECT id FROM maa_event_logging_diagnostics_telemetry WHERE event_id = 'evt-2'");
+        if ($stmt === false) {
+            $this->fail('Failed to execute PDO query.');
+        }
         $evt2Id = (int)$stmt->fetchColumn();
 
         $query3 = new DiagnosticsTelemetryQueryDTO(

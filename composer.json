@@ -1,63 +1,72 @@
 {
   "name": "maatify/event-logging",
   "description": "Framework-agnostic standalone event logging library containing isolated Maatify logging domains. Depends only on explicit Composer/runtime dependencies.",
-  "type": "library",
-  "license": "MIT",
   "keywords": [
-    "event-logging",
     "audit",
     "audit-trail",
-    "security-signals",
     "behavior-trace",
-    "diagnostics-telemetry",
     "delivery-operations",
+    "diagnostics-telemetry",
+    "event-logging",
     "logging",
+    "maatify",
     "mysql",
-    "pdo"
+    "pdo",
+    "php",
+    "security-signals"
   ],
   "homepage": "https://github.com/Maatify/event-logging",
-  "support": {
-    "issues": "https://github.com/Maatify/event-logging/issues",
-    "source": "https://github.com/Maatify/event-logging"
-  },
+  "type": "library",
+  "license": "MIT",
   "authors": [
     {
       "name": "Maatify",
       "homepage": "https://maatify.dev"
     }
   ],
-  "require": {
-    "php": "^8.2",
-    "ext-json": "*",
-    "ext-pdo": "*",
-    "psr/log": "^3.0",
-    "ramsey/uuid": "^4.9",
-    "maatify/exceptions": "^1.1",
-    "maatify/shared-common": "^1.0"
+  "support": {
+    "issues": "https://github.com/Maatify/event-logging/issues",
+    "source": "https://github.com/Maatify/event-logging"
   },
   "autoload": {
     "psr-4": {
       "Maatify\\EventLogging\\": "src/"
     }
   },
-  "require-dev": {
-    "phpstan/phpstan": "^2.2",
-    "phpunit/phpunit": "^10.0 || ^11.0"
-  },
   "autoload-dev": {
     "psr-4": {
       "Maatify\\EventLogging\\Tests\\": "tests/"
     }
   },
-  "scripts": {
-    "test": "phpunit",
-    "test:unit": "phpunit --testsuite Unit",
-    "test:integration": "phpunit --testsuite Integration",
-    "analyse": "phpstan analyse src --level=max"
+  "require": {
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "maatify/exceptions": "^1.1",
+    "maatify/shared-common": "^1.0",
+    "php": "^8.2",
+    "psr/log": "^3.0",
+    "ramsey/uuid": "^4.9"
   },
-  "minimum-stability": "stable",
-  "prefer-stable": true,
+  "require-dev": {
+    "phpstan/phpstan": "^2.2",
+    "phpunit/phpunit": "^10.0 || ^11.0"
+  },
   "suggest": {
     "php-di/php-di": "Optional DI container integration for wiring maatify/event-logging bindings."
-  }
+  },
+  "scripts": {
+    "analyse": "phpstan analyse src tests --level=max",
+    "test": "phpunit",
+    "test:integration": "phpunit --testsuite Integration",
+    "test:unit": "phpunit --testsuite Unit"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "platform": {
+      "php": "8.2.0"
+    },
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }

@@ -178,7 +178,6 @@ class DeliveryOperationsQueryMysqlRepositoryTest extends TestCase
         $repository = new DeliveryOperationsQueryMysqlRepository($mockPdo);
         $results = $repository->find(new DeliveryOperationsQueryDTO(limit: 10));
 
-        $this->assertIsArray($results);
         $this->assertEmpty($results);
     }
 }

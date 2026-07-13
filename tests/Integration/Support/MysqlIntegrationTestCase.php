@@ -47,10 +47,17 @@ abstract class MysqlIntegrationTestCase extends TestCase
     }
 
     abstract protected function getDomainSchemaFile(): string;
+        /**
+     * @return array<int, string>
+     */
     abstract protected function getTableNames(): array;
 
     protected function setUpSchema(): void
     {
+        if ($this->pdo === null) {
+            return;
+        }
+
         $file = __DIR__ . '/../../../' . $this->getDomainSchemaFile();
         if (!file_exists($file)) {
             throw new RuntimeException("Schema file not found: " . $file);
@@ -69,7 +76,8 @@ abstract class MysqlIntegrationTestCase extends TestCase
 
         $statements = [];
         $current = '';
-        $lines = explode("\n", $sql);
+        /** @var string|false $sql */
+        $lines = explode("\n", (string) $sql);
         foreach ($lines as $line) {
             if (str_starts_with(trim($line), '--')) continue; // Skip full line comments
             $current .= $line . "\n";
@@ -88,6 +96,10 @@ abstract class MysqlIntegrationTestCase extends TestCase
 
     protected function cleanTables(): void
     {
+        if ($this->pdo === null) {
+            return;
+        }
+
         $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
         foreach ($this->getTableNames() as $table) {
             $this->pdo->exec("TRUNCATE TABLE `$table`");

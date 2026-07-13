@@ -41,8 +41,10 @@ class MetadataSanitizerTest extends TestCase
 
         $sanitized = MetadataSanitizer::sanitize($metadata);
 
-        $this->assertSame('John', $sanitized['user']['name']);
-        $this->assertSame('[redacted]', $sanitized['user']['password']);
+        /** @var array<string, mixed> $user */
+        $user = $sanitized['user'] ?? [];
+        $this->assertSame('John', $user['name'] ?? null);
+        $this->assertSame('[redacted]', $user['password'] ?? null);
     }
 
     public function testCustomSensitiveKeys(): void
