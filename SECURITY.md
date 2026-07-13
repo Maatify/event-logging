@@ -1,6 +1,6 @@
 # Security Policy
 
-[![Maatify Security Guard](https://img.shields.io/badge/Maatify-EVENT--LOGGING-blue?style=for-the-badge)](https://github.com/Maatify/security-guard)
+[![Maatify Event Logging](https://img.shields.io/badge/Maatify-EVENT--LOGGING-blue?style=for-the-badge)](https://github.com/Maatify/event-logging)
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-9C27B0?style=for-the-badge)](https://github.com/Maatify)
 
 ## Supported Versions
