@@ -35,6 +35,9 @@ final class SecuritySignalsRepositoryTest extends MysqlIntegrationTestCase
         return 'src/SecuritySignals/Database/schema.maa_event_logging_security_signals.sql';
     }
 
+    /**
+     * @return array<int, string>
+     */
     protected function getTableNames(): array
     {
         return [

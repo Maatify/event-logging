@@ -188,7 +188,6 @@ class AuditTrailQueryMysqlRepositoryTest extends TestCase
         $repository = new AuditTrailQueryMysqlRepository($mockPdo);
         $results = $repository->find(new AuditTrailQueryDTO(limit: 10));
 
-        $this->assertIsArray($results);
         $this->assertEmpty($results);
     }
 }

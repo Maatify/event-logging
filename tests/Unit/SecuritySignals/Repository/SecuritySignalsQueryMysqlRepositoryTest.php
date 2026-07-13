@@ -163,7 +163,6 @@ class SecuritySignalsQueryMysqlRepositoryTest extends TestCase
         $repository = new SecuritySignalsQueryMysqlRepository($mockPdo);
         $results = $repository->find(new SecuritySignalsQueryDTO(limit: 10));
 
-        $this->assertIsArray($results);
         $this->assertEmpty($results);
     }
 }

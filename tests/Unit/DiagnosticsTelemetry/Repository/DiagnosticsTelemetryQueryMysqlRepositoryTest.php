@@ -204,7 +204,6 @@ class DiagnosticsTelemetryQueryMysqlRepositoryTest extends TestCase
         $repository = new DiagnosticsTelemetryQueryMysqlRepository($mockPdo);
         $results = $repository->find(new DiagnosticsTelemetryQueryDTO(limit: 10));
 
-        $this->assertIsArray($results);
         $this->assertEmpty($results);
     }
 }

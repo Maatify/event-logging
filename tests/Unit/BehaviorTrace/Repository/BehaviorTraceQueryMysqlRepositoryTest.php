@@ -203,7 +203,6 @@ class BehaviorTraceQueryMysqlRepositoryTest extends TestCase
         $repository = new BehaviorTraceQueryMysqlRepository($mockPdo);
         $results = $repository->find(new BehaviorTraceQueryDTO(limit: 10));
 
-        $this->assertIsArray($results);
         $this->assertEmpty($results);
     }
 }

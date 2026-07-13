@@ -36,6 +36,9 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         return 'src/AuthoritativeAudit/Database/schema.maa_event_logging_authoritative_audit.sql';
     }
 
+    /**
+     * @return array<int, string>
+     */
     protected function getTableNames(): array
     {
         return [
@@ -96,7 +99,13 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         // or bypass it. MariaDB uses CHECK(json_valid(`changes`)). We can temporarily drop this check constraint
         // just for this test to prove the PHP code handles corrupt JSON.
 
-        $isMariaDb = str_contains($this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION), 'MariaDB');
+        if ($this->pdo === null) {
+            $this->markTestSkipped('PDO not initialized.');
+        }
+
+        $serverVersionAttr = $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
+        $serverVersion = is_scalar($serverVersionAttr) ? (string) $serverVersionAttr : '';
+        $isMariaDb = str_contains($serverVersion, 'MariaDB');
 
         if ($isMariaDb) {
             $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log DROP CONSTRAINT IF EXISTS `changes`");
@@ -181,6 +190,9 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
 
     private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
     {
+        if ($this->pdo === null) {
+            $this->fail('PDO not initialized.');
+        }
         $stmt = $this->pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
             (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)

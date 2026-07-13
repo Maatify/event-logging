@@ -14,6 +14,7 @@ class ThrowingPdo extends PDO
     {
     }
 
+    /** @param array<int, mixed> $options */
     public function prepare(string $query, array $options = []): PDOStatement|false
     {
         throw new PDOException('Simulated PDO connection/prepare error');

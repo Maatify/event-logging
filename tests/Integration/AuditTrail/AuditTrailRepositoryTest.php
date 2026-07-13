@@ -35,6 +35,9 @@ final class AuditTrailRepositoryTest extends MysqlIntegrationTestCase
         return 'src/AuditTrail/Database/schema.maa_event_logging_audit_trail.sql';
     }
 
+    /**
+     * @return array<int, string>
+     */
     protected function getTableNames(): array
     {
         return [

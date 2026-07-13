@@ -13,6 +13,6 @@ final class InfrastructureSmokeTest extends TestCase
     {
         $clock = new SystemClock();
 
-        $this->assertNotNull($clock->now());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $clock->now());
     }
 }
