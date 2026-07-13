@@ -40,8 +40,12 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-
-
+- **Count/Data Readiness & Semantic Alignment:**
+  - No Admin total-count, filtered-count, or offset data query currently exists.
+  - The current table and filter set are compatible with building those three queries.
+  - Actual semantic alignment is not yet proven.
+  - Phase 2 must use one shared filter-construction source, or an equivalent single source of truth, for filtered-count and data SQL.
+  - A mismatch between count filters, data filters, nullable-value handling, or parameter normalization is a Phase 2 design and test risk. Specific risks include maintaining the materialized-log boundary (never querying the outbox), handling type/id filter pairs (`actor_id`, `target_id`), handling nullable `actor_id` or `target_id`, unsearchable JSON `changes`, date-range inclusivity, and `correlationId` filters.
 
 ### AuditTrail
 - **Primitive query interface:** `src/AuditTrail/Contract/AuditTrailQueryInterface.php`
@@ -73,8 +77,12 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-
-
+- **Count/Data Readiness & Semantic Alignment:**
+  - No Admin total-count, filtered-count, or offset data query currently exists.
+  - The current table and filter set are compatible with building those three queries.
+  - Actual semantic alignment is not yet proven.
+  - Phase 2 must use one shared filter-construction source, or an equivalent single source of truth, for filtered-count and data SQL.
+  - A mismatch between count filters, data filters, nullable-value handling, or parameter normalization is a Phase 2 design and test risk. Specific risks include handling type/id filter pairs (`actor_id`, `entity_id`, `subject_id`), handling nullable ID fields, unsearchable JSON `metadata`, date-range inclusivity, and `correlationId` / `requestId` filters.
 
 ### SecuritySignals
 - **Primitive query interface:** `src/SecuritySignals/Contract/SecuritySignalsQueryInterface.php`
@@ -105,7 +113,12 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-
+- **Count/Data Readiness & Semantic Alignment:**
+  - No Admin total-count, filtered-count, or offset data query currently exists.
+  - The current table and filter set are compatible with building those three queries.
+  - Actual semantic alignment is not yet proven.
+  - Phase 2 must use one shared filter-construction source, or an equivalent single source of truth, for filtered-count and data SQL.
+  - A mismatch between count filters, data filters, nullable-value handling, or parameter normalization is a Phase 2 design and test risk. Specific risks include handling type/id filter pairs (`actor_id`), handling nullable `actor_id`, unsearchable JSON `metadata`, date-range inclusivity, and `correlationId` / `requestId` filters.
 
 ### BehaviorTrace
 - **Primitive query interface:** `src/BehaviorTrace/Contract/BehaviorTraceQueryInterface.php`
@@ -138,7 +151,12 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-
+- **Count/Data Readiness & Semantic Alignment:**
+  - No Admin total-count, filtered-count, or offset data query currently exists.
+  - The current table and filter set are compatible with building those three queries.
+  - Actual semantic alignment is not yet proven.
+  - Phase 2 must use one shared filter-construction source, or an equivalent single source of truth, for filtered-count and data SQL.
+  - A mismatch between count filters, data filters, nullable-value handling, or parameter normalization is a Phase 2 design and test risk. Specific risks include handling type/id filter pairs (`actor_id`, `entity_id`), handling nullable ID fields, unsearchable JSON `metadata`, date-range inclusivity, and `correlationId` / `requestId` filters.
 
 ### DiagnosticsTelemetry
 - **Primitive query interface:** `src/DiagnosticsTelemetry/Contract/DiagnosticsTelemetryQueryInterface.php`
@@ -172,7 +190,12 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-
+- **Count/Data Readiness & Semantic Alignment:**
+  - No Admin total-count, filtered-count, or offset data query currently exists.
+  - The current table and filter set are compatible with building those three queries.
+  - Actual semantic alignment is not yet proven.
+  - Phase 2 must use one shared filter-construction source, or an equivalent single source of truth, for filtered-count and data SQL.
+  - A mismatch between count filters, data filters, nullable-value handling, or parameter normalization is a Phase 2 design and test risk. Specific risks include handling type/id filter pairs (`actor_id`), handling nullable `actor_id`, unsearchable JSON `metadata`, date-range inclusivity, and `correlationId` / `requestId` filters.
 
 ### DeliveryOperations
 - **Primitive query interface:** `src/DeliveryOperations/Contract/DeliveryOperationsQueryInterface.php`
@@ -205,7 +228,12 @@ This audit strictly validates current Runtime compatibility for a future Phase 2
 - **Sort keys:** `occurred_at`.
 - **Default ordering:** `occurred_at DESC, id DESC`.
 - **Tie-breaker:** `id`.
-
+- **Count/Data Readiness & Semantic Alignment:**
+  - No Admin total-count, filtered-count, or offset data query currently exists.
+  - The current table and filter set are compatible with building those three queries.
+  - Actual semantic alignment is not yet proven.
+  - Phase 2 must use one shared filter-construction source, or an equivalent single source of truth, for filtered-count and data SQL.
+  - A mismatch between count filters, data filters, nullable-value handling, or parameter normalization is a Phase 2 design and test risk. Specific risks include handling type/id filter pairs (`actor_id`, `target_id`), handling nullable ID fields, unsearchable JSON `metadata`, date-range inclusivity, and `correlationId` / `requestId` filters.
 
 *(Note: The primitive query contracts remain unchanged. All tables declare an index on `(occurred_at, id)` natively enabling deterministic backward index scans for ordering.)*
 
@@ -380,7 +408,9 @@ Phase 2 design must specify the approved contract for:
 - **DeliveryOperations:** Rejected because its schema complexity (multiple state enums, delivery attempt tracking) would overcomplicate the validation of base pagination and extraction mechanics.
 
 **Final Recommendation:** **AuditTrail**.
-Selected because it has broad, representative filters, a clear domain read/listing purpose, suitable indexes, existing query and integration-test coverage, and moderate operational risk. It provides the ideal foundation to validate count/data semantic alignment, mapper extraction, sorting, and exception translation.## 7. Blockers & Constraints
+Selected because it has broad, representative filters, a clear domain read/listing purpose, suitable indexes, existing query and integration-test coverage, and moderate operational risk. It provides the ideal foundation to validate count/data semantic alignment, mapper extraction, sorting, and exception translation.
+
+## 7. Blockers & Constraints
 
 - **Blockers to entering Phase 2 design:** None.
 - **Mandatory decisions that Phase 2 design must resolve:** Mapper reuse strategy, exception translation strategy, result contract, SQL semantic-alignment, filtering, and sort contracts.
