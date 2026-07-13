@@ -20,12 +20,14 @@ namespace Maatify\EventLogging\AuditTrail\Contract;
 
 use Maatify\EventLogging\AuditTrail\DTO\AuditTrailAdminPageResultDTO;
 use Maatify\EventLogging\AuditTrail\DTO\AuditTrailAdminQueryRequestDTO;
-use Maatify\EventLogging\AuditTrail\Exception\AuditTrailAdminQueryException;
+use Maatify\EventLogging\AuditTrail\Exception\AuditTrailAdminQueryExecutionException;
+use Maatify\EventLogging\AuditTrail\Exception\AuditTrailAdminQueryInvalidArgumentException;
 
 interface AuditTrailAdminQueryInterface
 {
     /**
-     * @throws AuditTrailAdminQueryException
+     * @throws AuditTrailAdminQueryExecutionException
+     * @throws AuditTrailAdminQueryInvalidArgumentException
      */
     public function paginate(AuditTrailAdminQueryRequestDTO $request): AuditTrailAdminPageResultDTO;
 }
@@ -88,11 +90,12 @@ Delegation to `Maatify\Persistence\Pdo\Pagination` is used.
 
 **Configuration Details:**
 * **Default page:** 1
-* **Default per-page:** 25
+* **Default per-page:** 20
 * **Minimum per-page:** 1
-* **Maximum per-page:** 1000
+* **Maximum per-page:** 200
 * **Approved public sort keys:** `['occurred_at']`
-* **Public sort key to trusted identifier mapping:** `['occurred_at' => 'occurred_at']`
+* **Internal persistence SortWhitelist:** `['occurred_at', 'id']` (The caller may only request `occurred_at`, but `id` must be permitted in the whitelist to function as a valid tie-breaker).
+* **Public sort key to trusted identifier mapping:** `['occurred_at' => 'occurred_at', 'id' => 'id']`
 * **Default sort key:** `occurred_at`
 * **Default sort direction:** `DESC`
 * **Tie-breaker key:** `id`
@@ -122,8 +125,8 @@ Because there is no mandatory tenant isolation or soft-delete state.
 `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\Pagination\AuditTrailAdminQueryDescriptorBuilder`
 * **Filename:** `src/AuditTrail/Infrastructure/Mysql/Pagination/AuditTrailAdminQueryDescriptorBuilder.php`
 * **Namespace:** `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\Pagination`
-* **Visibility:** `internal`
-* **Constructor:** None required (static factory or standard instantiation).
+* **Class modifier:** `/** @internal */ final class`
+* **Constructor:** `public function __construct()`
 * **Methods:** `public function build(AuditTrailAdminQueryRequestDTO $request): PdoPaginationQueryDescriptor;`
 * **Shape:** Returns a configured `Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor`.
 
@@ -141,19 +144,20 @@ No `SELECT *`. The `dataSql` explicitly selects:
 
 **Path:** `src/AuditTrail/Infrastructure/Mysql/AuditTrailRowMapper.php`
 **Namespace:** `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql`
-**Modifier:** `internal final`
+**Modifier:** `/** @internal */ final class`
 **Method:** `public function map(array $row): AuditTrailViewDTO`
 
-Constructed manually within `AuditTrailQueryMysqlRepository` and the new `AuditTrailAdminQueryMysqlRepository`.
+Constructed manually within `AuditTrailQueryMysqlRepository` (e.g. `$this->mapper = new AuditTrailRowMapper();`) and the new `AuditTrailAdminQueryMysqlRepository`.
 No factories or bindings require updates.
 The extraction guarantees 100% hydration compatibility.
+The primitive repository constructor is preserved exactly as `public function __construct(\PDO $pdo)`.
 
 ## 6. Domain-Owned Result Adaptation
 
 **Class:** `AuditTrailAdminPageResultDTO`
 **Namespace:** `Maatify\EventLogging\AuditTrail\DTO`
 **Path:** `src/AuditTrail/DTO/AuditTrailAdminPageResultDTO.php`
-**Modifiers:** `final readonly`
+**Modifiers:** `final readonly class`
 **Implements:** `\IteratorAggregate<int, AuditTrailViewDTO>`, `\JsonSerializable`
 
 ```php
@@ -171,7 +175,28 @@ The extraction guarantees 100% hydration compatibility.
         public bool $hasPrevious,
         public string $sortBy,
         public string $sortDirection
-    )
+    ) {}
+
+    public function getIterator(): \ArrayIterator
+    {
+        return new \ArrayIterator($this->items);
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => $this->items,
+            'page' => $this->page,
+            'perPage' => $this->perPage,
+            'total' => $this->total,
+            'filtered' => $this->filtered,
+            'totalPages' => $this->totalPages,
+            'hasNext' => $this->hasNext,
+            'hasPrevious' => $this->hasPrevious,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
+        ];
+    }
 ```
 
 JSON keys strictly match the property names (`items`, not `data`).
@@ -181,84 +206,168 @@ JSON keys strictly match the property names (`items`, not `data`).
 **Class:** `AuditTrailAdminQueryRequestDTO`
 **Namespace:** `Maatify\EventLogging\AuditTrail\DTO`
 **Path:** `src/AuditTrail/DTO/AuditTrailAdminQueryRequestDTO.php`
-**Modifiers:** `final readonly`
+**Modifiers:** `final readonly class`
+**Implements:** `\JsonSerializable`
 
-**Constructor Signature:**
+**Constructor Signature & Properties:**
+Normalized values are assigned exactly once to separately declared readonly properties.
+
 ```php
+    public ?string $actorType;
+    public ?int $actorId;
+    public ?string $eventKey;
+    public ?string $entityType;
+    public ?int $entityId;
+    public ?string $subjectType;
+    public ?int $subjectId;
+    public ?string $requestId;
+    public ?string $correlationId;
+    public ?\DateTimeImmutable $after;
+    public ?\DateTimeImmutable $before;
+    public ?int $page;
+    public ?int $perPage;
+    public ?string $sortBy;
+    public ?string $sortDirection;
+
     public function __construct(
-        public ?string $actorType = null,
-        public ?int $actorId = null,
-        public ?string $eventKey = null,
-        public ?string $entityType = null,
-        public ?int $entityId = null,
-        public ?string $subjectType = null,
-        public ?int $subjectId = null,
-        public ?string $requestId = null,
-        public ?string $correlationId = null,
-        public ?\DateTimeImmutable $after = null,
-        public ?\DateTimeImmutable $before = null,
-        public ?int $page = null,
-        public ?int $perPage = null,
-        public ?string $sortBy = null,
-        public ?string $sortDirection = null
-    )
+        ?string $actorType = null,
+        ?int $actorId = null,
+        ?string $eventKey = null,
+        ?string $entityType = null,
+        ?int $entityId = null,
+        ?string $subjectType = null,
+        ?int $subjectId = null,
+        ?string $requestId = null,
+        ?string $correlationId = null,
+        ?\DateTimeImmutable $after = null,
+        ?\DateTimeImmutable $before = null,
+        ?int $page = null,
+        ?int $perPage = null,
+        ?string $sortBy = null,
+        ?string $sortDirection = null
+    ) {
+        // Construct-time normalization and validation throws InvalidArgumentException on violations.
+        // E.g., type trimming, ID validation, ID without type rejection.
+        $this->actorType = //... normalized value
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'eventKey' => $this->eventKey,
+            'entityType' => $this->entityType,
+            'entityId' => $this->entityId,
+            'subjectType' => $this->subjectType,
+            'subjectId' => $this->subjectId,
+            'requestId' => $this->requestId,
+            'correlationId' => $this->correlationId,
+            'after' => $this->after?->format('Y-m-d H:i:s.u'),
+            'before' => $this->before?->format('Y-m-d H:i:s.u'),
+            'page' => $this->page,
+            'perPage' => $this->perPage,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
+        ];
+    }
 ```
 
-Construct-time validation is performed immediately. Throws `AuditTrailAdminQueryException` on violations. No validators delegated. Raw input values are normalized during construction (e.g., whitespace trim).
+Construct-time validation is performed immediately. No validators delegated.
 
 ## 8. Exception Boundary
 
-**Exception Class:** `AuditTrailAdminQueryException`
+**Exception Classes:**
+Two distinct exception roots will be used for separation of caller mistakes vs systemic failures.
+1. `AuditTrailAdminQueryInvalidArgumentException` (Extends `SystemMaatifyException`, returns `ErrorCodeEnum::INVALID_ARGUMENT`)
+   - For filter, ID, length, date validation, and pair rules.
+2. `AuditTrailAdminQueryExecutionException` (Extends `SystemMaatifyException`, returns `ErrorCodeEnum::DATABASE_CONNECTION_FAILED`)
+   - For repository and persistence pagination execution wrap.
+
 **Namespace:** `Maatify\EventLogging\AuditTrail\Exception`
-**Inheritance:** extends `Maatify\Exceptions\Exception\System\SystemMaatifyException`
-**Error Code Policy:** returns `ErrorCodeEnum::DATABASE_CONNECTION_FAILED`
+**Path:** `src/AuditTrail/Exception/AuditTrailAdminQueryInvalidArgumentException.php`
+**Path:** `src/AuditTrail/Exception/AuditTrailAdminQueryExecutionException.php`
 
 **Named Constructors:**
-* `invalidFilterCombination(string $message)`
-* `invalidDateRange()`
-* `invalidId(string $field)`
-* `executionFailed(\Throwable $prev)`
+* `invalidFilterCombination(string $message)` (on InvalidArgumentException)
+* `invalidDateRange()` (on InvalidArgumentException)
+* `invalidId(string $field)` (on InvalidArgumentException)
+* `executionFailed(\Throwable $prev)` (on ExecutionException)
 
 The original throwable is preserved as the previous exception. Nothing is swallowed or ignored. Does not initiate or wrap transactions.
 
 ## 9. Dependency Injection and Construction
 
-No modifications to `EventLoggingProvider`, `EventLoggingBindings`, or factories are permitted in this blueprint PR. The new components are strictly designed to be wired independently.
+**Admin Repository Construction:**
+`Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailAdminQueryMysqlRepository`
+```php
+    private AuditTrailRowMapper $mapper;
+    private AuditTrailAdminQueryDescriptorBuilder $descriptorBuilder;
+    private PdoPaginator $paginator;
+    private PaginationConfig $paginationConfig;
+
+    public function __construct(private \PDO $pdo)
+    {
+        $this->mapper = new AuditTrailRowMapper();
+        $this->descriptorBuilder = new AuditTrailAdminQueryDescriptorBuilder();
+        $this->paginator = new PdoPaginator();
+
+        $this->paginationConfig = new PaginationConfig(
+            defaultPage: 1,
+            defaultPerPage: 20,
+            minPerPage: 1,
+            maxPerPage: 200,
+            sortWhitelist: new SortWhitelist(['occurred_at', 'id']),
+            defaultSortBy: 'occurred_at',
+            defaultSortDirection: SortDirectionEnum::DESC,
+            tieBreakerSortBy: 'id',
+            tieBreakerDirection: SortDirectionEnum::DESC
+        );
+    }
+
+    public function paginate(AuditTrailAdminQueryRequestDTO $request): AuditTrailAdminPageResultDTO
+    {
+        // implementation goes here
+    }
+```
+The exact internal implementation of `paginate(AuditTrailAdminQueryRequestDTO $request)` utilizes the `descriptorBuilder` and `paginator->paginate()`, wrapping persistence exceptions in `AuditTrailAdminQueryExecutionException`, and mapping via `AuditTrailRowMapper` to `AuditTrailAdminPageResultDTO`.
 
 ## 10. Exact Runtime File Plan
 
 | Class/File | Action | Responsibility | Public API/Compat Impact |
 | --- | --- | --- | --- |
-| `AuditTrailAdminQueryInterface.php` | NEW | Admin public contract | None (Additive) |
-| `AuditTrailAdminQueryRequestDTO.php`| NEW | Request DTO | None (Additive) |
-| `AuditTrailAdminPageResultDTO.php` | NEW | Result DTO | None (Additive) |
-| `AuditTrailAdminQueryMysqlRepository.php`| NEW | Repository executing API | None (Additive) |
-| `AuditTrailAdminQueryDescriptorBuilder.php`| NEW | Builds internal statements| None (Additive) |
-| `AuditTrailRowMapper.php` | NEW | Internal row mapping | None (Strictly preserves DTO hydration) |
-| `AuditTrailAdminQueryException.php` | NEW | Query boundaries | None (Additive) |
-| `AuditTrailQueryInterface.php` | UNCHANGED | Primitive Interface | Protects v1.0 api |
-| `AuditTrailQueryDTO.php` | UNCHANGED | Primitive Interface DTO | Protects v1.0 api |
-| `AuditTrailViewDTO.php` | UNCHANGED | Internal View DTO | Protects v1.0 api |
-| `AuditTrailQueryMysqlRepository.php`| MODIFY | Inject shared mapper | Maintains 100% backwards compatibility |
-| `AuditTrailStorageException.php` | UNCHANGED | Exception handling | Protects v1.0 api |
-| Write Side / Factories / Providers | UNCHANGED | - | No impact |
-| `AuditTrailPaginatedQueryInterface.php`| DELETE | Obsolete architecture | Break for POC users, as intended |
-| `AuditTrailQueryCursorDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
-| `AuditTrailQueryPageDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
-| `AuditTrailPaginatedQueryService.php`| DELETE | Obsolete architecture | Break for POC users, as intended |
-| `AuditTrailPaginatedQueryServiceTest.php`| DELETE| Obsolete architecture | - |
+| `src/AuditTrail/Contract/AuditTrailAdminQueryInterface.php` | NEW | Admin public contract | None (Additive) |
+| `src/AuditTrail/DTO/AuditTrailAdminQueryRequestDTO.php`| NEW | Request DTO | None (Additive) |
+| `src/AuditTrail/DTO/AuditTrailAdminPageResultDTO.php` | NEW | Result DTO | None (Additive) |
+| `src/AuditTrail/Infrastructure/Mysql/AuditTrailAdminQueryMysqlRepository.php`| NEW | Repository executing API | None (Additive) |
+| `src/AuditTrail/Infrastructure/Mysql/Pagination/AuditTrailAdminQueryDescriptorBuilder.php`| NEW | Builds internal statements| None (Additive) |
+| `src/AuditTrail/Infrastructure/Mysql/AuditTrailRowMapper.php` | NEW | Internal row mapping | None (Strictly preserves DTO hydration) |
+| `src/AuditTrail/Exception/AuditTrailAdminQueryExecutionException.php` | NEW | Query execution boundary | None (Additive) |
+| `src/AuditTrail/Exception/AuditTrailAdminQueryInvalidArgumentException.php` | NEW | Query validation boundary | None (Additive) |
+| `src/AuditTrail/Contract/AuditTrailQueryInterface.php` | UNCHANGED | Primitive Interface | Protects v1.0 api |
+| `src/AuditTrail/DTO/AuditTrailQueryDTO.php` | UNCHANGED | Primitive Interface DTO | Protects v1.0 api |
+| `src/AuditTrail/DTO/AuditTrailViewDTO.php` | UNCHANGED | Internal View DTO | Protects v1.0 api |
+| `src/AuditTrail/Infrastructure/Mysql/AuditTrailQueryMysqlRepository.php`| MODIFY | Inject shared mapper | Maintains 100% backwards compatibility |
+| `src/AuditTrail/Exception/AuditTrailStorageException.php` | UNCHANGED | Exception handling | Protects v1.0 api |
+| `src/AuditTrail/Contract/AuditTrailPaginatedQueryInterface.php`| DELETE | Obsolete architecture | Break for POC users, as intended |
+| `src/AuditTrail/DTO/AuditTrailQueryCursorDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
+| `src/AuditTrail/DTO/AuditTrailQueryPageDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
+| `src/AuditTrail/Service/AuditTrailPaginatedQueryService.php`| DELETE | Obsolete architecture | Break for POC users, as intended |
+| `tests/Unit/AuditTrail/Service/AuditTrailPaginatedQueryServiceTest.php`| DELETE| Obsolete architecture | - |
 | `composer.json` | MODIFY | Add dependency | Additive |
-| `composer.lock` | UNCHANGED / REGRESSION-PROTECTED | Should not be present | Protects release strategy |
+| `composer.lock` | UNCHANGED | Should not be present | Protects release strategy |
 | `EVENT_LOGGING_PACKAGE_REFERENCE.md` | MODIFY | Document new API | Additive |
 | `docs/integration/ADMIN_READ_USAGE.md`| MODIFY | Document new API | Additive |
 | `src/AuditTrail/README.md` | MODIFY | Document new API | Additive |
 | `CHANGELOG.md` | MODIFY | Record release | Additive |
 | `docs/audits/DOCUMENTATION_INVENTORY.md`| MODIFY | Keep inventory updated | Additive |
 | `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md`| MODIFY | Keep roadmap updated | Additive |
-| Unit Tests (multiple files) | NEW | Verify specific unit logic | Additive |
-| Regression Tests (multiple files)| NEW | Verify protection | Additive |
-| Integration Tests (multiple files)| NEW | Verify SQL query | Additive |
-
+| `tests/Unit/AuditTrail/DTO/AuditTrailAdminQueryRequestDTOTest.php` | NEW | Verify request validation logic | Additive |
+| `tests/Unit/AuditTrail/DTO/AuditTrailAdminPageResultDTOTest.php` | NEW | Verify DTO serialization | Additive |
+| `tests/Unit/AuditTrail/Infrastructure/Mysql/Pagination/AuditTrailAdminQueryDescriptorBuilderTest.php` | NEW | Verify SQL generation logic | Additive |
+| `tests/Unit/AuditTrail/Infrastructure/Mysql/AuditTrailRowMapperTest.php` | NEW | Verify mapping extraction | Additive |
+| `tests/Regression/AuditTrail/AuditTrailQueryMysqlRepositoryRegressionTest.php` | NEW | Verify protected v1 API remains completely unchanged | Additive |
+| `tests/Integration/AuditTrail/AuditTrailAdminQueryMysqlRepositoryTest.php`| NEW | Real MySQL Integration Test | Additive |
 
 
 ## 11. Atomic Retirement Sequence
@@ -399,7 +508,7 @@ The implementation PR must follow this exact sequence:
 | Exception Hierarchy | `PACKAGE_BUILDING_STANDARD.md` | Extends `SystemMaatifyException`| Exception implements rules | Extends exception base | No Conflict |
 | Named Constructors | `PACKAGE_BUILDING_STANDARD.md` | Meaningful instantiation | Added strictly to Exceptions | Dedicated Methods | No Conflict |
 | Dependency Direction | `PACKAGE_BUILDING_STANDARD.md` | Outward dependencies only | Relies exclusively on core maatify deps | Architecture rules | No Conflict |
-| Composer Impact | `PACKAGE_BUILDING_STANDARD.md` | `maatify/persistence` | Defined to add dependency safely | Composer require update | No Conflict |
+| Composer Impact | `COMPOSER_PACKAGE_STANDARD.md` | Validate dependencies | Adds `maatify/persistence` | Composer require update | No Conflict |
 | No `composer.lock` | `PACKAGE_BUILDING_STANDARD.md` | Lock must not be tracked | Lock omitted | Not committed | No Conflict |
 | Unit Tests | `TESTING_STRATEGY.md` | Cover logic fully | Defined explicitly | Unit Test Matrix | No Conflict |
 | Regression Tests | `TESTING_STRATEGY.md` | Prove V1 API preserved | Defined explicitly | Regression Matrix | No Conflict |
@@ -412,9 +521,9 @@ The implementation PR must follow this exact sequence:
 | Old-Artifact Retirement | `ADMIN_QUERY_API_ROADMAP.md` | Obsolete POC Removal | Exact file list added | Covered in retirement | No Conflict |
 
 ### Standards Conflict Discovered
-**Conflict:** The `PACKAGE_BUILDING_STANDARD.md` rule `No generic cross-domain DTOs or query abstractions` (and Section 15 Read/Admin Query API Rules) directly forbids returning the exact persistence boundary abstractions (`PageResult`, `PageRequest`) to the caller. However, `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` (and `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md`) implied that `maatify/persistence` is the sole owner of generic pagination mechanics.
-**Impact:** To satisfy both, the domain MUST wrap the persistence input/output types in its own specific `AuditTrailAdminQueryRequestDTO` and `AuditTrailAdminPageResultDTO`.
-**Blueprint Decision:** Blocked at this decision until Owner approves. The blueprint proposes wrapping the persistence layer precisely within the domain adapter to avoid leaking generic page abstractions while relying on `maatify/persistence` internally.
+**Conflict:** The `PACKAGE_BUILDING_STANDARD.md` requires domain exceptions to have a package exception marker interface or unified root to reliably catch package-owned exceptions. However, the protected `v1.0.0` EventLogging exception hierarchy does not expose a unified package marker consistently. This POC cannot unilaterally introduce a partial marker strategy in a single domain without creating inconsistency across the package.
+**Impact:** Final exception hierarchy implementation for this POC is blocked pending an Owner-level compatibility decision on how to align the EventLogging package exception strategy with the new Standard without breaking `v1.0.0` backwards compatibility.
+**Blueprint Decision:** The blueprint currently defines `AuditTrailAdminQueryExecutionException` extending `SystemMaatifyException` but flags this area as requiring Owner resolution before implementation.
 
 ## 14. Validation Gate
 
@@ -439,7 +548,7 @@ git diff --check
 * removal of unreleased superseded post-v1 artifacts;
 * compatibility with protected `v1.0.0` primitive contracts;
 * expected Semantic Versioning impact: minor version update;
-* expected future event-logging version: (TBD by release manager);
+* expected future event-logging release: `v1.1.0`;
 * no tag or release during blueprint work;
 * no tag or release during implementation review unless separately approved;
 * Packagist publication remains Owner-controlled.
