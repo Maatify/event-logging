@@ -41,6 +41,12 @@ The following capabilities must be implemented by the host application and will 
 - Host-specific search and reporting implementations (e.g., specific CSV exports or cross-table JOINs).
 
 **Future Package Scope (Deferred):**
-While the above are strictly forbidden, providing domain-scoped, framework-agnostic PHP-level query interfaces is considered future scope. See the [Admin Query API Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md) for details on planned:
-- PHP-level Admin Query API contracts and DTOs.
+While the above are strictly forbidden, existing domain-scoped primitive read/query interfaces are part of the current Runtime and are **not** deferred. These existing primitive APIs remain governed by the `EVENT_LOGGING_PACKAGE_REFERENCE.md` and `PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md`.
+
+The deferred scope specifically applies to the new Admin Query API. See the [Admin Query API Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md) for details on the deferred:
+- PHP-level Admin Query API contracts and offset pagination adapters.
 - Domain-scoped admin listing and dashboard summary read models.
+- Reporting summaries.
+
+*Note on Admin Query API Dependency:*
+The necessary standardized pagination mechanics are now available in the `maatify/persistence v1.1.0` package. However, the implementation of the deferred Admin Query API path remains strictly **Deferred** by architectural decision. No runtime dependencies (`maatify/persistence`), public API changes, or internal PHP logic modifications will be added to this package without explicit, separate Owner approval.
