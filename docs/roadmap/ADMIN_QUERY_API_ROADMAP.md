@@ -13,7 +13,7 @@ This roadmap outlines the plan for introducing the Admin Query API. The current 
 
 ### Phase 1 — Current Runtime and Compatibility Inventory
 * **Goal:** Audit current domain schema, queries, and DTO implementations to ensure readiness for offset pagination.
-* **Status:** Pending.
+* **Status:** Complete. ([View Audit](../audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md))
 
 ### Phase 2 — Single-Domain Admin Pagination POC using `maatify/persistence`
 * **Goal:** Implement the Admin Query API adapter in one domain (e.g. `AuthoritativeAudit`) using `maatify/persistence` to validate the design.
