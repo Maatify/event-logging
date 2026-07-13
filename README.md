@@ -1,24 +1,29 @@
-# maatify/event-logging
+<div align="center">
+
+# Maatify Event Logging
 
 ![Maatify.dev](https://www.maatify.dev/assets/img/img/maatify_logo_white.svg)
 
----
-
-[![Latest Version](https://img.shields.io/packagist/v/maatify/event-logging.svg?style=for-the-badge)](https://packagist.org/packages/maatify/event-logging)
-[![PHP Version](https://img.shields.io/packagist/php-v/maatify/event-logging.svg?style=for-the-badge)](https://packagist.org/packages/maatify/event-logging)
-[![License](https://img.shields.io/packagist/l/maatify/event-logging.svg?style=for-the-badge)](https://github.com/Maatify/event-logging/blob/main/LICENSE)
-
+[![Latest Version](https://img.shields.io/packagist/v/maatify/event-logging.svg)](https://packagist.org/packages/maatify/event-logging)
+[![PHP Version](https://img.shields.io/packagist/php-v/maatify/event-logging.svg)](https://packagist.org/packages/maatify/event-logging)
+[![License](https://img.shields.io/packagist/l/maatify/event-logging.svg)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](https://github.com/Maatify/event-logging)
 
-[![Changelog](https://img.shields.io/badge/Changelog-View-blue)](https://github.com/Maatify/event-logging/blob/main/CHANGELOG.md)
-[![Security](https://img.shields.io/badge/Security-Policy-important)](https://github.com/Maatify/event-logging/blob/main/SECURITY.md)
+[![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/event-logging)](https://packagist.org/packages/maatify/event-logging)
+[![Total Downloads](https://img.shields.io/packagist/dt/maatify/event-logging)](https://packagist.org/packages/maatify/event-logging)
+[![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
+[![Install](https://img.shields.io/badge/Install-composer%20require%20maatify%2Fevent--logging-blue)](https://packagist.org/packages/maatify/event-logging)
 
-[![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/event-logging?label=Monthly%20Downloads&color=00A8E8)](https://packagist.org/packages/maatify/event-logging)
-[![Total Downloads](https://img.shields.io/packagist/dt/maatify/event-logging?label=Total%20Downloads&color=2AA9E0)](https://packagist.org/packages/maatify/event-logging)
+[![Changelog](https://img.shields.io/badge/Changelog-View-blue.svg)](CHANGELOG.md)
+[![Package Reference](https://img.shields.io/badge/Reference-Read-blue.svg)](EVENT_LOGGING_MODULE_REFERENCE.md)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](SECURITY.md)
+[![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-blue.svg)](CONTRIBUTING.md)
 
 `maatify/event-logging` is a framework-agnostic standalone Composer package for registering event logging domains within the Maatify ecosystem.
 
 This package provides strict domain isolation, MySQL persistence, and fail-open/fail-closed semantics without mandatory framework bindings. It intentionally relies on explicit Composer and runtime dependencies to operate autonomously from host applications and frameworks.
+
+</div>
 
 ---
 
@@ -186,10 +191,14 @@ See the [LICENSE](LICENSE) file for details.
 
 ## 👤 Author
 
-Engineered by **Mohamed Abdulalim** ([@megyptm](https://github.com/megyptm))  
-Backend Lead & Technical Architect  
-https://www.maatify.dev
+Engineered by **Mohamed Abdulalim** ([@megyptm](https://github.com/megyptm))<br>
+Backend Lead & Technical Architect<br>
+[https://www.maatify.dev](https://www.maatify.dev)
 
 ---
 
-[Built with ❤️ by Maatify.dev — Unified Ecosystem for Modern PHP Libraries]
+<div align="center">
+
+[Built with ❤️ by Maatify.dev — Unified Ecosystem for Modern PHP Libraries](https://www.maatify.dev)
+
+</div>

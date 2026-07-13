@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to **maatify/event-logging**! We welcome contributions that help improve this package.
 
-**maatify/event-logging** is a standalone, framework-agnostic Composer package. It is designed to be completely independent of any host application architecture or framework.
+**maatify/event-logging** is a standalone, framework-agnostic Composer library. It is designed to be completely independent of any host application architecture or framework. As a reusable library, `composer.lock` must not be committed to the repository.
 
 ## Ways to Contribute
 
@@ -34,15 +34,33 @@ Before submitting a Pull Request, please ensure all tests and static analysis ch
    composer install
    ```
 
-2. Run tests:
+2. Validate composer configuration:
    ```bash
-   composer test
+   composer validate --strict
    ```
 
 3. Run static analysis:
    ```bash
-   vendor/bin/phpstan analyse -c phpstan.neon
+   composer analyse
    ```
+
+4. Run tests:
+   You can run all tests, or specific suites:
+   ```bash
+   composer test:unit
+   composer test:regression
+   composer test:integration
+   composer test
+   ```
+
+   **Note on Integration Tests**:
+   Integration tests require a real MySQL database. By default, the tests use the following environment variables (which match the GitHub Actions CI environment):
+   ```bash
+   EVENT_LOGGING_TEST_MYSQL_DSN="mysql:host=127.0.0.1;port=3306;dbname=event_logging_test"
+   EVENT_LOGGING_TEST_MYSQL_USER="root"
+   EVENT_LOGGING_TEST_MYSQL_PASSWORD="root"
+   ```
+   Please configure these variables in your environment or `phpunit.xml` if your local MySQL setup differs.
 
 ## Architectural Rules
 
@@ -65,11 +83,11 @@ To maintain the integrity and standalone nature of this package, all contributio
 * **Keep PRs focused:** Try to solve one specific issue per Pull Request.
 * **Update tests and docs:** If you change behavior, you must update the relevant tests and documentation.
 * **Mention BC impact:** If your change breaks backward compatibility (BC), clearly state this in the PR description.
-* **Do not change public API casually:** Changes to public interfaces and the `EventLoggingProvider` require careful consideration and discussion.
+* **Do not change public API casually:** Architectural or public API changes require prior discussion and approval in an issue before a PR is submitted.
 * **Update CHANGELOG:** For notable changes, please update `CHANGELOG.md` adhering to the "Keep a Changelog" format.
 
 ## Security
 
 If you discover a security vulnerability, please **do not report it in a public issue**.
 
-Instead, please review our [SECURITY.md](SECURITY.md) and report it privately via email to [support@maatify.com](mailto:support@maatify.com).
+Security vulnerabilities must follow [SECURITY.md](SECURITY.md). Instead of public issues, please review the security policy and report it privately via email to [support@maatify.com](mailto:support@maatify.com).

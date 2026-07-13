@@ -5,7 +5,7 @@ All notable changes to `maatify/event-logging` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - Release Preparation
+## [Unreleased]
 
 ### Added
 - Added optional pure-PHP DI binding helper for host applications that want convenience container wiring without a mandatory DI dependency.
@@ -51,3 +51,6 @@ Initial stable release of `maatify/event-logging` under the strictly isolated `M
 - Completely devoid of generic tables (e.g., `logs`, `event_logs`).
 - Operates entirely free of framework-specific bindings and isolated from host application namespaces.
 - Contains absolutely zero UI components, admin controllers, route handling, permissions logic, or generic analytics inside the package boundary.
+
+[Unreleased]: https://github.com/Maatify/event-logging/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Maatify/event-logging/releases/tag/v1.0.0
