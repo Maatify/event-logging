@@ -15,7 +15,7 @@
 [![Install](https://img.shields.io/badge/Install-composer%20require%20maatify%2Fevent--logging-blue)](https://packagist.org/packages/maatify/event-logging)
 
 [![Changelog](https://img.shields.io/badge/Changelog-View-blue.svg)](CHANGELOG.md)
-[![Package Reference](https://img.shields.io/badge/Reference-Read-blue.svg)](EVENT_LOGGING_MODULE_REFERENCE.md)
+[![Package Reference](https://img.shields.io/badge/Reference-Read-blue.svg)](EVENT_LOGGING_PACKAGE_REFERENCE.md)
 [![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](SECURITY.md)
 [![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-blue.svg)](CONTRIBUTING.md)
 
@@ -150,8 +150,7 @@ The `examples/` directory contains plain PHP illustrative skeletons covering int
 
 ## 📚 Documentation
 
-* [Public API](PUBLIC_API.md)
-* [Event Logging Module Reference](EVENT_LOGGING_MODULE_REFERENCE.md)
+* [Event Logging Package Reference](EVENT_LOGGING_PACKAGE_REFERENCE.md)
 * [Schema Layout](schema/README.md)
 * [Testing Strategy](TESTING_STRATEGY.md)
 

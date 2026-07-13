@@ -24,7 +24,7 @@ Consumers should strictly use the defined Public API:
 - **Read:** `BehaviorTraceQueryInterface::read(...)`
 - **Configure:** `BehaviorTracePolicyInterface` (optional implementation)
 
-See `PUBLIC_API.md` for full contract details.
+See `EVENT_LOGGING_PACKAGE_REFERENCE.md` for full contract details.
 
 ### Data Flow
 

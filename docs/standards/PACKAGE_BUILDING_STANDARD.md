@@ -57,7 +57,7 @@ Every package must contain these files at its root (the repository root is the p
 ```
 ├── README.md                          ← installation, quick examples, what it does / does not
 ├── CHANGELOG.md                       ← Keep a Changelog; release history begins at [1.0.0]
-├── {PACKAGE_NAME}_PACKAGE_REFERENCE.md ← canonical stable package contract (e.g. EVENT_LOGGING_MODULE_REFERENCE.md)
+├── {PACKAGE_NAME}_PACKAGE_REFERENCE.md ← canonical stable package contract (e.g. EVENT_LOGGING_PACKAGE_REFERENCE.md)
 ├── composer.json                      ← governed by COMPOSER_PACKAGE_STANDARD.md
 ├── phpstan.neon                       ← governed by Section 21
 ├── src/                               ← all PHP source code
