@@ -8,7 +8,16 @@
 | `./TESTING_STRATEGY.md` | Root / Package Docs | Active | Package-wide testing strategy | Safe guardrail wording: mentions generic logger/recorder/repo as regression test targets. |
 | `./docs/architecture/FACTORY_AND_PROVIDER_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
-| `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
+| `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Standards / Architecture Docs | Active — Current Runtime Design | Architectural rules and logging patterns | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
+| `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Standards / Architecture Docs | Active — Approved Future Architecture | Architectural rules and logging patterns | Added for completeness |
+| `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active — Implementation Deferred | Future plans and readiness tracks |  |
+| `./docs/audits/ADMIN_QUERY_PAGINATION_STANDARD_COMPLIANCE_AUDIT.md` | Audit Docs | Historical Decision Point | Historical Audit Report |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_1_COMPLIANCE_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_2_AUTHORITATIVE_AUDIT_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_2_BEHAVIOR_TRACE_READINESS_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_2_BEHAVIOR_TRACE_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
+| `./docs/audits/ADMIN_QUERY_PHASE_2_SECURITY_SIGNALS_REVIEW.md` | Audit Docs | Historical / Superseded Admin Query Attempt | Historical Audit Report |  |
+| `./docs/audits/DIAGNOSTICS_TELEMETRY_IDENTITY_FIX_REVIEW.md` | Audit Docs | Historical Implementation Context | Historical Audit Report |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/GLOBAL_LOGGING_RULES.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/LOGGING_MODULE_BLUEPRINT.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
