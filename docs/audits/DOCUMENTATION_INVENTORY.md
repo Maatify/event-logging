@@ -10,6 +10,7 @@
 | `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Architecture Docs | Active | Architectural rules and logging patterns | Clarified that package may own domain-scoped reporting and dashboard summary contracts; host owns presentation. |
 | `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Architecture Docs | Active | Protected `v1.0.0` primitive design | Scope explicitly restricted to v1 primitive path; host owns presentation and cross-system analytics. |
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Architecture Docs | Active | Approved post-v1 architecture |  |
+| `./docs/architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md` | Architecture Docs | Active (Pending Approval) | Blueprint for AuditTrail POC | Pending Owner Approval |
 | `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Active Audit Docs | Active | Current audited compatibility inventory |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |

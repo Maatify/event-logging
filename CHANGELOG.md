@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- Drafted AuditTrail Admin Query POC blueprint (`ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md`) defining the proposed replacement architecture. No Runtime, Composer, schema, or test behavior changed.
+
 ### Added
 - Added optional pure-PHP DI binding helper for host applications that want convenience container wiring without a mandatory DI dependency.
 
