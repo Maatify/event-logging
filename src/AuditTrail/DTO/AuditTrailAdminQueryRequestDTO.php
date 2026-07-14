@@ -77,9 +77,14 @@ final readonly class AuditTrailAdminQueryRequestDTO implements JsonSerializable
         $normalizedSortBy = self::normalizeNullableString($sortBy, 'sortBy', 64);
         $this->sortBy = $normalizedSortBy === 'occurred_at' ? 'occurred_at' : null;
 
-        $normalizedSortDirection = self::normalizeSortDirection($sortDirection);
-        $this->sortDirection = in_array($normalizedSortDirection, ['ASC', 'DESC'], true)
-            ? $normalizedSortDirection
+        $normalizedSortDirection = self::normalizeNullableString(
+            $sortDirection,
+            'sortDirection',
+            4
+        );
+        $this->sortDirection = $normalizedSortDirection !== null
+            && in_array(strtoupper($normalizedSortDirection), ['ASC', 'DESC'], true)
+            ? strtoupper($normalizedSortDirection)
             : null;
     }
 
@@ -152,21 +157,4 @@ final readonly class AuditTrailAdminQueryRequestDTO implements JsonSerializable
         return $value;
     }
 
-    private static function normalizeSortDirection(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $trimmed = trim($value);
-        if ($trimmed === '') {
-            return null;
-        }
-
-        if (self::utf8Length($trimmed, 'sortDirection') > 4) {
-            return null;
-        }
-
-        return strtoupper($trimmed);
-    }
 }

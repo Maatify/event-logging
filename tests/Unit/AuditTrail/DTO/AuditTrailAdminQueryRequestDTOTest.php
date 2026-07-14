@@ -66,6 +66,14 @@ final class AuditTrailAdminQueryRequestDTOTest extends TestCase
         new AuditTrailAdminQueryRequestDTO(actorType: 'user', actorId: 0);
     }
 
+    public function testRejectsNegativeIds(): void
+    {
+        $this->expectException(AuditTrailAdminQueryInvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid AuditTrail Admin Query ID: actorId');
+
+        new AuditTrailAdminQueryRequestDTO(actorType: 'user', actorId: -1);
+    }
+
     public function testRejectsActorIdWithoutActorType(): void
     {
         $this->expectException(AuditTrailAdminQueryInvalidArgumentException::class);
@@ -127,9 +135,31 @@ final class AuditTrailAdminQueryRequestDTOTest extends TestCase
         $this->assertSame('occurred_at', $valid->sortBy);
         $this->assertSame('ASC', $valid->sortDirection);
 
-        $invalid = new AuditTrailAdminQueryRequestDTO(sortBy: 'id', sortDirection: 'sideways');
+        $validDesc = new AuditTrailAdminQueryRequestDTO(sortDirection: ' desc ');
+        $this->assertSame('DESC', $validDesc->sortDirection);
+
+        $empty = new AuditTrailAdminQueryRequestDTO(sortDirection: '   ');
+        $this->assertNull($empty->sortDirection);
+
+        $invalid = new AuditTrailAdminQueryRequestDTO(sortBy: 'id', sortDirection: 'bad');
         $this->assertNull($invalid->sortBy);
         $this->assertNull($invalid->sortDirection);
+    }
+
+    public function testRejectsOverlongSortDirection(): void
+    {
+        $this->expectException(AuditTrailAdminQueryInvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid AuditTrail Admin Query length: sortDirection');
+
+        new AuditTrailAdminQueryRequestDTO(sortDirection: 'sideways');
+    }
+
+    public function testRejectsInvalidSortDirectionEncoding(): void
+    {
+        $this->expectException(AuditTrailAdminQueryInvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid AuditTrail Admin Query UTF-8 encoding: sortDirection');
+
+        new AuditTrailAdminQueryRequestDTO(sortDirection: "\xB1\x31");
     }
 
     public function testJsonSerializesDatesWithDateAtomAndDoesNotMutateDateObjects(): void

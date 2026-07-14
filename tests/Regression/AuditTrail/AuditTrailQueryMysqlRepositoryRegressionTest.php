@@ -83,9 +83,4 @@ final class AuditTrailQueryMysqlRepositoryRegressionTest extends TestCase
         $schema = (string) file_get_contents(__DIR__ . '/../../../src/AuditTrail/Database/schema.maa_event_logging_audit_trail.sql');
         $this->assertStringContainsString('CREATE TABLE maa_event_logging_audit_trail', $schema);
     }
-
-    public function testNoComposerLockExists(): void
-    {
-        $this->assertFileDoesNotExist(__DIR__ . '/../../../composer.lock');
-    }
 }

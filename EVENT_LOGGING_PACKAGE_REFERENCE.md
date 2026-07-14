@@ -238,9 +238,14 @@ Advanced querying (UI-driven generic search, arbitrary filtering, complex host a
 
 ## 13. Public MySQL infrastructure adapters and composition-only status
 
-Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
+Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring when they are repository or writer adapters. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
 
-Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. Application and business code should depend on `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository` remains the public MySQL adapter for the AuditTrail Admin Query API. Application and business code should prefer `AuditTrailAdminQueryInterface` and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+
+Classes marked `@internal` under infrastructure namespaces are package implementation details, not stable public API. Hosts must not construct, type against, extend, or depend on them, and their signatures are not part of the stable compatibility contract. The AuditTrail Admin Query implementation explicitly excludes these internal classes from the stable public API:
+
+- `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailRowMapper`
+- `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\Pagination\AuditTrailAdminQueryDescriptorBuilder`
 
 ## 14. Failure and exception behavior
 
