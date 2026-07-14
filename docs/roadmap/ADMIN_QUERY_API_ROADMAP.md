@@ -55,6 +55,7 @@ The six domains must not be treated as one bulk implementation. Each domain requ
 - **Status:** Complete. ([View Audit](../audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md))
 
 ### Phase 2 — `AuditTrail` Pagination Rebuild POC
+**Status:** [Blueprint Drafted / Pending Owner Approval](../architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md)
 
 - **Classification:** Rebuild of incorrect post-v1.0 work.
 - **Goal:** Replace the existing post-v1.0 `AuditTrail` pagination experiment with the correct separate Admin Query API architecture using `maatify/persistence`.
