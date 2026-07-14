@@ -154,17 +154,123 @@ private function buildFilteredWhereAndParams(
 ```
 
 **Implementation Rules:**
-* `build()` invokes `buildFilteredWhereAndParams()` exactly once.
-* `whereSql` must be an empty string when no filters exist; otherwise `WHERE` followed by conditions joined with `AND`.
-* `totalParams` is `[]`.
-* The exact same normalized `params` array returned from `buildFilteredWhereAndParams()` is used for both `filteredCountParams` and `dataParams`.
-* Dates must be converted to UTC and formatted inside the descriptor builder:
+* `buildFilteredWhereAndParams()` must build the conditions and parameters once.
+* Dates must be converted to UTC before `Y-m-d H:i:s.u` formatting inside the descriptor builder:
   ```php
-  $request->after
-      ?->setTimezone(new \DateTimeZone('UTC'))
-      ->format('Y-m-d H:i:s.u');
+  $request->after?->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.u');
   ```
-* Returns the exact complete `PdoPaginationQueryDescriptor` construction.
+* The exact filter-to-SQL mapping must be used:
+  * `actorType` → `actor_type = :actor_type`
+  * `actorId` → `actor_id = :actor_id`
+  * `eventKey` → `event_key = :event_key`
+  * `entityType` → `entity_type = :entity_type`
+  * `entityId` → `entity_id = :entity_id`
+  * `subjectType` → `subject_type = :subject_type`
+  * `subjectId` → `subject_id = :subject_id`
+  * `requestId` → `request_id = :request_id`
+  * `correlationId` → `correlation_id = :correlation_id`
+  * `after` → `occurred_at >= :after`
+  * `before` → `occurred_at <= :before`
+* Provide the complete method flow:
+```php
+$conditions = [];
+$params = [];
+
+if ($request->actorType !== null) {
+    $conditions[] = 'actor_type = :actor_type';
+    $params['actor_type'] = $request->actorType;
+}
+
+if ($request->actorId !== null) {
+    $conditions[] = 'actor_id = :actor_id';
+    $params['actor_id'] = $request->actorId;
+}
+
+if ($request->eventKey !== null) {
+    $conditions[] = 'event_key = :event_key';
+    $params['event_key'] = $request->eventKey;
+}
+
+if ($request->entityType !== null) {
+    $conditions[] = 'entity_type = :entity_type';
+    $params['entity_type'] = $request->entityType;
+}
+
+if ($request->entityId !== null) {
+    $conditions[] = 'entity_id = :entity_id';
+    $params['entity_id'] = $request->entityId;
+}
+
+if ($request->subjectType !== null) {
+    $conditions[] = 'subject_type = :subject_type';
+    $params['subject_type'] = $request->subjectType;
+}
+
+if ($request->subjectId !== null) {
+    $conditions[] = 'subject_id = :subject_id';
+    $params['subject_id'] = $request->subjectId;
+}
+
+if ($request->requestId !== null) {
+    $conditions[] = 'request_id = :request_id';
+    $params['request_id'] = $request->requestId;
+}
+
+if ($request->correlationId !== null) {
+    $conditions[] = 'correlation_id = :correlation_id';
+    $params['correlation_id'] = $request->correlationId;
+}
+
+if ($request->after !== null) {
+    $conditions[] = 'occurred_at >= :after';
+    $params['after'] = $request->after
+        ->setTimezone(new \DateTimeZone('UTC'))
+        ->format('Y-m-d H:i:s.u');
+}
+
+if ($request->before !== null) {
+    $conditions[] = 'occurred_at <= :before';
+    $params['before'] = $request->before
+        ->setTimezone(new \DateTimeZone('UTC'))
+        ->format('Y-m-d H:i:s.u');
+}
+
+$whereSql = $conditions === []
+    ? ''
+    : ' WHERE ' . implode(' AND ', $conditions);
+
+return [
+    'whereSql' => $whereSql,
+    'params' => $params,
+];
+```
+
+* Then define `build()` exactly:
+```php
+$filtered = $this->buildFilteredWhereAndParams($request);
+$whereSql = $filtered['whereSql'];
+$params = $filtered['params'];
+
+$totalSql = 'SELECT COUNT(*) FROM maa_event_logging_audit_trail';
+$filteredCountSql =
+    'SELECT COUNT(*) FROM maa_event_logging_audit_trail'
+    . $whereSql;
+$dataSql =
+    'SELECT id, event_id, actor_type, actor_id, event_key, entity_type, entity_id, '
+    . 'subject_type, subject_id, referrer_route_name, referrer_path, referrer_host, '
+    . 'correlation_id, request_id, route_name, ip_address, user_agent, metadata, occurred_at '
+    . 'FROM maa_event_logging_audit_trail'
+    . $whereSql;
+
+return new PdoPaginationQueryDescriptor(
+    totalSql: $totalSql,
+    totalParams: [],
+    filteredCountSql: $filteredCountSql,
+    filteredCountParams: $params,
+    dataSql: $dataSql,
+    dataParams: $params,
+);
+```
 
 **Explicit Columns:**
 No `SELECT *`. The `dataSql` explicitly selects:
@@ -196,10 +302,13 @@ The extraction guarantees 100% hydration compatibility. No factories or bindings
 **Class:** `AuditTrailAdminPageResultDTO`
 **Namespace:** `Maatify\EventLogging\AuditTrail\DTO`
 **Path:** `src/AuditTrail/DTO/AuditTrailAdminPageResultDTO.php`
-**Modifiers:** `final readonly class`
-**Implements:** `\IteratorAggregate<int, AuditTrailViewDTO>`, `\JsonSerializable`
 
 ```php
+/**
+ * @implements \IteratorAggregate<int, AuditTrailViewDTO>
+ */
+final readonly class AuditTrailAdminPageResultDTO implements \IteratorAggregate, \JsonSerializable
+{
     /**
      * @param list<AuditTrailViewDTO> $items
      */
@@ -216,6 +325,9 @@ The extraction guarantees 100% hydration compatibility. No factories or bindings
         public string $sortDirection
     ) {}
 
+    /**
+     * @return \ArrayIterator<int, AuditTrailViewDTO>
+     */
     public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->items);
@@ -324,6 +436,17 @@ Normalized values are assigned exactly once to separately declared readonly prop
         $this->sortDirection = in_array($normalizedSortDirection, ['ASC', 'DESC'], true) ? $normalizedSortDirection : null;
     }
 
+    private static function utf8Length(string $value, string $field): int
+    {
+        $length = preg_match_all('/./us', $value);
+
+        if ($length === false) {
+            throw AuditTrailAdminQueryInvalidArgumentException::invalidEncoding($field);
+        }
+
+        return $length;
+    }
+
     private static function normalizeNullableString(
         ?string $value,
         string $field,
@@ -332,7 +455,7 @@ Normalized values are assigned exactly once to separately declared readonly prop
         if ($value === null) return null;
         $trimmed = trim($value);
         if ($trimmed === '') return null;
-        if (mb_strlen($trimmed) > $maxLength) {
+        if (self::utf8Length($trimmed, $field) > $maxLength) {
             throw AuditTrailAdminQueryInvalidArgumentException::invalidLength($field);
         }
         return $trimmed;
@@ -371,12 +494,37 @@ Normalized values are assigned exactly once to separately declared readonly prop
     }
 ```
 
-Construct-time validation is performed immediately. No validators delegated. Page and per-page are passed raw without local numeric normalization. MySQL date string formatting occurs exclusively inside the descriptor builder, not the DTO json layer.
+Construct-time validation is performed immediately. No validators delegated. Page and per-page are passed raw without local numeric normalization. MySQL date string formatting occurs exclusively inside the descriptor builder, not the DTO json layer. Note that string length limits match the character semantics of the current `utf8mb4` `VARCHAR`/`CHAR` schema without requiring `ext-mbstring`. The `invalidEncoding(string $field)` must be added to the exact named-constructor plan and its tests.
 
 ## 8. Exception Boundary
 
 **Exception Recommendation:**
 Before AuditTrail Admin Query Runtime implementation, a separate Owner-approved package-wide compatibility PR must introduce a unified package exception marker `Maatify\EventLogging\Exception\EventLoggingExceptionInterface` that extends `\Throwable`. All existing package-defined EventLogging exceptions must implement the marker directly or indirectly without changing their existing constructors, messages, error codes, or failure behavior. A partial AuditTrail-only marker strategy is prohibited.
+
+This prerequisite must update exactly the following existing package-defined exceptions to implement the marker **directly** (because no package-owned common exception base currently exists):
+* `src/AuditTrail/Exception/AuditTrailStorageException.php` (`AuditTrailStorageException`)
+* `src/AuthoritativeAudit/Exception/AuthoritativeAuditStorageException.php` (`AuthoritativeAuditStorageException`)
+* `src/BehaviorTrace/Exception/BehaviorTraceStorageException.php` (`BehaviorTraceStorageException`)
+* `src/DeliveryOperations/Exception/DeliveryOperationsStorageException.php` (`DeliveryOperationsStorageException`)
+* `src/DiagnosticsTelemetry/Exception/DiagnosticsTelemetryStorageException.php` (`DiagnosticsTelemetryStorageException`)
+* `src/SecuritySignals/Exception/SecuritySignalsStorageException.php` (`SecuritySignalsStorageException`)
+
+For each of these exceptions, their constructor, message, error code (`ErrorCodeEnum::DATABASE_CONNECTION_FAILED`), and failure behavior must remain entirely unchanged.
+
+Prerequisite tests needed to prove package-wide marker compliance must include this exact test:
+`tests/Unit/Exception/EventLoggingExceptionInterfaceTest.php`
+Class:
+`Maatify\EventLogging\Tests\Unit\Exception\EventLoggingExceptionInterfaceTest`
+
+The test must prove for all six exceptions:
+* instance of `EventLoggingExceptionInterface`;
+* instance of `SystemMaatifyException`;
+* existing default error code remains `DATABASE_CONNECTION_FAILED`;
+* existing construction and previous-throwable behavior remain unchanged.
+
+Also add the root package-reference update required by the standard:
+`EVENT_LOGGING_PACKAGE_REFERENCE.md`
+as part of the separate prerequisite PR, not PR #96.
 
 This POC implementation remains **blocked** until that prerequisite decision is approved and completed.
 
@@ -395,7 +543,7 @@ After the prerequisite is implemented, the Admin Query exception structure is:
    - Uses `ErrorCodeEnum::DATABASE_CONNECTION_FAILED`.
    - Preserves the original throwable as `previous`.
 
-Unexpected mapper `Throwable` propagates unchanged unless it is explicitly classified as an AuditTrail storage/hydration failure. Nothing is swallowed. No transaction is started, committed, or rolled back.
+Unexpected mapper `Throwable` propagates unchanged unless it is explicitly classified as an AuditTrail storage/hydration failure. Every translated throwable is preserved as `previous`. Nothing is swallowed. No transaction is started, committed, or rolled back.
 
 ## 9. Dependency Injection and Construction
 
@@ -405,7 +553,6 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
     private AuditTrailRowMapper $mapper;
     private AuditTrailAdminQueryDescriptorBuilder $descriptorBuilder;
     private PdoPaginator $paginator;
-    private PaginationConfig $paginationConfig;
 
     public function __construct(private \PDO $pdo)
     {
@@ -413,7 +560,11 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
         $this->descriptorBuilder = new AuditTrailAdminQueryDescriptorBuilder();
         $this->paginator = new PdoPaginator();
 
-        $this->paginationConfig = new PaginationConfig(
+    }
+
+    private function createPaginationConfig(): PaginationConfig
+    {
+        return new PaginationConfig(
             sortWhitelist: new SortWhitelist([
                 'occurred_at' => 'occurred_at',
                 'id' => 'id',
@@ -430,8 +581,6 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
 
     public function paginate(AuditTrailAdminQueryRequestDTO $request): AuditTrailAdminPageResultDTO
     {
-        $descriptor = $this->descriptorBuilder->build($request);
-
         $pageRequest = new PageRequest(
             page: $request->page,
             perPage: $request->perPage,
@@ -440,20 +589,23 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
         );
 
         try {
+            $descriptor = $this->descriptorBuilder->build($request);
+            $paginationConfig = $this->createPaginationConfig();
+
             $result = $this->paginator->paginate(
                 $this->pdo,
                 $descriptor,
                 $pageRequest,
-                $this->paginationConfig,
-                fn (array $row): AuditTrailViewDTO => $this->mapper->map($row)
+                $paginationConfig,
+                fn (array $row): AuditTrailViewDTO => $this->mapper->map($row),
             );
         } catch (\Maatify\Persistence\Exception\PaginationExecutionException|\PDOException $e) {
             throw new AuditTrailStorageException(
                 message: "Failed to query audit trail: " . $e->getMessage(),
                 previous: $e
             );
-        } catch (\Maatify\Persistence\Exception\PaginationConfigurationException $e) {
-             throw AuditTrailAdminQueryExecutionException::executionFailed($e);
+        } catch (\Maatify\Persistence\Exception\InvalidPaginationConfigurationException|\Maatify\Persistence\Exception\InvalidPaginationQueryException $e) {
+            throw AuditTrailAdminQueryExecutionException::executionFailed($e);
         }
 
         return new AuditTrailAdminPageResultDTO(
@@ -486,9 +638,14 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
 | `src/AuditTrail/Exception/AuditTrailAdminQueryInvalidArgumentException.php` | NEW | Query validation boundary | None (Additive) |
 | `src/AuditTrail/Contract/AuditTrailQueryInterface.php` | UNCHANGED | Primitive Interface | Protects v1.0 api |
 | `src/AuditTrail/DTO/AuditTrailQueryDTO.php` | UNCHANGED | Primitive Interface DTO | Protects v1.0 api |
-| `src/AuditTrail/DTO/AuditTrailViewDTO.php` | UNCHANGED | Protected public View DTO | Protects v1.0 api |
-| `src/AuditTrail/Infrastructure/Mysql/AuditTrailQueryMysqlRepository.php`| MODIFY | Inject shared mapper | Maintains 100% backwards compatibility |
-| `src/AuditTrail/Exception/AuditTrailStorageException.php` | MODIFY (Prerequisite) | Implement marker | Additive marker |
+| `src/AuditTrail/DTO/AuditTrailViewDTO.php` | UNCHANGED | Protected public v1 DTO | Protects v1.0 api |
+| `src/AuditTrail/Infrastructure/Mysql/AuditTrailQueryMysqlRepository.php`| MODIFY | Internally construct shared mapper while preserving __construct(PDO $pdo) | Maintains 100% backwards compatibility |
+| `src/AuditTrail/Exception/AuditTrailStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/AuthoritativeAudit/Exception/AuthoritativeAuditStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/BehaviorTrace/Exception/BehaviorTraceStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/DeliveryOperations/Exception/DeliveryOperationsStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/DiagnosticsTelemetry/Exception/DiagnosticsTelemetryStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/SecuritySignals/Exception/SecuritySignalsStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
 | `src/AuditTrail/Contract/AuditTrailPaginatedQueryInterface.php`| DELETE | Obsolete architecture | Break for POC users, as intended |
 | `src/AuditTrail/DTO/AuditTrailQueryCursorDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
 | `src/AuditTrail/DTO/AuditTrailQueryPageDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
@@ -509,6 +666,7 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
 | `tests/Unit/AuditTrail/Infrastructure/Mysql/AuditTrailAdminQueryMysqlRepositoryTest.php` | NEW | Verify repository execution bounds | Additive |
 | `tests/Unit/AuditTrail/Exception/AuditTrailAdminQueryExceptionTest.php` | NEW | Verify invalid/execution exceptions | Additive |
 | `tests/Regression/AuditTrail/AuditTrailQueryMysqlRepositoryRegressionTest.php` | NEW | Verify protected v1 API remains completely unchanged | Additive |
+| `tests/Integration/AuditTrail/AuditTrailRepositoryTest.php` | UNCHANGED | UNCHANGED / REGRESSION-PROTECTED | Protects v1.0 api |
 | `tests/Integration/AuditTrail/AuditTrailAdminQueryMysqlRepositoryTest.php`| NEW | Real MySQL Integration Test | Additive |
 | `tests/Integration/AuditTrail/AuditTrailQueryMysqlRepositoryTest.php` | NEW | Ensure primitive unchanged via real DB test | Additive |
 
@@ -638,32 +796,32 @@ The implementation PR must follow this exact sequence:
 
 | Area | Governing File & Section | Required Rule | Proposed Blueprint Decision | Evidence | Conflict Status |
 | --- | --- | --- | --- | --- | --- |
-| Package/Domain Isolation | `PACKAGE_BUILDING_STANDARD.md` | Keep domains separate | New namespace isolated to `Maatify\EventLogging\AuditTrail` | `src/AuditTrail/Contract` | Blocked Pending Owner Approval (Exception Hierarchy) |
+| Package/Domain Isolation | `PACKAGE_BUILDING_STANDARD.md` | Keep domains separate | New namespace isolated to `Maatify\EventLogging\AuditTrail` | `src/AuditTrail/Contract` | No Conflict |
 | Public Admin Query Interface | `ADMIN_QUERY_API_ARCHITECTURE.md` | Framework agnostic read models | `AuditTrailAdminQueryInterface` has no HTTP or Framework bindings | Uses standard PHP | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Request DTO | `PACKAGE_BUILDING_STANDARD.md` | Strict type validation | `AuditTrailAdminQueryRequestDTO` validates and assigns readonly properties in constructor | Constructor logic | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Result DTO | `PACKAGE_BUILDING_STANDARD.md` | Implement JSON & Iterators | `AuditTrailAdminPageResultDTO` does both | `getIterator()` and `jsonSerialize()` methods | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Offset Pagination | `ADMIN_QUERY_API_ROADMAP.md` | Offset instead of cursor | Delegates pagination logic to persistence package | Uses PDO Pagination | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Persistence Delegation | `PACKAGE_BUILDING_STANDARD.md` | Externalize generic concerns | Using `maatify/persistence` for the generic page logic | `PdoPaginator::paginate()` | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Filter Ownership | `ADMIN_QUERY_API_ARCHITECTURE.md` | Event Logging owns filters | Filters built using dedicated Builder class | `AuditTrailAdminQueryDescriptorBuilder` | Blocked Pending Owner Approval (Exception Hierarchy) |
-| SQL Ownership | `ADMIN_QUERY_API_ARCHITECTURE.md` | SQL built in package | Defined inside Repository/Builder | Explicit Query definitions | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Semantic Count/Data Alignment | `ADMIN_QUERY_API_ARCHITECTURE.md`| Conditions match | Same builder method for count/data filters | `buildFilteredWhereAndParams()` | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Explicit Selected Columns | `PACKAGE_BUILDING_STANDARD.md` | No `SELECT *` | Explicitly lists all 19 columns | Defined in SQL string | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Deterministic Sorting | `PACKAGE_BUILDING_STANDARD.md` | Restrict sort options | Caller selectable only `occurred_at` | Enforced by PDO Paginator config | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Tie-breaker | `PACKAGE_BUILDING_STANDARD.md` | Guarantee sorting order | Tie break using `id` | Enforced by internal `SortWhitelist` | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Mapper Extraction | `PACKAGE_BUILDING_STANDARD.md` | No duplicate logic | `AuditTrailRowMapper` shared by both repos | Row Mapper internal | Blocked Pending Owner Approval (Exception Hierarchy) |
+| Request DTO | `PACKAGE_BUILDING_STANDARD.md` | Strict type validation | `AuditTrailAdminQueryRequestDTO` validates and assigns readonly properties in constructor | Constructor logic | No Conflict |
+| Result DTO | `PACKAGE_BUILDING_STANDARD.md` | Implement JSON & Iterators | `AuditTrailAdminPageResultDTO` does both | `getIterator()` and `jsonSerialize()` methods | No Conflict |
+| Offset Pagination | `ADMIN_QUERY_API_ROADMAP.md` | Offset instead of cursor | Delegates pagination logic to persistence package | Uses PDO Pagination | No Conflict |
+| Persistence Delegation | `PACKAGE_BUILDING_STANDARD.md` | Externalize generic concerns | Using `maatify/persistence` for the generic page logic | `PdoPaginator::paginate()` | No Conflict |
+| Filter Ownership | `ADMIN_QUERY_API_ARCHITECTURE.md` | Event Logging owns filters | Filters built using dedicated Builder class | `AuditTrailAdminQueryDescriptorBuilder` | No Conflict |
+| SQL Ownership | `ADMIN_QUERY_API_ARCHITECTURE.md` | SQL built in package | Defined inside Repository/Builder | Explicit Query definitions | No Conflict |
+| Semantic Count/Data Alignment | `ADMIN_QUERY_API_ARCHITECTURE.md`| Conditions match | Same builder method for count/data filters | `buildFilteredWhereAndParams()` | No Conflict |
+| Explicit Selected Columns | `PACKAGE_BUILDING_STANDARD.md` | No `SELECT *` | Explicitly lists all 19 columns | Defined in SQL string | No Conflict |
+| Deterministic Sorting | `PACKAGE_BUILDING_STANDARD.md` | Restrict sort options | Caller selectable only `occurred_at` | Enforced by PDO Paginator config | No Conflict |
+| Tie-breaker | `PACKAGE_BUILDING_STANDARD.md` | Guarantee sorting order | Tie break using `id` | Enforced by internal `SortWhitelist` | No Conflict |
+| Mapper Extraction | `PACKAGE_BUILDING_STANDARD.md` | No duplicate logic | `AuditTrailRowMapper` shared by both repos | Row Mapper internal | No Conflict |
 | Exception Hierarchy | `PACKAGE_BUILDING_STANDARD.md` | Implement package marker | Implement global marker | Requires prerequisite Owner Approval | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Dependency Direction | `PACKAGE_BUILDING_STANDARD.md` | Outward dependencies only | Relies exclusively on core maatify deps | Architecture rules | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Composer Impact | `COMPOSER_PACKAGE_STANDARD.md` | Validate dependencies | Adds `maatify/persistence` | Composer require update | Blocked Pending Owner Approval (Exception Hierarchy) |
-| No `composer.lock` | `COMPOSER_PACKAGE_STANDARD.md` | Lock must not be tracked | Lock omitted | Not committed | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Unit Tests | `TESTING_STRATEGY.md` | Cover logic fully | Defined explicitly | Unit Test Matrix | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Regression Tests | `TESTING_STRATEGY.md` | Prove V1 API preserved | Defined explicitly | Regression Matrix | Blocked Pending Owner Approval (Exception Hierarchy) |
-| MySQL Integration Tests| `TESTING_STRATEGY.md` | Cover DB Queries | Defined explicitly | Integration Matrix | Blocked Pending Owner Approval (Exception Hierarchy) |
-| PHPStan Max-Level | `PACKAGE_BUILDING_STANDARD.md` | Full types, no ignore | Adhering fully without suppressions | Strict DTO types | Blocked Pending Owner Approval (Exception Hierarchy) |
-| CI Compliance | `CI_WORKFLOW_STANDARD.md` | Automated execution | CI Gate commands required | Execution listed | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Package-Reference Update | `LIBRARY_PRESENTATION_STANDARD.md`| Update documentation | Checked | Final PR requirement | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Changelog Update | `LIBRARY_PRESENTATION_STANDARD.md`| Maintain structure | Checked | PR tracking | Blocked Pending Owner Approval (Exception Hierarchy) |
-| No Framework-Specific API | `PACKAGE_BUILDING_STANDARD.md` | Agnostic contracts | Clean implementation | No Controllers | Blocked Pending Owner Approval (Exception Hierarchy) |
-| Old-Artifact Retirement | `ADMIN_QUERY_API_ROADMAP.md` | Obsolete POC Removal | Exact file list added | Covered in retirement | Blocked Pending Owner Approval (Exception Hierarchy) |
+| Dependency Direction | `PACKAGE_BUILDING_STANDARD.md` | Outward dependencies only | Relies exclusively on core maatify deps | Architecture rules | No Conflict |
+| Composer Impact | `COMPOSER_PACKAGE_STANDARD.md` | Validate dependencies | Adds `maatify/persistence` | Composer require update | No Conflict |
+| No `composer.lock` | `COMPOSER_PACKAGE_STANDARD.md` | Lock must not be tracked | Lock omitted | Not committed | No Conflict |
+| Unit Tests | `TESTING_STRATEGY.md` | Cover logic fully | Defined explicitly | Unit Test Matrix | No Conflict |
+| Regression Tests | `TESTING_STRATEGY.md` | Prove V1 API preserved | Defined explicitly | Regression Matrix | No Conflict |
+| MySQL Integration Tests| `TESTING_STRATEGY.md` | Cover DB Queries | Defined explicitly | Integration Matrix | No Conflict |
+| PHPStan Max-Level | `PACKAGE_BUILDING_STANDARD.md` | Full types, no ignore | Adhering fully without suppressions | Strict DTO types | No Conflict |
+| CI Compliance | `CI_WORKFLOW_STANDARD.md` | Automated execution | CI Gate commands required | Execution listed | No Conflict |
+| Package-Reference Update | `LIBRARY_PRESENTATION_STANDARD.md`| Update documentation | Checked | Final PR requirement | No Conflict |
+| Changelog Update | `LIBRARY_PRESENTATION_STANDARD.md`| Maintain structure | Checked | PR tracking | No Conflict |
+| No Framework-Specific API | `PACKAGE_BUILDING_STANDARD.md` | Agnostic contracts | Clean implementation | No Controllers | No Conflict |
+| Old-Artifact Retirement | `ADMIN_QUERY_API_ROADMAP.md` | Obsolete POC Removal | Exact file list added | Covered in retirement | No Conflict |
 
 ### Standards Conflict Discovered
 **Conflict:** The `PACKAGE_BUILDING_STANDARD.md` requires domain exceptions to have a package exception marker interface or unified root to reliably catch package-owned exceptions. However, the protected `v1.0.0` EventLogging exception hierarchy does not expose a unified package marker consistently. This POC cannot unilaterally introduce a partial marker strategy in a single domain without creating inconsistency across the package.
