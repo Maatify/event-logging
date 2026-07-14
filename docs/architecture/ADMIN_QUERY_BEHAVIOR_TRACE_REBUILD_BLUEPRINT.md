@@ -153,7 +153,7 @@ Related tests:
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryPageDTOTest.php`
 
 Documentation references to the superseded post-v1 BehaviorTrace pagination artifacts or their wildcard artifact family:
-* `EVENT_LOGGING_PACKAGE_REFERENCE.md` (Contains exact and wildcard references)
+* `EVENT_LOGGING_PACKAGE_REFERENCE.md` (Contains wildcard artifact-family and architecture/history references; it does not list the four BehaviorTrace superseded classes by exact FQCN.)
 * `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` (Contains wildcard and roadmap/status references)
 * `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` (Contains roadmap/status references to the superseded post-v1 experiment)
 * `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` (Contains exact references and roadmap/status references)
