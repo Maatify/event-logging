@@ -148,12 +148,6 @@ public function build(AuditTrailAdminQueryRequestDTO $request): PdoPaginationQue
  *     params: array<string, string|int|bool|null>
  * }
  */
-/**
- * @return array{
- *     whereSql: string,
- *     params: array<string, string|int|bool|null>
- * }
- */
 private function buildFilteredWhereAndParams(
     AuditTrailAdminQueryRequestDTO $request
 ): array;
