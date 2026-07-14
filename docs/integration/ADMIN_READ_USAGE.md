@@ -1,12 +1,12 @@
 # Admin Read Usage
 
-> **Scope Boundary Notice:** This guide focuses on the currently supported primitive `v1.0.0` read/query path. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuditTrail Admin Query API. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
 > - `*PaginatedQueryInterface`
 > - `*QueryCursorDTO`
 > - `*QueryPageDTO`
 > - `*PaginatedQueryService`
 >
-> For the future replacement path, see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> AuditTrail now uses the approved replacement path. Other domains remain future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 The `maatify/event-logging` library provides primitive read/query contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
@@ -53,6 +53,33 @@ The primitive query interfaces enforce robust cursor pagination to ensure stable
 - `limit`: The maximum number of records to return.
 
 The queries rigidly maintain a stable `ORDER BY occurred_at DESC, id DESC` to guarantee consistent traversal of the log data.
+
+## AuditTrail Admin Query Offset Pagination
+
+AuditTrail also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\AuditTrail\DTO\AuditTrailAdminQueryRequestDTO;
+use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailAdminQueryMysqlRepository;
+
+$repository = new AuditTrailAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new AuditTrailAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    eventKey: 'customer.view',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `eventKey`, `entityType`, `entityId`, `subjectType`, `subjectId`, `requestId`, `correlationId`, `after`, and `before`. ID filters require the matching type filter; type-only filters are valid. Date boundaries are inclusive and equal boundaries are valid.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `AuditTrailAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuditTrailAdminQueryExecutionException`. PDO and pagination execution failures throw `AuditTrailStorageException` using the existing audit-trail storage message pattern.
 
 ## Supported Filters per Domain
 

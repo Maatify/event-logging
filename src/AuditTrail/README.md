@@ -53,6 +53,34 @@ $query = new AuditTrailQueryDTO(
 $logs = $queryRepo->find($query);
 ```
 
+### Admin Query Pagination
+
+For host-owned admin tables that need offset pagination, instantiate the separate Admin Query repository:
+
+```php
+use Maatify\EventLogging\AuditTrail\DTO\AuditTrailAdminQueryRequestDTO;
+use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailAdminQueryMysqlRepository;
+
+$adminQuery = new AuditTrailAdminQueryMysqlRepository($pdo);
+
+$page = $adminQuery->paginate(new AuditTrailAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    entityType: 'customer',
+    entityId: 456,
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+The Admin Query API supports actor, event key, entity, subject, request, correlation, and inclusive date-range filters. Type-only filters are valid; ID-only filters are invalid. The response contains `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`.
+
+The primitive `AuditTrailQueryInterface` remains available and unchanged. The removed AuditTrail cursor wrapper artifacts were unreleased post-v1 experiments, not v1 contracts.
+
+This package does not provide HTTP controllers, authorization, routes, UI, exports, localization, free-text search, metadata search, or dashboards.
+
 ## Configuration
 
 Ensure `AuditTrailRecorder` is wired in your DI container with:

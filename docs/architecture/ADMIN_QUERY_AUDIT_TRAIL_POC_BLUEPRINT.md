@@ -1,10 +1,15 @@
-# Blueprint Drafted / Pending Owner Approval
+# Owner Approved / Runtime Implemented
 
-* architecture only;
-* no Runtime implementation authorized;
-* no Composer change authorized;
+* Owner approval granted;
+* Runtime implementation is the subject of this PR;
+* package-wide exception marker prerequisite completed by PR #97;
+* prerequisite merge commit: `09d66172850a96dec431d16123cbb2e8c86fb17a`;
+* Composer dependency on `maatify/persistence ^1.1.0` authorized for this PR;
 * no schema change authorized;
-* no old artifact deletion authorized yet.
+* superseded post-v1 AuditTrail pagination wrapper deletion authorized;
+* unreachable configuration-failure repository test replaced by direct persistence-boundary testing;
+* no production test seam added;
+* no tag or release is created by this PR.
 
 ## 1. Separate AuditTrail Admin Query Public Contract
 
@@ -526,7 +531,7 @@ Also add the root package-reference update required by the standard:
 `EVENT_LOGGING_PACKAGE_REFERENCE.md`
 as part of the separate prerequisite PR, not PR #96.
 
-This POC implementation remains **blocked** until that prerequisite decision is approved and completed.
+The prerequisite decision was approved and completed by PR #97 before this Runtime implementation.
 
 After the prerequisite is implemented, the Admin Query exception structure is:
 
@@ -797,7 +802,7 @@ The implementation PR must follow this exact sequence:
 | Area | Governing File & Section | Required Rule | Proposed Blueprint Decision | Evidence | Conflict Status |
 | --- | --- | --- | --- | --- | --- |
 | Package/Domain Isolation | `PACKAGE_BUILDING_STANDARD.md` | Keep domains separate | New namespace isolated to `Maatify\EventLogging\AuditTrail` | `src/AuditTrail/Contract` | No Conflict |
-| Public Admin Query Interface | `ADMIN_QUERY_API_ARCHITECTURE.md` | Framework agnostic read models | `AuditTrailAdminQueryInterface` has no HTTP or Framework bindings | Uses standard PHP | Blocked Pending Owner Approval (Exception Hierarchy) |
+| Public Admin Query Interface | `ADMIN_QUERY_API_ARCHITECTURE.md` | Framework agnostic read models | `AuditTrailAdminQueryInterface` has no HTTP or Framework bindings | Uses standard PHP | No Conflict |
 | Request DTO | `PACKAGE_BUILDING_STANDARD.md` | Strict type validation | `AuditTrailAdminQueryRequestDTO` validates and assigns readonly properties in constructor | Constructor logic | No Conflict |
 | Result DTO | `PACKAGE_BUILDING_STANDARD.md` | Implement JSON & Iterators | `AuditTrailAdminPageResultDTO` does both | `getIterator()` and `jsonSerialize()` methods | No Conflict |
 | Offset Pagination | `ADMIN_QUERY_API_ROADMAP.md` | Offset instead of cursor | Delegates pagination logic to persistence package | Uses PDO Pagination | No Conflict |
@@ -809,7 +814,7 @@ The implementation PR must follow this exact sequence:
 | Deterministic Sorting | `PACKAGE_BUILDING_STANDARD.md` | Restrict sort options | Caller selectable only `occurred_at` | Enforced by PDO Paginator config | No Conflict |
 | Tie-breaker | `PACKAGE_BUILDING_STANDARD.md` | Guarantee sorting order | Tie break using `id` | Enforced by internal `SortWhitelist` | No Conflict |
 | Mapper Extraction | `PACKAGE_BUILDING_STANDARD.md` | No duplicate logic | `AuditTrailRowMapper` shared by both repos | Row Mapper internal | No Conflict |
-| Exception Hierarchy | `PACKAGE_BUILDING_STANDARD.md` | Implement package marker | Implement global marker | Requires prerequisite Owner Approval | Blocked Pending Owner Approval (Exception Hierarchy) |
+| Exception Hierarchy | `PACKAGE_BUILDING_STANDARD.md` | Implement package marker | Global marker prerequisite completed by PR #97 | Merge commit `09d66172850a96dec431d16123cbb2e8c86fb17a` | No Conflict |
 | Dependency Direction | `PACKAGE_BUILDING_STANDARD.md` | Outward dependencies only | Relies exclusively on core maatify deps | Architecture rules | No Conflict |
 | Composer Impact | `COMPOSER_PACKAGE_STANDARD.md` | Validate dependencies | Adds `maatify/persistence` | Composer require update | No Conflict |
 | No `composer.lock` | `COMPOSER_PACKAGE_STANDARD.md` | Lock must not be tracked | Lock omitted | Not committed | No Conflict |
@@ -823,10 +828,10 @@ The implementation PR must follow this exact sequence:
 | No Framework-Specific API | `PACKAGE_BUILDING_STANDARD.md` | Agnostic contracts | Clean implementation | No Controllers | No Conflict |
 | Old-Artifact Retirement | `ADMIN_QUERY_API_ROADMAP.md` | Obsolete POC Removal | Exact file list added | Covered in retirement | No Conflict |
 
-### Standards Conflict Discovered
-**Conflict:** The `PACKAGE_BUILDING_STANDARD.md` requires domain exceptions to have a package exception marker interface or unified root to reliably catch package-owned exceptions. However, the protected `v1.0.0` EventLogging exception hierarchy does not expose a unified package marker consistently. This POC cannot unilaterally introduce a partial marker strategy in a single domain without creating inconsistency across the package.
-**Impact:** Final exception hierarchy implementation for this POC is blocked pending an Owner-level compatibility decision on how to align the EventLogging package exception strategy with the new Standard without breaking `v1.0.0` backwards compatibility. A prerequisite PR must be approved and merged before this POC can proceed.
-**Blueprint Decision:** The blueprint defines exact exception translation, but marks implementation **Blocked Pending Owner Approval**.
+### Standards Conflict Resolution
+The package-wide exception marker prerequisite was completed by PR #97 and merged at `09d66172850a96dec431d16123cbb2e8c86fb17a`. The AuditTrail Admin Query Runtime implements its package-owned validation and execution exceptions against that marker and preserves the existing `AuditTrailStorageException` boundary for PDO and pagination execution failures.
+
+The previously proposed unreachable repository-level invalid-configuration test was replaced by the approved direct-boundary testing strategy: canonical configuration construction is tested directly, `AuditTrailAdminQueryExecutionException::executionFailed()` is tested directly, and invalid `PdoPaginationQueryDescriptor` contracts are tested at the persistence descriptor boundary. No injectable paginator, config factory, subclass hook, reflection mutation, or test-only constructor was added.
 
 ## 14. Validation Gate
 
@@ -850,7 +855,7 @@ vendor/bin/phpunit tests/Integration/AuditTrail/AuditTrailAdminQueryMysqlReposit
 ```
 
 ## 15. Composer and Release Impact
-* future addition: `maatify/persistence ^1.1.0`
+* addition: `maatify/persistence ^1.1.0`
 * exact placement in require;
 * no `composer.lock`;
 * no schema migration expected;
@@ -864,8 +869,6 @@ vendor/bin/phpunit tests/Integration/AuditTrail/AuditTrailAdminQueryMysqlReposit
 * Packagist publication remains Owner-controlled.
 
 ## 16. Explicit Non-Goals
-* no Runtime implementation;
-* no Composer change;
 * no schema change;
 * no primitive cursor replacement;
 * no primitive query DTO modification;
@@ -895,32 +898,32 @@ vendor/bin/phpunit tests/Integration/AuditTrail/AuditTrailAdminQueryMysqlReposit
 
 ## 17. Owner Approval Checklist
 
-* [ ] public interface name and signature;
-* [ ] request DTO;
-* [ ] result DTO;
-* [ ] serialization shape;
-* [ ] filter list;
-* [ ] pair rules;
-* [ ] empty-string rules;
-* [ ] ID validation;
-* [ ] date rules;
-* [ ] page defaults;
-* [ ] per-page limits;
-* [ ] sort whitelist;
-* [ ] tie-breaker;
-* [ ] total meaning;
-* [ ] filtered meaning;
-* [ ] SQL semantic-alignment design;
-* [ ] parameter contract;
-* [ ] mapper extraction;
-* [ ] exception translation;
-* [ ] construction/factory plan;
-* [ ] exact Runtime file inventory;
-* [ ] exact deletion list;
-* [ ] test matrix;
-* [ ] Composer dependency;
-* [ ] Semantic Versioning impact;
-* [ ] documentation update plan;
-* [ ] standards compliance matrix.
+* [x] public interface name and signature;
+* [x] request DTO;
+* [x] result DTO;
+* [x] serialization shape;
+* [x] filter list;
+* [x] pair rules;
+* [x] empty-string rules;
+* [x] ID validation;
+* [x] date rules;
+* [x] page defaults;
+* [x] per-page limits;
+* [x] sort whitelist;
+* [x] tie-breaker;
+* [x] total meaning;
+* [x] filtered meaning;
+* [x] SQL semantic-alignment design;
+* [x] parameter contract;
+* [x] mapper extraction;
+* [x] exception translation;
+* [x] construction/factory plan;
+* [x] exact Runtime file inventory;
+* [x] exact deletion list;
+* [x] test matrix;
+* [x] Composer dependency;
+* [x] Semantic Versioning impact;
+* [x] documentation update plan;
+* [x] standards compliance matrix.
 
-Runtime implementation remains blocked until the Owner explicitly approves this blueprint.
+Runtime implementation is authorized for the AuditTrail POC only. Phase 3 and every other domain remain separate future architecture targets.

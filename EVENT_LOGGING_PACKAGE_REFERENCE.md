@@ -21,6 +21,7 @@ The package intentionally uses explicit runtime dependencies rather than hiding 
 - PHP `^8.2`.
 - PHP extensions: `ext-json`, `ext-pdo`.
 - `maatify/exceptions`.
+- `maatify/persistence` for AuditTrail Admin Query offset pagination mechanics.
 - `maatify/shared-common` for shared contracts such as `ClockInterface`.
 - `psr/log` for optional fail-open fallback logging.
 - `ramsey/uuid` for UUID generation; the package does not provide an internal UUID fallback generator.
@@ -46,7 +47,6 @@ The package exposes `Maatify\EventLogging\` via PSR-4 autoloading. The public ru
 - `Maatify\EventLogging\AuditTrail\Exception\*`
 - `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\*`
 - `Maatify\EventLogging\AuditTrail\Recorder\*`
-- `Maatify\EventLogging\AuditTrail\Service\*`
 - `Maatify\EventLogging\SecuritySignals\Command\*`
 - `Maatify\EventLogging\SecuritySignals\Contract\*`
 - `Maatify\EventLogging\SecuritySignals\DTO\*`
@@ -180,6 +180,48 @@ All primitive query repositories order results by `occurred_at DESC, id DESC`, a
 
 The primitive read side is designed for archiving, sequential processing, export jobs, and migration jobs.
 
+## 12. AuditTrail Admin Query API
+
+AuditTrail additionally exposes a separate Admin Query API for host-owned administrative screens that need deterministic offset pagination. This API is additive and does not replace the primitive cursor-based `AuditTrailQueryInterface`.
+
+Public contract:
+
+```php
+use Maatify\EventLogging\AuditTrail\Contract\AuditTrailAdminQueryInterface;
+use Maatify\EventLogging\AuditTrail\DTO\AuditTrailAdminQueryRequestDTO;
+use Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailAdminQueryMysqlRepository;
+
+$query = new AuditTrailAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new AuditTrailAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    eventKey: 'customer.view',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `eventKey`, `entityType`, `entityId`, `subjectType`, `subjectId`, `requestId`, `correlationId`, `after`, and `before`. Type-only filters are valid. An ID without its corresponding type is rejected. Empty strings are normalized to `null`, IDs must be positive, equal date boundaries are valid, and date filters are inclusive.
+
+The result DTO serializes as:
+
+```text
+items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection
+```
+
+Caller-selectable sorting is limited to `occurred_at`; `id` is used only as the internal deterministic tie-breaker. Pagination normalization, clamping, offset calculation, count execution, and ordering mechanics are delegated to `maatify/persistence`. The public EventLogging API does not expose persistence package classes.
+
+Admin Query exception boundaries:
+
+- `AuditTrailAdminQueryInvalidArgumentException` for invalid request filters and ranges.
+- `AuditTrailAdminQueryExecutionException` for invalid pagination configuration or descriptor construction.
+- `AuditTrailStorageException` for PDO and pagination execution failures, using the existing `Failed to query audit trail: ...` message pattern.
+
+The package does not provide HTTP controllers, routes, authorization, middleware, UI, exports, localization, dashboards, free-text search, metadata search, joins, caching, or approximate counts for Admin Query. Hosts own those concerns.
+
 ### Superseded Post-v1 Pagination Artifacts
 
 The following pagination artifacts were added after the `v1.0.0` release and are considered superseded experiments pending replacement by the approved Admin Query API:
@@ -189,18 +231,23 @@ The following pagination artifacts were added after the `v1.0.0` release and are
 - `*QueryPageDTO`
 - `*PaginatedQueryService`
 
-These artifacts currently exist in the `AuthoritativeAudit`, `AuditTrail`, `SecuritySignals`, and `BehaviorTrace` domains. They must not be used as the architecture for new integrations or extended to additional domains. Advanced domain-scoped Admin Query and reporting contracts are future package work governed by the approved architecture and roadmap.
+The AuditTrail versions of these artifacts have been removed by the Admin Query implementation because they were unreleased post-v1 experiments, not protected `v1.0.0` contracts. Remaining domains must not use these artifacts as the architecture for new integrations or extend them to additional domains. Advanced domain-scoped Admin Query and reporting contracts are future package work governed by the approved architecture and roadmap.
 
 Advanced querying (UI-driven generic search, arbitrary filtering, complex host analytics) remains the responsibility of the host application outside this package.
 
 
-## 12. Public MySQL infrastructure adapters and composition-only status
+## 13. Public MySQL infrastructure adapters and composition-only status
 
-Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
+Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring when they are repository or writer adapters. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
 
-Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. Application and business code should depend on `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository` remains the public MySQL adapter for the AuditTrail Admin Query API. Application and business code should prefer `AuditTrailAdminQueryInterface` and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
 
-## 13. Failure and exception behavior
+Classes marked `@internal` under infrastructure namespaces are package implementation details, not stable public API. Hosts must not construct, type against, extend, or depend on them, and their signatures are not part of the stable compatibility contract. The AuditTrail Admin Query implementation explicitly excludes these internal classes from the stable public API:
+
+- `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailRowMapper`
+- `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\Pagination\AuditTrailAdminQueryDescriptorBuilder`
+
+## 14. Failure and exception behavior
 
 Validation belongs at domain boundaries. Commands validate public input; recorders apply policies and construct already-structured write DTOs; repositories enforce storage-specific failures without applying recording policy.
 
@@ -217,7 +264,7 @@ Every package-defined EventLogging exception implements `Maatify\EventLogging\Ex
 
 Hosts may catch the package marker when they intentionally need a package-wide EventLogging exception boundary. Each domain-specific exception remains the preferred narrow catch boundary. The marker does not change existing fail-open or fail-closed policies, and external `PDOException` or other propagated external throwables do not implement the marker. Existing constructors, messages, error codes, previous throwables, and failure behavior remain unchanged.
 
-## 14. Fail-open and fail-closed domain boundaries
+## 15. Fail-open and fail-closed domain boundaries
 
 - **Fail-closed:** `AuthoritativeAudit` is governance/security critical. Its recorder does not accept fallback logger behavior as a substitute for durable persistence and may throw validation or storage exceptions.
 - **Fail-open at recorder boundary:** `AuditTrail`, `SecuritySignals`, `BehaviorTrace`, `DiagnosticsTelemetry`, and `DeliveryOperations` catch `Throwable` across the full recording flow, including primitive command construction, validation, policy normalization, DTO construction, repository calls, and fallback logger failures. These domains may accept an optional PSR-3 fallback logger for best-effort reporting before swallowing recorder-boundary failures.
