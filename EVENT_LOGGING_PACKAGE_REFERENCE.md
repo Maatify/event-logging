@@ -92,6 +92,7 @@ The package exposes `Maatify\EventLogging\` via PSR-4 autoloading. The public ru
 - `Maatify\EventLogging\Provider\EventLoggingProvider`
 - `Maatify\EventLogging\Provider\EventLoggingProviderFactory`
 - `Maatify\EventLogging\Bootstrap\EventLoggingBindings`
+- `Maatify\EventLogging\Exception\EventLoggingExceptionInterface`
 
 No `App\`, project DI/container, project helper, route, middleware, controller, permission, or host-application-specific configuration API is part of the exported package surface.
 
@@ -204,6 +205,17 @@ Host composition roots or DI containers may instantiate these adapters and bind 
 Validation belongs at domain boundaries. Commands validate public input; recorders apply policies and construct already-structured write DTOs; repositories enforce storage-specific failures without applying recording policy.
 
 Each domain exposes a domain-specific storage exception. Repository-level storage/read failures are wrapped in the domain-specific exception so hosts can choose their own reliability posture when bypassing recorders.
+
+Every package-defined EventLogging exception implements `Maatify\EventLogging\Exception\EventLoggingExceptionInterface` directly or indirectly. The six currently existing storage exceptions implement it directly:
+
+- `Maatify\EventLogging\AuditTrail\Exception\AuditTrailStorageException`
+- `Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException`
+- `Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceStorageException`
+- `Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException`
+- `Maatify\EventLogging\DiagnosticsTelemetry\Exception\DiagnosticsTelemetryStorageException`
+- `Maatify\EventLogging\SecuritySignals\Exception\SecuritySignalsStorageException`
+
+Hosts may catch the package marker when they intentionally need a package-wide EventLogging exception boundary. Each domain-specific exception remains the preferred narrow catch boundary. The marker does not change existing fail-open or fail-closed policies, and external `PDOException` or other propagated external throwables do not implement the marker. Existing constructors, messages, error codes, previous throwables, and failure behavior remain unchanged.
 
 ## 14. Fail-open and fail-closed domain boundaries
 

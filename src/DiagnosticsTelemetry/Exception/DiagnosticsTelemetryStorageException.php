@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\DiagnosticsTelemetry\Exception;
 
+use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
 use Maatify\Exceptions\Contracts\ErrorCodeInterface;
 use Maatify\Exceptions\Enum\ErrorCodeEnum;
 use Maatify\Exceptions\Exception\System\SystemMaatifyException;
 
-class DiagnosticsTelemetryStorageException extends SystemMaatifyException
+class DiagnosticsTelemetryStorageException extends SystemMaatifyException implements EventLoggingExceptionInterface
 {
     public function defaultErrorCode(): ErrorCodeInterface
     {
