@@ -308,10 +308,13 @@ The extraction guarantees 100% hydration compatibility. No factories or bindings
 **Class:** `AuditTrailAdminPageResultDTO`
 **Namespace:** `Maatify\EventLogging\AuditTrail\DTO`
 **Path:** `src/AuditTrail/DTO/AuditTrailAdminPageResultDTO.php`
-**Modifiers:** `final readonly class`
-**Implements:** `\IteratorAggregate<int, AuditTrailViewDTO>`, `\JsonSerializable`
 
 ```php
+/**
+ * @implements \IteratorAggregate<int, AuditTrailViewDTO>
+ */
+final readonly class AuditTrailAdminPageResultDTO implements \IteratorAggregate, \JsonSerializable
+{
     /**
      * @param list<AuditTrailViewDTO> $items
      */
@@ -328,6 +331,9 @@ The extraction guarantees 100% hydration compatibility. No factories or bindings
         public string $sortDirection
     ) {}
 
+    /**
+     * @return \ArrayIterator<int, AuditTrailViewDTO>
+     */
     public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->items);
