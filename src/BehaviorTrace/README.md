@@ -16,12 +16,14 @@ The module follows the Canonical Logger Design Standard:
 3.  **DTOs**: Strict Data Transfer Objects for Context, Events, and Cursors.
 4.  **Infrastructure** (`BehaviorTraceWriterMysqlRepository`): The MySQL implementation of the writer using PDO.
 5.  **Policy** (`BehaviorTracePolicyInterface`): Interface for normalizing inputs (ActorType) and validating rules. A default implementation (`BehaviorTraceDefaultPolicy`) is provided.
+6.  **Admin Query** (`BehaviorTraceAdminQueryInterface`): A separate offset-pagination API for host-owned administrative screens.
 
 ### Module Boundary / Public Surface
 
 Consumers should strictly use the defined Public API:
 - **Write:** `BehaviorTraceRecorder::record(...)`
 - **Read:** `BehaviorTraceQueryInterface::read(...)`
+- **Admin Query:** `BehaviorTraceAdminQueryInterface::paginate(...)`
 - **Configure:** `BehaviorTracePolicyInterface` (optional implementation)
 
 See `EVENT_LOGGING_PACKAGE_REFERENCE.md` for full contract details.
@@ -112,6 +114,33 @@ The module is designed to support future archiving via the `BehaviorTraceQueryIn
 - **Stable Cursors**: The `read()` method accepts a `BehaviorTraceCursorDTO` (last occurred_at + id) to allow reliable, stateless iteration.
 - **Read-Side Resilience**: The reader handles unknown or invalid data gracefully.
 
+### Admin Query
+
+BehaviorTrace exposes a separate Admin Query API for host-owned administrative screens that need deterministic offset pagination:
+
+```php
+use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceAdminQueryRequestDTO;
+use Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceAdminQueryMysqlRepository;
+
+$query = new BehaviorTraceAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new BehaviorTraceAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    action: 'user.update',
+    entityType: 'user',
+    entityId: 456,
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `action`, `entityType`, `entityId`, `requestId`, `correlationId`, `after`, and `before`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. The API returns `BehaviorTraceAdminPageResultDTO` with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`.
+
+The primitive `find()` and `read()` methods remain protected compatibility contracts. Admin Query is additive and does not replace those cursor-based methods.
+
 ### Extensibility
 
 - **ActorType**: Implement `BehaviorTraceActorTypeInterface`.
@@ -121,7 +150,7 @@ The module is designed to support future archiving via the `BehaviorTraceQueryIn
 >
 > The read-side provided by this module is a **primitive, cursor-based reader**
 > intended strictly for archiving and sequential processing.
-> Statements saying the reader is not designed for UI pagination, searching, or analytics apply only to this protected primitive `v1.0.0` reader. It does not imply that the entire domain can never contain the future separate Admin Query API.
+> Statements saying the reader is not designed for UI pagination, searching, or analytics apply only to this protected primitive `v1.0.0` reader. BehaviorTrace now provides the separate Admin Query API for deterministic administrative offset pagination.
 
 ### Constraints & Guards
 

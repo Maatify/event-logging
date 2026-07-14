@@ -1,12 +1,12 @@
 # Admin Read Usage
 
-> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuditTrail Admin Query API. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuditTrail and BehaviorTrace Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
 > - `*PaginatedQueryInterface`
 > - `*QueryCursorDTO`
 > - `*QueryPageDTO`
 > - `*PaginatedQueryService`
 >
-> AuditTrail now uses the approved replacement path. Other domains remain future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> AuditTrail and BehaviorTrace now use the approved replacement path. Other domains remain future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 The `maatify/event-logging` library provides primitive read/query contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
@@ -80,6 +80,35 @@ Supported filters are `actorType`, `actorId`, `eventKey`, `entityType`, `entityI
 The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
 
 Admin Query validation errors throw `AuditTrailAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuditTrailAdminQueryExecutionException`. PDO and pagination execution failures throw `AuditTrailStorageException` using the existing audit-trail storage message pattern.
+
+## BehaviorTrace Admin Query Offset Pagination
+
+BehaviorTrace also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceAdminQueryRequestDTO;
+use Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceAdminQueryMysqlRepository;
+
+$repository = new BehaviorTraceAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new BehaviorTraceAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    action: 'user.update',
+    entityType: 'user',
+    entityId: 456,
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `action`, `entityType`, `entityId`, `requestId`, `correlationId`, `after`, and `before`. ID filters require the matching type filter; type-only filters are valid. Date boundaries are inclusive and equal boundaries are valid.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `BehaviorTraceAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `BehaviorTraceAdminQueryExecutionException`. PDO and pagination execution failures throw `BehaviorTraceStorageException` using the existing `Failed to query BehaviorTrace records: ...` message pattern.
 
 ## Supported Filters per Domain
 

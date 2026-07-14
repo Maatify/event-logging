@@ -9,15 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added the separate AuditTrail Admin Query public API with package-owned request/result DTOs and MySQL repository.
+- Added the separate BehaviorTrace Admin Query public API with package-owned request/result DTOs and MySQL repository.
 - Added `maatify/persistence` for deterministic offset pagination mechanics.
 - Added Unit, Regression, and MySQL Integration coverage for AuditTrail Admin Query pagination.
+- Added Unit, Regression, and MySQL Integration coverage for BehaviorTrace Admin Query pagination and primitive cursor compatibility.
 
 ### Changed
 - Extracted AuditTrail row hydration into a shared internal mapper while preserving primitive query behavior.
+- Extracted BehaviorTrace policy-aware row hydration into a shared internal mapper while preserving primitive query behavior.
+- Corrected BehaviorTrace primitive `find()` cursor placeholders for native PDO prepared statements without changing cursor semantics.
 - Updated AuditTrail Admin Query blueprint, roadmap, package reference, and integration documentation to implementation status.
+- Updated BehaviorTrace Admin Query blueprint, package reference, module README, and integration documentation to implementation status.
 
 ### Removed
 - Removed superseded AuditTrail post-v1 pagination wrapper artifacts that were not protected `v1.0.0` contracts.
+- Removed superseded BehaviorTrace post-v1 pagination wrapper artifacts that were not protected `v1.0.0` contracts.
 
 ### Documentation
 - Drafted AuditTrail Admin Query POC blueprint (`ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md`) defining the proposed replacement architecture. No Runtime, Composer, schema, or test behavior changed.
