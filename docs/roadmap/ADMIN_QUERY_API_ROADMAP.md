@@ -78,7 +78,7 @@ For each domain:
 - Do not copy pagination mechanics owned by `maatify/persistence`.
 
 - **Status:**
-  - `BehaviorTrace`: Blueprint Drafted / Pending Owner Approval
+  - `BehaviorTrace`: [Blueprint Drafted / Pending Owner Approval](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
   - `SecuritySignals`: Blocked
   - `AuthoritativeAudit`: Blocked
 
@@ -138,4 +138,4 @@ The `AuditTrail` pagination rebuild POC is implemented and merged, pending the f
 
 `BehaviorTrace` is the active Phase 3.1 architecture target. Phase 3 Runtime implementation is not authorized. This roadmap update does not authorize implementation for BehaviorTrace, SecuritySignals, AuthoritativeAudit, DiagnosticsTelemetry, DeliveryOperations, reporting, dashboards, tags, or releases.
 
-No tag or release is created by this implementation PR.
+No tag or release is created by this BehaviorTrace blueprint PR.

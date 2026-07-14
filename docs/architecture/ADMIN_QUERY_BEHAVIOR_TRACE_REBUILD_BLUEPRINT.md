@@ -4,9 +4,24 @@
 
 * **Exact audited main SHA:** `59ac1afee2313172d11de4f008169c5fd9c824a6`
 * **Exact maatify/persistence Composer constraint currently installed:** `^1.1.0`
-* **Current package exception marker state:** `Maatify\Exceptions\Exception\System\SystemMaatifyException`
+* **Current package exception marker state:** `Maatify\EventLogging\Exception\EventLoggingExceptionInterface` (extends `\Throwable`). `BehaviorTraceStorageException` extends `SystemMaatifyException`, implements the package marker, and retains `ErrorCodeEnum::DATABASE_CONNECTION_FAILED`.
 * **AuditTrail POC merge commit:** `59ac1afee2313172d11de4f008169c5fd9c824a6` (PR #98)
-* **Exact current BehaviorTrace Runtime and test inventory:** Tested via integration tests and unit tests. Has paginated wrapper artifacts. Primitive query repository exists with `find` and `read` methods.
+* **Exact current BehaviorTrace Runtime and test inventory:**
+  * `src/BehaviorTrace/Contract/BehaviorTraceQueryInterface.php` (contains `find` and `read` method signatures)
+  * `src/BehaviorTrace/DTO/BehaviorTraceQueryDTO.php`
+  * `src/BehaviorTrace/DTO/BehaviorTraceCursorDTO.php`
+  * `src/BehaviorTrace/DTO/BehaviorTraceEventDTO.php`
+  * `src/BehaviorTrace/DTO/BehaviorTraceContextDTO.php`
+  * `src/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceQueryMysqlRepository.php` (constructor: `public function __construct(private readonly PDO $pdo, ?BehaviorTracePolicyInterface $policy = null)`)
+  * `src/BehaviorTrace/Contract/BehaviorTracePolicyInterface.php`
+  * `src/BehaviorTrace/Recorder/BehaviorTraceDefaultPolicy.php`
+  * `src/BehaviorTrace/Exception/BehaviorTraceStorageException.php`
+  * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryDTOTest.php`
+  * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceContextDTOTest.php`
+  * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceEventDTOTest.php`
+  * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceCursorDTOTest.php`
+  * `tests/Unit/BehaviorTrace/Repository/BehaviorTraceQueryMysqlRepositoryTest.php`
+  * `tests/Integration/BehaviorTrace/BehaviorTraceRepositoryTest.php`
 
 ## 2. Protected Primitive Behavior
 
@@ -88,6 +103,9 @@ Related tests:
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryCursorDTOTest.php`
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryPageDTOTest.php`
 
+Documentation references:
+* `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md`
+
 These are not protected `v1.0.0` primitive contracts.
 They must not be deleted until the replacement Runtime passes its complete compatibility gate.
 
@@ -96,34 +114,50 @@ They must not be deleted until the replacement Runtime passes its complete compa
 The future public interface:
 
 ```php
-Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTraceAdminQueryInterface
-```
+namespace Maatify\EventLogging\BehaviorTrace\Contract;
 
-Exact method shape:
+use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceAdminPageResultDTO;
+use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceAdminQueryRequestDTO;
+use Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceAdminQueryExecutionException;
+use Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceAdminQueryInvalidArgumentException;
+use Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceStorageException;
 
-```php
-public function paginate(
-    BehaviorTraceAdminQueryRequestDTO $request
-): BehaviorTraceAdminPageResultDTO;
+interface BehaviorTraceAdminQueryInterface
+{
+    /**
+     * @throws BehaviorTraceAdminQueryInvalidArgumentException
+     * @throws BehaviorTraceAdminQueryExecutionException
+     * @throws BehaviorTraceStorageException
+     */
+    public function paginate(
+        BehaviorTraceAdminQueryRequestDTO $request
+    ): BehaviorTraceAdminPageResultDTO;
+}
 ```
 
 The public API must not expose any `maatify/persistence` class.
 
-### Expected Filter Surface
+### Exact Request DTO Contract
 
-* actorType
-* actorId
-* action
-* entityType
-* entityId
-* requestId
-* correlationId
-* after
-* before
-* page
-* perPage
-* sortBy
-* sortDirection
+Define the exact `final readonly` request DTO: `BehaviorTraceAdminQueryRequestDTO`
+
+```php
+public function __construct(
+    public ?string $actorType = null,
+    public ?int $actorId = null,
+    public ?string $action = null,
+    public ?string $entityType = null,
+    public ?int $entityId = null,
+    public ?string $requestId = null,
+    public ?string $correlationId = null,
+    public ?\DateTimeImmutable $after = null,
+    public ?\DateTimeImmutable $before = null,
+    public int|string|null $page = null,
+    public int|string|null $perPage = null,
+    public ?string $sortBy = null,
+    public ?string $sortDirection = null
+)
+```
 
 Validation rules include:
 * trim nullable strings;
@@ -139,15 +173,48 @@ Validation rules include:
 * `id` is internal tie-breaker only;
 * sort direction supports `ASC` and `DESC`;
 * invalid short sort values normalize to `null`;
+* Pure-PCRE UTF-8 length helper must be used.
 * overlong values throw the package validation exception based on exact max schema lengths:
   * `actorType`: 32 chars max;
   * `action`: 128 chars max;
   * `entityType`: 64 chars max;
   * `requestId`: 64 chars max;
   * `correlationId`: 36 chars max;
+  * `sortBy`: 64 chars max;
+  * `sortDirection`: 4 chars max.
 * UTF-8 validation must not require `ext-mbstring`;
 * DTO JSON dates use `DATE_ATOM`;
 * database timestamp formatting belongs in the SQL descriptor builder.
+
+Exact JSON shape matches the property names exactly.
+
+### Exact Result DTO Contract
+
+Define the complete `BehaviorTraceAdminPageResultDTO` contract:
+
+```php
+final readonly class BehaviorTraceAdminPageResultDTO implements \IteratorAggregate, \JsonSerializable
+```
+
+Properties:
+* `items`
+* `page`
+* `perPage`
+* `total`
+* `filtered`
+* `totalPages`
+* `hasNext`
+* `hasPrevious`
+* `sortBy`
+* `sortDirection`
+
+It must implement:
+```php
+\IteratorAggregate<int, BehaviorTraceEventDTO>
+\JsonSerializable
+```
+
+JSON must use `items`, not `data`.
 
 ## 6. Define Pagination and SQL Architecture
 
@@ -155,20 +222,104 @@ The future implementation must use the already-installed `maatify/persistence ^1
 
 Expected components:
 * `BehaviorTraceAdminQueryMysqlRepository`
-* `BehaviorTraceAdminQueryDescriptorBuilder`
+* `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\Pagination\BehaviorTraceAdminQueryDescriptorBuilder` (Path: `src/BehaviorTrace/Infrastructure/Mysql/Pagination/BehaviorTraceAdminQueryDescriptorBuilder.php`)
 * `BehaviorTraceRowMapper`
 
 Exact table: `maa_event_logging_behavior_trace`
 
 The blueprint defines:
-* total count SQL;
-* filtered count SQL;
-* data SQL;
-* one shared condition and parameter source for filtered count and data;
+
+* Total SQL:
+  ```sql
+  SELECT COUNT(*) FROM maa_event_logging_behavior_trace
+  ```
+
+* Data columns:
+  ```text
+  id, event_id, actor_type, actor_id, action, entity_type, entity_id,
+  metadata, correlation_id, request_id, route_name, ip_address,
+  user_agent, occurred_at
+  ```
+
+* Complete descriptor construction and shared condition/parameter method:
+  ```php
+  public function buildDescriptor(BehaviorTraceAdminQueryRequestDTO $request): PdoPaginationQueryDescriptor
+  {
+      $where = [];
+      $params = [];
+
+      if ($request->actorType !== null) {
+          $where[] = 'actor_type = :actor_type';
+          $params['actor_type'] = $request->actorType;
+      }
+
+      if ($request->actorId !== null) {
+          $where[] = 'actor_id = :actor_id';
+          $params['actor_id'] = $request->actorId;
+      }
+
+      if ($request->action !== null) {
+          $where[] = 'action = :action';
+          $params['action'] = $request->action;
+      }
+
+      if ($request->entityType !== null) {
+          $where[] = 'entity_type = :entity_type';
+          $params['entity_type'] = $request->entityType;
+      }
+
+      if ($request->entityId !== null) {
+          $where[] = 'entity_id = :entity_id';
+          $params['entity_id'] = $request->entityId;
+      }
+
+      if ($request->requestId !== null) {
+          $where[] = 'request_id = :request_id';
+          $params['request_id'] = $request->requestId;
+      }
+
+      if ($request->correlationId !== null) {
+          $where[] = 'correlation_id = :correlation_id';
+          $params['correlation_id'] = $request->correlationId;
+      }
+
+      $utc = new \DateTimeZone('UTC');
+      if ($request->after !== null) {
+          $where[] = 'occurred_at >= :after';
+          $params['after'] = $request->after->setTimezone($utc)->format('Y-m-d H:i:s.u');
+      }
+
+      if ($request->before !== null) {
+          $where[] = 'occurred_at <= :before';
+          $params['before'] = $request->before->setTimezone($utc)->format('Y-m-d H:i:s.u');
+      }
+
+      $whereClause = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+
+      $totalSql = 'SELECT COUNT(*) FROM maa_event_logging_behavior_trace';
+
+      $filteredCountSql = 'SELECT COUNT(*) FROM maa_event_logging_behavior_trace' . $whereClause;
+
+      $dataSql = 'SELECT id, event_id, actor_type, actor_id, action, entity_type, entity_id, '
+               . 'metadata, correlation_id, request_id, route_name, ip_address, '
+               . 'user_agent, occurred_at '
+               . 'FROM maa_event_logging_behavior_trace' . $whereClause;
+
+      return new PdoPaginationQueryDescriptor(
+          $totalSql,
+          [],
+          $filteredCountSql,
+          $params,
+          $dataSql,
+          $params
+      );
+  }
+  ```
+
 * explicit selected-column list;
 * no `SELECT *` in Admin Query SQL;
 * no `ORDER BY`, `LIMIT`, or `OFFSET` inside the descriptor data SQL;
-* UTC conversion for date parameters;
+* Dates must be converted to UTC before database formatting.
 * named parameters without leading colons in descriptor arrays;
 * no reserved `__pagination_` parameter prefix.
 
@@ -190,22 +341,50 @@ Canonical pagination configuration:
 * minimum per page: 1
 * maximum per page: 200
 
+### Define Exact Policy-Aware Construction
+
+The future Admin repository constructor must be:
+
+```php
+public function __construct(
+    PDO $pdo,
+    ?BehaviorTracePolicyInterface $policy = null
+)
+```
+
+Exact internal construction:
+
+```php
+$effectivePolicy = $policy ?? new BehaviorTraceDefaultPolicy();
+$this->mapper = new BehaviorTraceRowMapper($effectivePolicy);
+$this->descriptorBuilder = new BehaviorTraceAdminQueryDescriptorBuilder();
+$this->paginator = new PdoPaginator();
+```
+
+The primitive constructor signature, parameter names, order, custom policy support, and default policy fallback remain unchanged.
+
 ## 7. Define Policy-Aware Row Hydration
 
-Exact BehaviorTrace row hydration rules for:
-`id`, `event_id`, `action`, `entity_type`, `entity_id`, `actor_type`, `actor_id`, `correlation_id`, `request_id`, `route_name`, `ip_address`, `user_agent`, `metadata`, `occurred_at`.
-
-It must preserve:
-* actor normalization through the effective `BehaviorTracePolicyInterface`;
-* current default values;
-* nullable fields;
-* invalid metadata JSON mapping;
-* timestamp fallback or throwable behavior;
-* custom policy behavior;
-* `BehaviorTraceContextDTO` construction;
-* `BehaviorTraceEventDTO` construction.
+Document every current fallback exactly:
+* `actor_type`: non-string -> ANONYMOUS, then effective policy normalization
+* `actor_id`: numeric -> int, otherwise null
+* `id`: numeric -> int, otherwise 0
+* `event_id`: string, otherwise empty string
+* `action`: string, otherwise unknown
+* `entity_type`: string, otherwise null
+* `entity_id`: numeric -> int, otherwise null
+* `correlation_id/request_id/route_name/ip_address/user_agent`: string, otherwise null
+* `metadata`: valid JSON array -> array, otherwise null
+* `occurred_at`: non-string -> 1970-01-01 00:00:00 UTC
+* invalid DateTime string or policy exception: mapper throws Exception
 
 **Decision for mapper/policy failures:** The primitive repository catches `\Exception` around the mapping process and translates it to `BehaviorTraceStorageException`. The future shared mapper must throw its raw `\Exception` on failure. The `BehaviorTraceAdminQueryMysqlRepository` must catch this exception and translate it to `BehaviorTraceStorageException`, explicitly preserving the original exception as the previous throwable, matching exactly the primitive boundary's translation strategy.
+
+Preserve the primitive exception messages exactly:
+* find PDO: Failed to query BehaviorTrace records: {message}
+* find mapper: Failed to map BehaviorTrace row: {message}
+* read PDO: Failed to read behavior trace: {message}
+* read mapper: Failed to map behavior trace row: {message}
 
 ## 8. Define Exception Architecture
 
@@ -214,14 +393,46 @@ Future exceptions:
 * `BehaviorTraceAdminQueryExecutionException`
 
 Requirements:
-* validation exception extends the approved Maatify invalid-argument exception;
-* execution exception extends the approved Maatify system exception;
 * both implement `EventLoggingExceptionInterface`;
-* PDO and persistence execution failures translate to `BehaviorTraceStorageException`;
-* persistence configuration/query construction failures translate to the Admin Query execution exception;
 * previous throwables are preserved;
 * no generic `RuntimeException`;
 * no generic `Throwable` catch unless current BehaviorTrace policy/hydration behavior proves it is required and the blueprint documents the exact reason.
+
+Validation exception (`BehaviorTraceAdminQueryInvalidArgumentException`):
+* extends `InvalidArgumentMaatifyException`
+* implements `EventLoggingExceptionInterface`
+* `ErrorCodeEnum::INVALID_ARGUMENT`
+
+Named constructors:
+* `invalidId`
+* `invalidLength`
+* `invalidEncoding`
+* `invalidDateRange`
+
+Stable messages must use `BehaviorTrace Admin Query`.
+
+Execution exception (`BehaviorTraceAdminQueryExecutionException`):
+* extends `SystemMaatifyException`
+* implements `EventLoggingExceptionInterface`
+* `ErrorCodeEnum::MAATIFY_ERROR`
+
+Named constructor:
+```php
+public static function executionFailed(\Throwable $previous): self
+```
+Stable message: `BehaviorTrace Admin Query execution failed: {previous message}`
+
+Define exact Admin repository translations:
+* `PDOException | PaginationExecutionException`
+  -> `BehaviorTraceStorageException`
+  -> `Failed to query BehaviorTrace records: {message}`
+* `InvalidPaginationConfigurationException | InvalidPaginationQueryException`
+  -> `BehaviorTraceAdminQueryExecutionException`
+* `mapper/policy Exception`
+  -> `BehaviorTraceStorageException`
+  -> `Failed to map BehaviorTrace row: {message}`
+
+Always preserve `previous`.
 
 ## 9. Primitive Cursor Compatibility Hazard
 
@@ -229,11 +440,22 @@ Requirements:
 
 Currently, `find()` uses the `cursor_at` placeholder in two places within the `OR` clause. Native prepared statements in MySQL strictly require unique placeholders when reusing values, meaning separate placeholders such as `cursor_at_before` and `cursor_at_equal` are required.
 
-*   **Current behavior:** The query currently relies on PDO emulation which allows placeholder reuse.
-*   **MySQL native-prepared-statement impact:** Disabling emulation breaks the current `cursor_at` reuse, causing PDO to throw an exception.
+*   **Current behavior:** The package does not configure prepare emulation.
+*   **MySQL native-prepared-statement impact:** Reusing `cursor_at` causes PDO to throw an exception.
 *   **Semantic impact:** There is absolutely no change to the query semantics or logic.
 *   **Backward-compatibility impact:** None. The API surface, query results, and external behavior remain exactly identical.
 *   **Required regression and integration evidence:** Real MySQL integration tests for `find()` must verify the correct descending cursor output using native prepared statements to prove that splitting the placeholder preserves the identical results.
+
+Approve only this behavior-preserving future correction:
+
+```sql
+(occurred_at < :cursor_at_before
+ OR (occurred_at = :cursor_at_equal AND id < :cursor_id))
+```
+
+Both timestamp parameters receive the same formatted value.
+
+Document that `read()` already uses distinct placeholders and remains unchanged.
 
 ## 10. Exact Future Runtime File Inventory
 
@@ -243,7 +465,7 @@ Currently, `find()` uses the `cursor_at` placeholder in two places within the `O
 * `src/BehaviorTrace/DTO/BehaviorTraceAdminQueryRequestDTO.php`
 * `src/BehaviorTrace/Exception/BehaviorTraceAdminQueryExecutionException.php`
 * `src/BehaviorTrace/Exception/BehaviorTraceAdminQueryInvalidArgumentException.php`
-* `src/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceAdminQueryDescriptorBuilder.php`
+* `src/BehaviorTrace/Infrastructure/Mysql/Pagination/BehaviorTraceAdminQueryDescriptorBuilder.php`
 * `src/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceAdminQueryMysqlRepository.php`
 * `src/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceRowMapper.php`
 
@@ -257,13 +479,31 @@ Currently, `find()` uses the `cursor_at` placeholder in two places within the `O
 * `src/BehaviorTrace/Service/BehaviorTracePaginatedQueryService.php`
 
 **Tests to create:**
-* Unit tests for the new DTOs, Repository, Descriptor Builder, and Exceptions.
-* Integration tests for AdminQuery API.
+* `tests/Unit/BehaviorTrace/DTO/BehaviorTraceAdminQueryRequestDTOTest.php`
+* `tests/Unit/BehaviorTrace/DTO/BehaviorTraceAdminPageResultDTOTest.php`
+* `tests/Unit/BehaviorTrace/Exception/BehaviorTraceAdminQueryInvalidArgumentExceptionTest.php`
+* `tests/Unit/BehaviorTrace/Exception/BehaviorTraceAdminQueryExecutionExceptionTest.php`
+* `tests/Unit/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceAdminQueryDescriptorBuilderTest.php`
+* `tests/Unit/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceRowMapperTest.php`
+* `tests/Integration/BehaviorTrace/BehaviorTraceAdminQueryMysqlRepositoryTest.php`
 
-**Tests to delete:**
+**Tests to modify:**
+* `tests/Integration/BehaviorTrace/BehaviorTraceRepositoryTest.php` (Regression coverage to prove primitive behaviors)
+* `tests/Unit/BehaviorTrace/Repository/BehaviorTraceQueryMysqlRepositoryTest.php` (Update mapping test if required by mapper extraction)
+
+**Tests to delete (Superseded Post-v1 Experiment):**
 * `tests/Unit/BehaviorTrace/Service/BehaviorTracePaginatedQueryServiceTest.php`
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryCursorDTOTest.php`
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryPageDTOTest.php`
+
+**Documentation to update:**
+* `EVENT_LOGGING_PACKAGE_REFERENCE.md`
+* `docs/integration/ADMIN_READ_USAGE.md`
+* `src/BehaviorTrace/README.md`
+* `CHANGELOG.md`
+* `docs/audits/DOCUMENTATION_INVENTORY.md`
+* `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md`
+* `docs/architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md`
 
 ## 11. Complete Test Blueprint
 
