@@ -1,15 +1,17 @@
 # Admin Query API Phase 1 Runtime Compatibility Inventory
 
-**Status:** Active — Current Phase 1 Runtime Inventory
+**Status:** Historical Phase 1 Baseline
 **Verdict:** READY FOR PHASE 2 DESIGN APPROVAL
+
+*Note: This is a historical audit representing an older repository state. The AuditTrail POC and `maatify/persistence` were added later. Do not use this as current Runtime truth. The BehaviorTrace blueprint audits the latest main independently.*
 
 ## 1. Phase 1 Scope & Constraints
 This audit strictly validates current Runtime compatibility for a future Phase 2 Admin Query API implementation relying on `maatify/persistence v1.1.0`. No runtime changes, new dependencies, or implementations are authorized in Phase 1.
 
 **Environment Check:**
-- **Audit event-logging SHA:** e23acf996bf08288ce802358f7e347b69955fdbe
+- **Original Audit event-logging SHA:** e23acf996bf08288ce802358f7e347b69955fdbe
 - **Audited maatify/persistence tag/commit:** v1.1.0 (5850dbea48e571eae644f1f490e137c8a4202d9d)
-- **Composer State:** Confirmed `maatify/persistence` is not in `composer.json` or `composer.lock`.
+- **Composer State:** Confirmed `maatify/persistence` is not in `composer.json` or `composer.lock` at the time of this audit.
 
 ## 2. Six-Domain Runtime Inventory
 
