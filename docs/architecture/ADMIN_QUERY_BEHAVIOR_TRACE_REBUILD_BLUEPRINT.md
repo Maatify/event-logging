@@ -79,15 +79,51 @@ The blueprint must explicitly preserve:
 * metadata JSON decoding behavior;
 * existing `find()` and `read()` exception boundaries.
 
-### Row Mapper Target
+### Complete the Shared Mapper and Primitive Refactor Contract
 
-Target: `BehaviorTraceRowMapper`
+Define the exact `BehaviorTraceRowMapper` contract:
 
-The mapper must receive the effective `BehaviorTracePolicyInterface` and be shared by:
-* the primitive repository;
-* the future Admin Query repository.
+```php
+/** @internal */
+final class BehaviorTraceRowMapper
+{
+    public function __construct(
+        private BehaviorTracePolicyInterface $policy,
+    ) {
+    }
 
-The blueprint defines exact construction without introducing a generic mapper, service locator, container dependency, or framework binding.
+    /**
+     * @param array<string, mixed> $row
+     */
+    public function map(array $row): BehaviorTraceEventDTO
+    {
+        // implementation follows exactly the previous mapping logic
+    }
+}
+```
+
+Define the primitive repository refactor exactly:
+
+```php
+private BehaviorTraceRowMapper $mapper;
+
+public function __construct(
+    private readonly PDO $pdo,
+    ?BehaviorTracePolicyInterface $policy = null,
+) {
+    $this->mapper = new BehaviorTraceRowMapper(
+        $policy ?? new BehaviorTraceDefaultPolicy(),
+    );
+}
+```
+
+The future implementation must:
+* remove the primitive repository’s private duplicated `mapRowToDTO()` method;
+* call `$this->mapper->map($row)` from both `find()` and `read()`;
+* preserve the constructor name, parameter order, defaults, and visibility;
+* preserve the exact existing `find()` and `read()` catch boundaries and messages;
+* preserve custom policy behavior;
+* make no change to the two public primitive method signatures.
 
 ## 4. Inventory the Superseded Post-v1 Artifacts
 
@@ -193,51 +229,82 @@ final readonly class BehaviorTraceAdminQueryRequestDTO implements \JsonSerializa
         $this->page = $page;
         $this->perPage = $perPage;
 
-        $this->sortBy = $this->normalizeNullableString($sortBy, 64, 'sortBy');
-        $this->sortDirection = $this->normalizeNullableString($sortDirection, 4, 'sortDirection');
+        $normalizedSortBy = self::normalizeNullableString(
+            $sortBy,
+            'sortBy',
+            64,
+        );
+
+        $this->sortBy = $normalizedSortBy === 'occurred_at'
+            ? 'occurred_at'
+            : null;
+
+        $normalizedSortDirection = self::normalizeNullableString(
+            $sortDirection,
+            'sortDirection',
+            4,
+        );
+
+        $this->sortDirection = $normalizedSortDirection !== null
+            && in_array(strtoupper($normalizedSortDirection), ['ASC', 'DESC'], true)
+                ? strtoupper($normalizedSortDirection)
+                : null;
 
         if ($this->actorId !== null && $this->actorType === null) {
-            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId('actorId requires actorType');
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId('actorId without actorType');
         }
 
         if ($this->entityId !== null && $this->entityType === null) {
-            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId('entityId requires entityType');
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId('entityId without entityType');
         }
     }
 
-    private function normalizeNullableString(?string $value, int $maxLength, string $field): ?string
+    private static function utf8Length(string $value, string $field): int
     {
+        $length = preg_match_all('/./us', $value);
+
+        if ($length === false) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidEncoding($field);
+        }
+
+        return $length;
+    }
+
+    private static function normalizeNullableString(
+        ?string $value,
+        string $field,
+        int $maxLength,
+    ): ?string {
         if ($value === null) {
             return null;
         }
+
         $trimmed = trim($value);
+
         if ($trimmed === '') {
             return null;
         }
-        if ($this->utf8Length($trimmed) > $maxLength) {
+
+        if (self::utf8Length($trimmed, $field) > $maxLength) {
             throw BehaviorTraceAdminQueryInvalidArgumentException::invalidLength($field);
         }
+
         return $trimmed;
     }
 
-    private function validatePositiveNullableId(?int $value, string $field): ?int
-    {
+    private static function validatePositiveNullableId(
+        ?int $value,
+        string $field,
+    ): ?int {
         if ($value === null) {
             return null;
         }
-        if ($value < 1) {
+
+        if ($value <= 0) {
             throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId($field);
         }
-        return $value;
-    }
 
-    private function utf8Length(string $value): int
-    {
-        $result = @preg_match_all('/./us', $value);
-        if ($result === false || $result === null) {
-            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidEncoding();
-        }
-        return (int) $result;
+        return $value;
     }
 
     /**
@@ -262,6 +329,21 @@ final readonly class BehaviorTraceAdminQueryRequestDTO implements \JsonSerializa
         ];
     }
 }
+```
+
+Required behavior:
+
+```text
+sortBy = occurred_at -> occurred_at
+sortBy = id          -> null
+other short sortBy   -> null
+overlong sortBy      -> invalidLength
+
+sortDirection = asc  -> ASC
+sortDirection = desc -> DESC
+short invalid value  -> null
+overlong value       -> invalidLength
+invalid UTF-8        -> invalidEncoding(field)
 ```
 
 Validation rules match the exact max schema lengths and pair requirements defined above.
@@ -476,59 +558,120 @@ Canonical pagination configuration:
 
 ### Define Exact Admin Repository Execution Contract
 
-Define the exact private properties, constructor, pagination configuration, `PageRequest`, paginator call, result adaptation, and catch boundaries.
+Replace the current incomplete Admin Repository section with a complete executable contract.
 
-Constructor:
-
-```php
-public function __construct(
-    private PDO $pdo,
-    ?BehaviorTracePolicyInterface $policy = null,
-) {
-    $effectivePolicy = $policy ?? new BehaviorTraceDefaultPolicy();
-
-    $this->mapper = new BehaviorTraceRowMapper($effectivePolicy);
-    $this->descriptorBuilder = new BehaviorTraceAdminQueryDescriptorBuilder();
-    $this->paginator = new PdoPaginator();
-}
-```
-
-The primitive constructor signature, parameter names, order, custom policy support, and default policy fallback remain unchanged.
-
-Provide the complete:
-```php
-private function createPaginationConfig(): PaginationConfig;
-public function paginate(
-    BehaviorTraceAdminQueryRequestDTO $request
-): BehaviorTraceAdminPageResultDTO;
-```
-
-Mapper and policy exceptions must be translated through a dedicated mapping boundary, not a generic `catch (Exception)` around the whole paginator:
+Exact target:
 
 ```php
-private function mapRow(array $row): BehaviorTraceEventDTO
+final class BehaviorTraceAdminQueryMysqlRepository implements BehaviorTraceAdminQueryInterface
 {
-    try {
-        return $this->mapper->map($row);
-    } catch (\Exception $exception) {
-        throw new BehaviorTraceStorageException(
-            message: 'Failed to map BehaviorTrace row: ' . $exception->getMessage(),
-            previous: $exception,
+    private BehaviorTraceRowMapper $mapper;
+
+    private BehaviorTraceAdminQueryDescriptorBuilder $descriptorBuilder;
+
+    private PdoPaginator $paginator;
+
+    public function __construct(
+        private PDO $pdo,
+        ?BehaviorTracePolicyInterface $policy = null,
+    ) {
+        $effectivePolicy = $policy ?? new BehaviorTraceDefaultPolicy();
+
+        $this->mapper = new BehaviorTraceRowMapper($effectivePolicy);
+        $this->descriptorBuilder = new BehaviorTraceAdminQueryDescriptorBuilder();
+        $this->paginator = new PdoPaginator();
+    }
+
+    public function paginate(
+        BehaviorTraceAdminQueryRequestDTO $request,
+    ): BehaviorTraceAdminPageResultDTO {
+        $pageRequest = new PageRequest(
+            page: $request->page,
+            perPage: $request->perPage,
+            sortBy: $request->sortBy,
+            sortDirection: $request->sortDirection,
+        );
+
+        try {
+            $descriptor = $this->descriptorBuilder->build($request);
+            $paginationConfig = $this->createPaginationConfig();
+
+            $result = $this->paginator->paginate(
+                $this->pdo,
+                $descriptor,
+                $pageRequest,
+                $paginationConfig,
+                fn (array $row): BehaviorTraceEventDTO => $this->mapRow($row),
+            );
+        } catch (PaginationExecutionException | PDOException $exception) {
+            throw new BehaviorTraceStorageException(
+                message: 'Failed to query BehaviorTrace records: '
+                    . $exception->getMessage(),
+                previous: $exception,
+            );
+        } catch (
+            InvalidPaginationConfigurationException
+            | InvalidPaginationQueryException $exception
+        ) {
+            throw BehaviorTraceAdminQueryExecutionException::executionFailed(
+                $exception,
+            );
+        }
+
+        return new BehaviorTraceAdminPageResultDTO(
+            items: $result->data,
+            page: $result->page,
+            perPage: $result->perPage,
+            total: $result->total,
+            filtered: $result->filtered,
+            totalPages: $result->totalPages,
+            hasNext: $result->hasNext,
+            hasPrevious: $result->hasPrevious,
+            sortBy: $result->sortBy,
+            sortDirection: $result->sortDirection->value,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function mapRow(array $row): BehaviorTraceEventDTO
+    {
+        try {
+            return $this->mapper->map($row);
+        } catch (\Exception $exception) {
+            throw new BehaviorTraceStorageException(
+                message: 'Failed to map BehaviorTrace row: '
+                    . $exception->getMessage(),
+                previous: $exception,
+            );
+        }
+    }
+
+    private function createPaginationConfig(): PaginationConfig
+    {
+        return new PaginationConfig(
+            sortWhitelist: new SortWhitelist([
+                'occurred_at' => 'occurred_at',
+                'id' => 'id',
+            ]),
+            defaultSortBy: 'occurred_at',
+            defaultSortDirection: SortDirectionEnum::DESC,
+            tieBreakerSortBy: 'id',
+            tieBreakerDirection: SortDirectionEnum::DESC,
+            defaultPerPage: 20,
+            minPerPage: 1,
+            maxPerPage: 200,
         );
     }
 }
 ```
 
-The paginator callback must call that method.
-
-Repository catches must remain limited to:
-* `PaginationExecutionException | PDOException`
-  -> `BehaviorTraceStorageException`
-  -> `Failed to query BehaviorTrace records: {message}`
-* `InvalidPaginationConfigurationException | InvalidPaginationQueryException`
-  -> `BehaviorTraceAdminQueryExecutionException`
-
-Do not catch generic `Throwable` or generic `Exception` around the entire paginate operation.
+State explicitly:
+* `BehaviorTraceStorageException` thrown by `mapRow()` propagates unchanged through `paginate()`.
+* It must not be rewrapped as a paginator execution failure.
+* The repository owns no transaction.
+* No injectable paginator or production test seam is authorized.
 
 ## 7. Define Policy-Aware Row Hydration
 
