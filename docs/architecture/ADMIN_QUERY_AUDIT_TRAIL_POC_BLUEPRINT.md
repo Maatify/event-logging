@@ -155,7 +155,18 @@ private function buildFilteredWhereAndParams(
 
 **Implementation Rules:**
 * `buildFilteredWhereAndParams()` must build the conditions and parameters once.
-* It must return `[$conditions, $params]`.
+* It must use one exact return shape:
+```php
+/**
+ * @return array{
+ *     whereSql: string,
+ *     params: array<string, string|int|bool|null>
+ * }
+ */
+private function buildFilteredWhereAndParams(
+    AuditTrailAdminQueryRequestDTO $request
+): array;
+```
 * Dates must be converted to UTC before `Y-m-d H:i:s.u` formatting inside the descriptor builder:
   ```php
   $request->after?->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.u');
@@ -172,14 +183,40 @@ private function buildFilteredWhereAndParams(
   * `correlationId` → `correlation_id = :correlation_id`
   * `after` → `occurred_at >= :after`
   * `before` → `occurred_at <= :before`
-* `build()` must reuse the returned params for both filtered-count and data queries.
-* `$whereSql` must be an empty string when no filters exist; otherwise `WHERE ` followed by conditions joined with ` AND `.
-* `$totalSql` must be: `SELECT COUNT(id) FROM maa_event_logging_audit_trail`
-* `$filteredCountSql` must be: `SELECT COUNT(id) FROM maa_event_logging_audit_trail ` . $whereSql
-* `$dataSql` must be: `SELECT id, event_id, actor_type, actor_id, event_key, entity_type, entity_id, subject_type, subject_id, referrer_route_name, referrer_path, referrer_host, correlation_id, request_id, route_name, ip_address, user_agent, metadata, occurred_at FROM maa_event_logging_audit_trail ` . $whereSql
-
-Returns exactly:
+* Provide the complete method flow:
 ```php
+$conditions = [];
+$params = [];
+
+// append exact conditions and params
+
+$whereSql = $conditions === []
+    ? ''
+    : ' WHERE ' . implode(' AND ', $conditions);
+
+return [
+    'whereSql' => $whereSql,
+    'params' => $params,
+];
+```
+
+* Then define `build()` exactly:
+```php
+$filtered = $this->buildFilteredWhereAndParams($request);
+$whereSql = $filtered['whereSql'];
+$params = $filtered['params'];
+
+$totalSql = 'SELECT COUNT(*) FROM maa_event_logging_audit_trail';
+$filteredCountSql =
+    'SELECT COUNT(*) FROM maa_event_logging_audit_trail'
+    . $whereSql;
+$dataSql =
+    'SELECT id, event_id, actor_type, actor_id, event_key, entity_type, entity_id, '
+    . 'subject_type, subject_id, referrer_route_name, referrer_path, referrer_host, '
+    . 'correlation_id, request_id, route_name, ip_address, user_agent, metadata, occurred_at '
+    . 'FROM maa_event_logging_audit_trail'
+    . $whereSql;
+
 return new PdoPaginationQueryDescriptor(
     totalSql: $totalSql,
     totalParams: [],
@@ -348,6 +385,17 @@ Normalized values are assigned exactly once to separately declared readonly prop
         $this->sortDirection = in_array($normalizedSortDirection, ['ASC', 'DESC'], true) ? $normalizedSortDirection : null;
     }
 
+    private static function utf8Length(string $value, string $field): int
+    {
+        $length = preg_match_all('/./us', $value);
+
+        if ($length === false) {
+            throw AuditTrailAdminQueryInvalidArgumentException::invalidEncoding($field);
+        }
+
+        return $length;
+    }
+
     private static function normalizeNullableString(
         ?string $value,
         string $field,
@@ -356,7 +404,7 @@ Normalized values are assigned exactly once to separately declared readonly prop
         if ($value === null) return null;
         $trimmed = trim($value);
         if ($trimmed === '') return null;
-        if (strlen($trimmed) > $maxLength) {
+        if (self::utf8Length($trimmed, $field) > $maxLength) {
             throw AuditTrailAdminQueryInvalidArgumentException::invalidLength($field);
         }
         return $trimmed;
@@ -395,14 +443,14 @@ Normalized values are assigned exactly once to separately declared readonly prop
     }
 ```
 
-Construct-time validation is performed immediately. No validators delegated. Page and per-page are passed raw without local numeric normalization. MySQL date string formatting occurs exclusively inside the descriptor builder, not the DTO json layer. Note that string length limits are validated as byte lengths using `strlen()` rather than `mb_strlen()` to match the current package Runtime dependencies (which do not require `ext-mbstring`) and MySQL column byte limits. `ext-mbstring` is neither required nor proposed.
+Construct-time validation is performed immediately. No validators delegated. Page and per-page are passed raw without local numeric normalization. MySQL date string formatting occurs exclusively inside the descriptor builder, not the DTO json layer. Note that string length limits match the character semantics of the current `utf8mb4` `VARCHAR`/`CHAR` schema without requiring `ext-mbstring`. The `invalidEncoding(string $field)` must be added to the exact named-constructor plan and its tests.
 
 ## 8. Exception Boundary
 
 **Exception Recommendation:**
 Before AuditTrail Admin Query Runtime implementation, a separate Owner-approved package-wide compatibility PR must introduce a unified package exception marker `Maatify\EventLogging\Exception\EventLoggingExceptionInterface` that extends `\Throwable`. All existing package-defined EventLogging exceptions must implement the marker directly or indirectly without changing their existing constructors, messages, error codes, or failure behavior. A partial AuditTrail-only marker strategy is prohibited.
 
-This prerequisite must update exactly the following existing package-defined exceptions to directly or indirectly implement the marker:
+This prerequisite must update exactly the following existing package-defined exceptions to implement the marker **directly** (because no package-owned common exception base currently exists):
 * `src/AuditTrail/Exception/AuditTrailStorageException.php` (`AuditTrailStorageException`)
 * `src/AuthoritativeAudit/Exception/AuthoritativeAuditStorageException.php` (`AuthoritativeAuditStorageException`)
 * `src/BehaviorTrace/Exception/BehaviorTraceStorageException.php` (`BehaviorTraceStorageException`)
@@ -412,7 +460,20 @@ This prerequisite must update exactly the following existing package-defined exc
 
 For each of these exceptions, their constructor, message, error code (`ErrorCodeEnum::DATABASE_CONNECTION_FAILED`), and failure behavior must remain entirely unchanged.
 
-Prerequisite tests needed to prove package-wide marker compliance must include tests that instantiate each of these exceptions and assert that they implement `Maatify\EventLogging\Exception\EventLoggingExceptionInterface`, extend `SystemMaatifyException`, and return the expected `ErrorCodeEnum::DATABASE_CONNECTION_FAILED` default error code.
+Prerequisite tests needed to prove package-wide marker compliance must include this exact test:
+`tests/Unit/Exception/EventLoggingExceptionInterfaceTest.php`
+Class:
+`Maatify\EventLogging\Tests\Unit\Exception\EventLoggingExceptionInterfaceTest`
+
+The test must prove for all six exceptions:
+* instance of `EventLoggingExceptionInterface`;
+* instance of `SystemMaatifyException`;
+* existing default error code remains `DATABASE_CONNECTION_FAILED`;
+* existing construction and previous-throwable behavior remain unchanged.
+
+Also add the root package-reference update required by the standard:
+`EVENT_LOGGING_PACKAGE_REFERENCE.md`
+as part of the separate prerequisite PR, not PR #96.
 
 This POC implementation remains **blocked** until that prerequisite decision is approved and completed.
 
@@ -441,7 +502,6 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
     private AuditTrailRowMapper $mapper;
     private AuditTrailAdminQueryDescriptorBuilder $descriptorBuilder;
     private PdoPaginator $paginator;
-    private PaginationConfig $paginationConfig;
 
     public function __construct(private \PDO $pdo)
     {
@@ -449,7 +509,11 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
         $this->descriptorBuilder = new AuditTrailAdminQueryDescriptorBuilder();
         $this->paginator = new PdoPaginator();
 
-        $this->paginationConfig = new PaginationConfig(
+    }
+
+    private function createPaginationConfig(): PaginationConfig
+    {
+        return new PaginationConfig(
             sortWhitelist: new SortWhitelist([
                 'occurred_at' => 'occurred_at',
                 'id' => 'id',
@@ -475,12 +539,14 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
 
         try {
             $descriptor = $this->descriptorBuilder->build($request);
+            $paginationConfig = $this->createPaginationConfig();
+
             $result = $this->paginator->paginate(
                 $this->pdo,
                 $descriptor,
                 $pageRequest,
-                $this->paginationConfig,
-                fn (array $row): AuditTrailViewDTO => $this->mapper->map($row)
+                $paginationConfig,
+                fn (array $row): AuditTrailViewDTO => $this->mapper->map($row),
             );
         } catch (\Maatify\Persistence\Exception\PaginationExecutionException|\PDOException $e) {
             throw new AuditTrailStorageException(
@@ -523,7 +589,12 @@ Unexpected mapper `Throwable` propagates unchanged unless it is explicitly class
 | `src/AuditTrail/DTO/AuditTrailQueryDTO.php` | UNCHANGED | Primitive Interface DTO | Protects v1.0 api |
 | `src/AuditTrail/DTO/AuditTrailViewDTO.php` | UNCHANGED | Protected public v1 DTO | Protects v1.0 api |
 | `src/AuditTrail/Infrastructure/Mysql/AuditTrailQueryMysqlRepository.php`| MODIFY | Internally construct shared mapper while preserving __construct(PDO $pdo) | Maintains 100% backwards compatibility |
-| `src/AuditTrail/Exception/AuditTrailStorageException.php` | MODIFY (Prerequisite) | Implement marker | Additive marker |
+| `src/AuditTrail/Exception/AuditTrailStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/AuthoritativeAudit/Exception/AuthoritativeAuditStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/BehaviorTrace/Exception/BehaviorTraceStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/DeliveryOperations/Exception/DeliveryOperationsStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/DiagnosticsTelemetry/Exception/DiagnosticsTelemetryStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
+| `src/SecuritySignals/Exception/SecuritySignalsStorageException.php` | MODIFY (Separate Owner-Approved Prerequisite) | Implement marker | Additive marker |
 | `src/AuditTrail/Contract/AuditTrailPaginatedQueryInterface.php`| DELETE | Obsolete architecture | Break for POC users, as intended |
 | `src/AuditTrail/DTO/AuditTrailQueryCursorDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
 | `src/AuditTrail/DTO/AuditTrailQueryPageDTO.php` | DELETE | Obsolete architecture | Break for POC users, as intended |
