@@ -6,13 +6,20 @@ namespace Maatify\EventLogging\Tests\Regression\BehaviorTrace;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Exception;
+use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTracePolicyInterface;
 use Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTraceQueryInterface;
 use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceCursorDTO;
 use Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceQueryDTO;
+use Maatify\EventLogging\BehaviorTrace\Enum\BehaviorTraceActorTypeInterface;
 use Maatify\EventLogging\BehaviorTrace\Exception\BehaviorTraceStorageException;
 use Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceQueryMysqlRepository;
 use Maatify\EventLogging\Tests\Support\FakePdo;
+use Maatify\EventLogging\Tests\Support\FakeStatement;
+use Maatify\EventLogging\Tests\Support\ThrowingPdo;
 use PHPUnit\Framework\TestCase;
+use PDO;
+use PDOStatement;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -108,5 +115,220 @@ final class BehaviorTraceQueryMysqlRepositoryRegressionTest extends TestCase
         $this->assertFalse(class_exists('Maatify\EventLogging\BehaviorTrace\DTO\BehaviorTraceQueryPageDTO'));
         $this->assertFalse(interface_exists('Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTracePaginatedQueryInterface'));
         $this->assertFalse(class_exists('Maatify\EventLogging\BehaviorTrace\Service\BehaviorTracePaginatedQueryService'));
+    }
+
+    public function testPrimitiveRepositoryStillPassesCustomPolicyToFindHydration(): void
+    {
+        $statement = $this->statementWithRows([
+            $this->row(['actor_type' => 'host-defined']),
+        ]);
+        $repository = new BehaviorTraceQueryMysqlRepository(
+            $this->pdoReturning($statement),
+            $this->customPolicy('CUSTOM_POLICY'),
+        );
+
+        $items = $repository->find(new BehaviorTraceQueryDTO(limit: 1));
+
+        $this->assertSame('CUSTOM_POLICY', $items[0]->context->actorType->value());
+    }
+
+    public function testPrimitiveRepositoryHydratesMetadataAndTimestampsThroughFind(): void
+    {
+        $statement = $this->statementWithRows([
+            $this->row([
+                'event_id' => 'valid-metadata',
+                'metadata' => '{"ok":true,"count":2}',
+                'occurred_at' => '2024-01-01 12:34:56.123456',
+            ]),
+            $this->row([
+                'event_id' => 'fallbacks',
+                'metadata' => '{bad',
+                'occurred_at' => [],
+            ]),
+        ]);
+        $repository = new BehaviorTraceQueryMysqlRepository($this->pdoReturning($statement));
+
+        $items = $repository->find(new BehaviorTraceQueryDTO(limit: 2));
+
+        $this->assertSame(['ok' => true, 'count' => 2], $items[0]->metadata);
+        $this->assertSame('2024-01-01 12:34:56.123456', $items[0]->context->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $items[0]->context->occurredAt->getTimezone()->getName());
+        $this->assertNull($items[1]->metadata);
+        $this->assertSame('1970-01-01 00:00:00.000000', $items[1]->context->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $items[1]->context->occurredAt->getTimezone()->getName());
+    }
+
+    public function testPrimitiveFindExceptionMessagesAndPreviousThrowablesRemainStable(): void
+    {
+        try {
+            (new BehaviorTraceQueryMysqlRepository(new ThrowingPdo()))->find(new BehaviorTraceQueryDTO());
+            $this->fail('Expected query storage exception.');
+        } catch (BehaviorTraceStorageException $exception) {
+            $this->assertSame(
+                'Failed to query BehaviorTrace records: Simulated PDO connection/prepare error',
+                $exception->getMessage(),
+            );
+            $this->assertInstanceOf(\PDOException::class, $exception->getPrevious());
+        }
+
+        $repository = new BehaviorTraceQueryMysqlRepository(
+            $this->pdoReturning($this->statementWithRows([$this->row()])),
+            $this->throwingPolicy(),
+        );
+
+        try {
+            $repository->find(new BehaviorTraceQueryDTO());
+            $this->fail('Expected mapper storage exception.');
+        } catch (BehaviorTraceStorageException $exception) {
+            $this->assertSame(
+                'Failed to map BehaviorTrace row: policy failed',
+                $exception->getMessage(),
+            );
+            $this->assertInstanceOf(Exception::class, $exception->getPrevious());
+            $this->assertSame('policy failed', $exception->getPrevious()->getMessage());
+        }
+    }
+
+    public function testPrimitiveReadExceptionMessagesAndPreviousThrowablesRemainStable(): void
+    {
+        try {
+            iterator_to_array((new BehaviorTraceQueryMysqlRepository(new ThrowingPdo()))->read(null));
+            $this->fail('Expected read storage exception.');
+        } catch (BehaviorTraceStorageException $exception) {
+            $this->assertSame(
+                'Failed to read behavior trace: Simulated PDO connection/prepare error',
+                $exception->getMessage(),
+            );
+            $this->assertInstanceOf(\PDOException::class, $exception->getPrevious());
+        }
+
+        $repository = new BehaviorTraceQueryMysqlRepository(
+            $this->pdoReturning($this->statementWithRows([$this->row()])),
+            $this->throwingPolicy(),
+        );
+
+        try {
+            iterator_to_array($repository->read(null));
+            $this->fail('Expected read mapper storage exception.');
+        } catch (BehaviorTraceStorageException $exception) {
+            $this->assertSame(
+                'Failed to map behavior trace row: policy failed',
+                $exception->getMessage(),
+            );
+            $this->assertInstanceOf(Exception::class, $exception->getPrevious());
+            $this->assertSame('policy failed', $exception->getPrevious()->getMessage());
+        }
+    }
+
+    public function testOutOfScopeAdminQuerySurfaceIsStillAbsentButApprovedDomainSurfaceExists(): void
+    {
+        $this->assertFalse(interface_exists('Maatify\EventLogging\Contract\AdminQueryInterface'));
+        $this->assertFalse(class_exists('Maatify\EventLogging\Http\BehaviorTraceAdminQueryController'));
+        $this->assertTrue(interface_exists('Maatify\EventLogging\BehaviorTrace\Contract\BehaviorTraceAdminQueryInterface'));
+        $this->assertTrue(class_exists('Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceAdminQueryMysqlRepository'));
+
+        $schemaPath = __DIR__ . '/../../../src/BehaviorTrace/Database/schema.maa_event_logging_behavior_trace.sql';
+        $this->assertFileExists($schemaPath);
+        $this->assertStringContainsString(
+            'CREATE TABLE maa_event_logging_behavior_trace',
+            (string) file_get_contents($schemaPath),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function row(array $overrides = []): array
+    {
+        return array_replace([
+            'id' => 1,
+            'event_id' => 'event-1',
+            'actor_type' => 'USER',
+            'actor_id' => 10,
+            'action' => 'view',
+            'entity_type' => 'document',
+            'entity_id' => 20,
+            'metadata' => '{}',
+            'correlation_id' => 'corr',
+            'request_id' => 'req',
+            'route_name' => 'route',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'agent',
+            'occurred_at' => '2024-01-01 00:00:00.000000',
+        ], $overrides);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private function statementWithRows(array $rows): FakeStatement
+    {
+        $statement = new FakeStatement();
+        $statement->fetchResults = $rows;
+
+        return $statement;
+    }
+
+    private function pdoReturning(FakeStatement $statement): PDO
+    {
+        return new class($statement) extends PDO {
+            public function __construct(private FakeStatement $statement)
+            {
+            }
+
+            /**
+             * @param array<int, mixed> $options
+             */
+            public function prepare(string $query, array $options = []): PDOStatement
+            {
+                $this->statement->queryString = $query;
+                return $this->statement;
+            }
+        };
+    }
+
+    private function customPolicy(string $actorType): BehaviorTracePolicyInterface
+    {
+        return new class($actorType) implements BehaviorTracePolicyInterface {
+            public function __construct(private string $actorType)
+            {
+            }
+
+            public function normalizeActorType(string|BehaviorTraceActorTypeInterface $actorType): BehaviorTraceActorTypeInterface
+            {
+                return new class($this->actorType) implements BehaviorTraceActorTypeInterface {
+                    public function __construct(private string $actorType)
+                    {
+                    }
+
+                    public function value(): string
+                    {
+                        return $this->actorType;
+                    }
+                };
+            }
+
+            public function validateMetadataSize(string $json): bool
+            {
+                return true;
+            }
+        };
+    }
+
+    private function throwingPolicy(): BehaviorTracePolicyInterface
+    {
+        return new class implements BehaviorTracePolicyInterface {
+            public function normalizeActorType(string|BehaviorTraceActorTypeInterface $actorType): BehaviorTraceActorTypeInterface
+            {
+                throw new Exception('policy failed');
+            }
+
+            public function validateMetadataSize(string $json): bool
+            {
+                return true;
+            }
+        };
     }
 }

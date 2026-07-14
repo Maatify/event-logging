@@ -130,6 +130,10 @@ final class BehaviorTraceAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertTrue($second->hasNext);
         $this->assertTrue($second->hasPrevious);
 
+        $overflow = $this->repository->paginate(new BehaviorTraceAdminQueryRequestDTO(page: 99, perPage: 2));
+        $this->assertSame(1, $overflow->page);
+        $this->assertSame(3, $overflow->totalPages);
+
         $clamped = $this->repository->paginate(new BehaviorTraceAdminQueryRequestDTO(perPage: 999, sortBy: 'id', sortDirection: 'bad'));
         $this->assertSame(200, $clamped->perPage);
         $this->assertSame('occurred_at', $clamped->sortBy);

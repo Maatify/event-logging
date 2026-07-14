@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / Pending v1.1.0 Release
+**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / Pending v1.1.0 Release
 
 ## 1. Scope Boundary
 
@@ -78,7 +78,7 @@ For each domain:
 - Do not copy pagination mechanics owned by `maatify/persistence`.
 
 - **Status:**
-  - `BehaviorTrace`: [Owner Approved / Runtime Implementation Authorized](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
+  - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
   - `SecuritySignals`: Blocked
   - `AuthoritativeAudit`: Blocked
 
@@ -134,13 +134,17 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-The `AuditTrail` pagination rebuild POC is implemented and merged, pending the future `v1.1.0` release.
+The `AuditTrail` Admin Query Runtime is implemented and merged, pending the future `v1.1.0` release.
 
-`BehaviorTrace` architecture is Owner Approved and is now the only authorized Runtime implementation target. The Runtime must be implemented in a separate PR against the approved blueprint.
+The `BehaviorTrace` Admin Query Runtime is implemented and complete on the current branch.
 
-SecuritySignals and AuthoritativeAudit remain blocked.
+`SecuritySignals` remains blocked. It is not implicitly authorized by the BehaviorTrace implementation. Its future work must start with a separate audit, blueprint, and Owner approval.
 
-DiagnosticsTelemetry and DeliveryOperations remain blocked.
+`AuthoritativeAudit` remains blocked. Its future work must start with a separate audit, blueprint, and Owner approval.
+
+`DiagnosticsTelemetry` remains blocked.
+
+`DeliveryOperations` remains blocked.
 
 Reporting and dashboard work remain blocked.
 
