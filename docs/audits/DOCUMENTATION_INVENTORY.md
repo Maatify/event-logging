@@ -78,3 +78,4 @@
 | `./docs/archive/domain-docs/SecuritySignals/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
 | `./src/SecuritySignals/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/SecuritySignals/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
+| `./docs/architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md` | Architecture Docs | Active | SecuritySignals Admin Query Rebuild Blueprint | Proposed Blueprint / Runtime Implementation Blocked |

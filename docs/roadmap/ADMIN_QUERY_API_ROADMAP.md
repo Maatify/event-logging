@@ -79,7 +79,7 @@ For each domain:
 
 - **Status:**
   - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
-  - `SecuritySignals`: Blocked
+  - `SecuritySignals`: [Proposed Blueprint / Runtime Implementation Blocked](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md)
   - `AuthoritativeAudit`: Blocked
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
