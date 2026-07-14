@@ -17,3 +17,7 @@ composer.lock
 # Temporary files
 *.tmp
 *.patch
+
+# Environment & secrets
+.env
+.env.testing.local
