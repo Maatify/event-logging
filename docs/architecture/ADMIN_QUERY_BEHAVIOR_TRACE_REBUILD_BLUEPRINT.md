@@ -39,6 +39,11 @@ The following primitive BehaviorTrace contracts must be perfectly preserved by t
 
 ### `find()`
 
+Exact signature:
+```php
+public function find(BehaviorTraceQueryDTO $query): array;
+```
+
 * filtered primitive query;
 * descending order: `occurred_at DESC, id DESC`;
 * primitive cursor fields: `cursorOccurredAt`, `cursorId`;
@@ -46,6 +51,14 @@ The following primitive BehaviorTrace contracts must be perfectly preserved by t
 * current storage and mapper exception messages.
 
 ### `read()`
+
+Exact signature:
+```php
+public function read(
+    ?BehaviorTraceCursorDTO $cursor,
+    int $limit = 100,
+): iterable;
+```
 
 * forward sequential stream;
 * ascending order: `occurred_at ASC, id ASC`;
@@ -139,8 +152,14 @@ Related tests:
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryCursorDTOTest.php`
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceQueryPageDTOTest.php`
 
-Documentation references:
-* `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md`
+Documentation references to the superseded post-v1 BehaviorTrace pagination artifacts or their wildcard artifact family:
+* `EVENT_LOGGING_PACKAGE_REFERENCE.md` (Contains exact and wildcard references)
+* `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` (Contains wildcard and roadmap/status references)
+* `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` (Contains roadmap/status references to the superseded post-v1 experiment)
+* `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` (Contains exact references and roadmap/status references)
+* `docs/audits/DOCUMENTATION_INVENTORY.md` (Contains roadmap/status references)
+
+These documentation references are updated or retained as architecture/history references; they are not Runtime consumers blocking future deletion.
 
 These are not protected `v1.0.0` primitive contracts.
 They must not be deleted until the replacement Runtime passes its complete compatibility gate.
@@ -209,16 +228,16 @@ final readonly class BehaviorTraceAdminQueryRequestDTO implements \JsonSerializa
         ?string $sortBy = null,
         ?string $sortDirection = null,
     ) {
-        $this->actorType = $this->normalizeNullableString($actorType, 32, 'actorType');
-        $this->actorId = $this->validatePositiveNullableId($actorId, 'actorId');
+        $this->actorType = self::normalizeNullableString($actorType, 'actorType', 32);
+        $this->actorId = self::validatePositiveNullableId($actorId, 'actorId');
 
-        $this->action = $this->normalizeNullableString($action, 128, 'action');
+        $this->action = self::normalizeNullableString($action, 'action', 128);
 
-        $this->entityType = $this->normalizeNullableString($entityType, 64, 'entityType');
-        $this->entityId = $this->validatePositiveNullableId($entityId, 'entityId');
+        $this->entityType = self::normalizeNullableString($entityType, 'entityType', 64);
+        $this->entityId = self::validatePositiveNullableId($entityId, 'entityId');
 
-        $this->requestId = $this->normalizeNullableString($requestId, 64, 'requestId');
-        $this->correlationId = $this->normalizeNullableString($correlationId, 36, 'correlationId');
+        $this->requestId = self::normalizeNullableString($requestId, 'requestId', 64);
+        $this->correlationId = self::normalizeNullableString($correlationId, 'correlationId', 36);
 
         if ($after !== null && $before !== null && $after > $before) {
             throw BehaviorTraceAdminQueryInvalidArgumentException::invalidDateRange();
