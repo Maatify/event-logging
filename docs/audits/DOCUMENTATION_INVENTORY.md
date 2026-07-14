@@ -11,7 +11,7 @@
 | `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Architecture Docs | Active | Protected `v1.0.0` primitive design | Scope explicitly restricted to v1 primitive path; host owns presentation and cross-system analytics. |
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Architecture Docs | Active | Approved post-v1 architecture |  |
 | `./docs/architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md` | Architecture Docs | Active (Owner Approved / Runtime Implemented) | Blueprint and implementation status for AuditTrail POC | Owner approval granted; runtime implementation documented. |
-| `./docs/architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md` | Architecture Docs | Active — Blueprint Drafted / Pending Owner Approval | BehaviorTrace rebuild blueprint |  |
+| `./docs/architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md` | Architecture Docs | Active — Owner Approved / Runtime Implementation Authorized | BehaviorTrace rebuild blueprint | Owner approval was granted after PR #99. Runtime implementation has not started in this documentation PR. The next authorized action is a separate BehaviorTrace Runtime and tests implementation. |
 | `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Historical Audit Docs | Historical | Historical Phase 1 Baseline |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |

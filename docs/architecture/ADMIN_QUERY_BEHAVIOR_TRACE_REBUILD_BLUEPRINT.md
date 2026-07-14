@@ -1,4 +1,4 @@
-# Blueprint Drafted / Pending Owner Approval
+# Owner Approved / Runtime Implementation Authorized
 
 ## 1. Audit the Current Main State
 
@@ -885,10 +885,23 @@ using native prepared statements.
 
 ## Status and Approval Gate
 
-- [ ] I confirm no Runtime implementation is authorized.
-- [ ] I confirm no artifact deletion is authorized.
-- [ ] I confirm no Composer change is required or authorized.
-- [ ] I confirm no schema change is authorized.
-- [ ] I confirm no SecuritySignals or AuthoritativeAudit work is authorized.
-- [ ] I confirm no tag or release is authorized.
-- [ ] I approve the blueprint and every explicit compatibility decision, unblocking the Runtime implementation.
+- [x] no schema change is required or authorized;
+- [x] no Composer change is required or authorized;
+- [x] no SecuritySignals or AuthoritativeAudit work is authorized;
+- [x] no tag or release is authorized;
+- [x] the complete BehaviorTrace blueprint is approved;
+- [x] BehaviorTrace Runtime implementation is authorized in a separate implementation PR;
+- [x] deletion of the superseded post-v1 artifacts is authorized only atomically after the replacement Runtime and its complete tests pass.
+- [x] approve this behavior-preserving primitive correction:
+
+  ```sql
+  (occurred_at < :cursor_at_before
+   OR (occurred_at = :cursor_at_equal AND id < :cursor_id))
+  ```
+
+  * both timestamp placeholders receive the same formatted value;
+  * `read()` remains unchanged;
+  * public primitive signatures remain unchanged;
+  * primitive query semantics remain unchanged;
+  * native-prepared-statement MySQL Integration and Regression coverage are mandatory;
+  * this approval does not authorize unrelated primitive redesign.
