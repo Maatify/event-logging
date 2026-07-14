@@ -86,10 +86,11 @@ class AuditTrailQueryMysqlRepositoryTest extends TestCase
         $repository->find($query);
 
         $this->assertNotNull($pdo->lastStatement);
-        $this->assertStringContainsString('WHERE (occurred_at < :cursor_at OR (occurred_at = :cursor_at AND id < :cursor_id))', $pdo->lastStatement->queryString);
+        $this->assertStringContainsString('WHERE (occurred_at < :cursor_at_before OR (occurred_at = :cursor_at_equal AND id < :cursor_id))', $pdo->lastStatement->queryString);
 
         $params = $pdo->lastStatement->executedParams;
-        $this->assertEquals('2024-01-01 12:00:00.000000', $params['cursor_at']);
+        $this->assertEquals('2024-01-01 12:00:00.000000', $params['cursor_at_before']);
+        $this->assertEquals('2024-01-01 12:00:00.000000', $params['cursor_at_equal']);
         $this->assertEquals(999, $params['cursor_id']);
     }
 

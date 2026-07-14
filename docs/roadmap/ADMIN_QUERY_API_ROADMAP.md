@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 and Phase 1 Complete / Post-v1.0 Pagination Remediation Planned / Runtime Implementation Blocked
+**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / Pending v1.1.0 Release
 
 ## 1. Scope Boundary
 
@@ -55,12 +55,12 @@ The six domains must not be treated as one bulk implementation. Each domain requ
 - **Status:** Complete. ([View Audit](../audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md))
 
 ### Phase 2 — `AuditTrail` Pagination Rebuild POC
-**Status:** [Blueprint Drafted / Pending Owner Approval](../architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md)
+**Status:** [Implemented / Pending v1.1.0 Release](../architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md)
 
 - **Classification:** Rebuild of incorrect post-v1.0 work.
 - **Goal:** Replace the existing post-v1.0 `AuditTrail` pagination experiment with the correct separate Admin Query API architecture using `maatify/persistence`.
 - **Requirements:** Approved blueprint, package-owned public contract, shared count/data filter source, mapper strategy, exception translation, sort whitelist, and complete regression coverage proving that `v1.0.0` behavior remains unchanged.
-- **Status:** Pending Owner Approval.
+- **Status:** Implemented / Pending v1.1.0 Release.
 
 ### Phase 3 — Remaining Post-v1.0 Pagination Rebuilds
 
@@ -77,7 +77,7 @@ For each domain:
 - Preserve every `v1.0.0` contract and Runtime behavior.
 - Do not copy pagination mechanics owned by `maatify/persistence`.
 
-- **Status:** Pending successful `AuditTrail` POC approval.
+- **Status:** Next separately reviewed architecture target after AuditTrail is merged and verified. Phase 3 is not authorized by the AuditTrail PR.
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
 
@@ -131,16 +131,8 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-The next authorized planning target is the `AuditTrail` pagination rebuild POC.
+The `AuditTrail` pagination rebuild POC is implemented and remains pending merge verification and the future `v1.1.0` release.
 
-Runtime implementation remains blocked until the Owner explicitly approves:
+Phase 3 remains the next separately reviewed architecture target after AuditTrail is merged and verified. This roadmap update does not authorize implementation for BehaviorTrace, SecuritySignals, AuthoritativeAudit, DiagnosticsTelemetry, DeliveryOperations, reporting, dashboards, tags, or releases.
 
-- The Phase 2 blueprint.
-- The replacement strategy for the incorrect post-v1.0 `AuditTrail` pagination artifacts.
-- The public request and result contracts.
-- Count/data semantic alignment.
-- Mapper and exception strategies.
-- The test and compatibility matrix.
-- The `maatify/persistence ^1.1.0` dependency change.
-
-No Composer, Runtime, schema, test, tag, or release change is authorized by this roadmap update alone.
+No tag or release is created by the AuditTrail implementation PR.

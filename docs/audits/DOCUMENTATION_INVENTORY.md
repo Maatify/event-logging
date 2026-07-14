@@ -10,7 +10,7 @@
 | `./docs/architecture/INTEGRATION_SURFACE_DESIGN.md` | Architecture Docs | Active | Architectural rules and logging patterns | Clarified that package may own domain-scoped reporting and dashboard summary contracts; host owns presentation. |
 | `./docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md` | Architecture Docs | Active | Protected `v1.0.0` primitive design | Scope explicitly restricted to v1 primitive path; host owns presentation and cross-system analytics. |
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Architecture Docs | Active | Approved post-v1 architecture |  |
-| `./docs/architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md` | Architecture Docs | Active (Pending Approval) | Blueprint for AuditTrail POC | Pending Owner Approval |
+| `./docs/architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md` | Architecture Docs | Active (Owner Approved / Runtime Implemented) | Blueprint and implementation status for AuditTrail POC | Owner approval granted; runtime implementation documented. |
 | `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap |  |
 | `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Active Audit Docs | Active | Current audited compatibility inventory |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
@@ -45,7 +45,7 @@
 | `./docs/audits/STANDALONE_WORDING_CLARIFICATION_AUDIT.md` | Historical Audit Docs | Historical | Past audit record (not active) | Historical wording: mentions zero-dependency standalone, self-contained, dependency-free |
 | `./docs/audits/WHOLE_LIBRARY_GAP_AUDIT.md` | Historical Audit Docs | Historical | Past audit record (not active) | Historical wording: mentions SQLite support, RuntimeException as storage exception, Common ClockInterface, framework bindings (Slim, PHP-DI, etc), host app namespaces (App, Athar, EP4N) |
 | `./docs/examples/EXAMPLES_COVERAGE_PLAN.md` | Examples Docs | Active | Code example coverage and plans | Safe guardrail wording: explicitly states SQLite must not be presented as compatible. |
-| `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package | Added scope notice; removed superseded cursor wrappers. |
+| `./docs/integration/ADMIN_READ_USAGE.md` | Public Integration Docs | Active | Instructions for integrating primitive reads and AuditTrail Admin Query | Documents host construction, filters, pagination response, sort behavior, and exception boundaries. |
 | `./docs/integration/FACTORY_USAGE.md` | Public Integration Docs | Active | Instructions for integrating the package |  |
 | `./docs/integration/INSTALLATION.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/integration/MANUAL_WIRING.md` | Public Integration Docs | Active | Instructions for integrating the package | Reviewed: framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
@@ -60,7 +60,7 @@
 | `./schema/README.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns | Reviewed: generic/framework mentions are safe guardrails or explicit prohibitions; no current wording update needed. |
 | `./docs/archive/domain-docs/AuditTrail/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
 | `./docs/archive/domain-docs/AuditTrail/CHECKLIST.md` | Domain Docs | Archived | Domain specific checklist |  |
-| `./src/AuditTrail/README.md` | Domain Docs | Active | Domain overview |  |
+| `./src/AuditTrail/README.md` | Domain Docs | Active | Domain overview | Documents primitive query and separate Admin Query pagination API. |
 | `./docs/archive/domain-docs/AuditTrail/TESTING_STRATEGY.md` | Domain Docs | Archived | Domain testing strategy |  |
 | `./src/AuthoritativeAudit/README.md` | Domain Docs | Active | Domain overview |  |
 | `./docs/archive/domain-docs/BehaviorTrace/CANONICAL_ARCHITECTURE.md` | Domain Docs | Archived | Domain canonical architecture |  |
