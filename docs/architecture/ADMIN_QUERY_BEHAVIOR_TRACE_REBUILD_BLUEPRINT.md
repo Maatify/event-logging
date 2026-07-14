@@ -142,79 +142,188 @@ The public API must not expose any `maatify/persistence` class.
 Define the exact `final readonly` request DTO: `BehaviorTraceAdminQueryRequestDTO`
 
 ```php
-public function __construct(
-    public ?string $actorType = null,
-    public ?int $actorId = null,
-    public ?string $action = null,
-    public ?string $entityType = null,
-    public ?int $entityId = null,
-    public ?string $requestId = null,
-    public ?string $correlationId = null,
-    public ?\DateTimeImmutable $after = null,
-    public ?\DateTimeImmutable $before = null,
-    public int|string|null $page = null,
-    public int|string|null $perPage = null,
-    public ?string $sortBy = null,
-    public ?string $sortDirection = null
-)
+final readonly class BehaviorTraceAdminQueryRequestDTO implements \JsonSerializable
+{
+    public ?string $actorType;
+    public ?int $actorId;
+    public ?string $action;
+    public ?string $entityType;
+    public ?int $entityId;
+    public ?string $requestId;
+    public ?string $correlationId;
+    public ?\DateTimeImmutable $after;
+    public ?\DateTimeImmutable $before;
+    public int|string|null $page;
+    public int|string|null $perPage;
+    public ?string $sortBy;
+    public ?string $sortDirection;
+
+    public function __construct(
+        ?string $actorType = null,
+        ?int $actorId = null,
+        ?string $action = null,
+        ?string $entityType = null,
+        ?int $entityId = null,
+        ?string $requestId = null,
+        ?string $correlationId = null,
+        ?\DateTimeImmutable $after = null,
+        ?\DateTimeImmutable $before = null,
+        int|string|null $page = null,
+        int|string|null $perPage = null,
+        ?string $sortBy = null,
+        ?string $sortDirection = null,
+    ) {
+        $this->actorType = $this->normalizeNullableString($actorType, 32, 'actorType');
+        $this->actorId = $this->validatePositiveNullableId($actorId, 'actorId');
+
+        $this->action = $this->normalizeNullableString($action, 128, 'action');
+
+        $this->entityType = $this->normalizeNullableString($entityType, 64, 'entityType');
+        $this->entityId = $this->validatePositiveNullableId($entityId, 'entityId');
+
+        $this->requestId = $this->normalizeNullableString($requestId, 64, 'requestId');
+        $this->correlationId = $this->normalizeNullableString($correlationId, 36, 'correlationId');
+
+        if ($after !== null && $before !== null && $after > $before) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidDateRange();
+        }
+        $this->after = $after;
+        $this->before = $before;
+
+        $this->page = $page;
+        $this->perPage = $perPage;
+
+        $this->sortBy = $this->normalizeNullableString($sortBy, 64, 'sortBy');
+        $this->sortDirection = $this->normalizeNullableString($sortDirection, 4, 'sortDirection');
+
+        if ($this->actorId !== null && $this->actorType === null) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId('actorId requires actorType');
+        }
+
+        if ($this->entityId !== null && $this->entityType === null) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId('entityId requires entityType');
+        }
+    }
+
+    private function normalizeNullableString(?string $value, int $maxLength, string $field): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+        if ($this->utf8Length($trimmed) > $maxLength) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidLength($field);
+        }
+        return $trimmed;
+    }
+
+    private function validatePositiveNullableId(?int $value, string $field): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+        if ($value < 1) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidId($field);
+        }
+        return $value;
+    }
+
+    private function utf8Length(string $value): int
+    {
+        $result = @preg_match_all('/./us', $value);
+        if ($result === false || $result === null) {
+            throw BehaviorTraceAdminQueryInvalidArgumentException::invalidEncoding();
+        }
+        return (int) $result;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'actorType' => $this->actorType,
+            'actorId' => $this->actorId,
+            'action' => $this->action,
+            'entityType' => $this->entityType,
+            'entityId' => $this->entityId,
+            'requestId' => $this->requestId,
+            'correlationId' => $this->correlationId,
+            'after' => $this->after?->format(DATE_ATOM),
+            'before' => $this->before?->format(DATE_ATOM),
+            'page' => $this->page,
+            'perPage' => $this->perPage,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
+        ];
+    }
+}
 ```
 
-Validation rules include:
-* trim nullable strings;
-* whitespace-only strings become `null`;
-* IDs must be positive;
-* `actorId` without `actorType` is invalid;
-* `entityId` without `entityType` is invalid;
-* type-only filters are valid;
-* `after > before` is invalid;
-* equal boundaries are valid;
-* page and per-page remain raw `int|string|null`;
-* caller-selectable sort is limited to `occurred_at`;
-* `id` is internal tie-breaker only;
-* sort direction supports `ASC` and `DESC`;
-* invalid short sort values normalize to `null`;
-* Pure-PCRE UTF-8 length helper must be used.
-* overlong values throw the package validation exception based on exact max schema lengths:
-  * `actorType`: 32 chars max;
-  * `action`: 128 chars max;
-  * `entityType`: 64 chars max;
-  * `requestId`: 64 chars max;
-  * `correlationId`: 36 chars max;
-  * `sortBy`: 64 chars max;
-  * `sortDirection`: 4 chars max.
-* UTF-8 validation must not require `ext-mbstring`;
-* DTO JSON dates use `DATE_ATOM`;
-* database timestamp formatting belongs in the SQL descriptor builder.
-
-Exact JSON shape matches the property names exactly.
+Validation rules match the exact max schema lengths and pair requirements defined above.
+UTF-8 validation must not require `ext-mbstring` (it uses `preg_match_all` with `/us`). DTO JSON dates use `DATE_ATOM`.
 
 ### Exact Result DTO Contract
 
-Define the complete `BehaviorTraceAdminPageResultDTO` contract:
+Provide the full contract:
 
 ```php
+/**
+ * @implements \IteratorAggregate<int, BehaviorTraceEventDTO>
+ */
 final readonly class BehaviorTraceAdminPageResultDTO implements \IteratorAggregate, \JsonSerializable
+{
+    /**
+     * @param list<BehaviorTraceEventDTO> $items
+     */
+    public function __construct(
+        public array $items,
+        public int $page,
+        public int $perPage,
+        public int $total,
+        public int $filtered,
+        public int $totalPages,
+        public bool $hasNext,
+        public bool $hasPrevious,
+        public string $sortBy,
+        public string $sortDirection,
+    ) {
+    }
+
+    /**
+     * @return \ArrayIterator<int, BehaviorTraceEventDTO>
+     */
+    public function getIterator(): \ArrayIterator
+    {
+        return new \ArrayIterator($this->items);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'items' => $this->items,
+            'page' => $this->page,
+            'perPage' => $this->perPage,
+            'total' => $this->total,
+            'filtered' => $this->filtered,
+            'totalPages' => $this->totalPages,
+            'hasNext' => $this->hasNext,
+            'hasPrevious' => $this->hasPrevious,
+            'sortBy' => $this->sortBy,
+            'sortDirection' => $this->sortDirection,
+        ];
+    }
+}
 ```
 
-Properties:
-* `items`
-* `page`
-* `perPage`
-* `total`
-* `filtered`
-* `totalPages`
-* `hasNext`
-* `hasPrevious`
-* `sortBy`
-* `sortDirection`
-
-It must implement:
-```php
-\IteratorAggregate<int, BehaviorTraceEventDTO>
-\JsonSerializable
-```
-
-JSON must use `items`, not `data`.
+JSON key must be `items`.
 
 ## 6. Define Pagination and SQL Architecture
 
@@ -243,76 +352,100 @@ The blueprint defines:
 
 * Complete descriptor construction and shared condition/parameter method:
   ```php
-  public function buildDescriptor(BehaviorTraceAdminQueryRequestDTO $request): PdoPaginationQueryDescriptor
+  /** @internal */
+  final class BehaviorTraceAdminQueryDescriptorBuilder
   {
-      $where = [];
-      $params = [];
+      public function build(
+          BehaviorTraceAdminQueryRequestDTO $request
+      ): PdoPaginationQueryDescriptor {
+          $filter = $this->buildFilteredWhereAndParams($request);
+          $whereClause = $filter['whereSql'];
+          $params = $filter['params'];
 
-      if ($request->actorType !== null) {
-          $where[] = 'actor_type = :actor_type';
-          $params['actor_type'] = $request->actorType;
+          $totalSql = 'SELECT COUNT(*) FROM maa_event_logging_behavior_trace';
+
+          $filteredCountSql = 'SELECT COUNT(*) FROM maa_event_logging_behavior_trace' . $whereClause;
+
+          $dataSql = 'SELECT id, event_id, actor_type, actor_id, action, entity_type, entity_id, '
+                   . 'metadata, correlation_id, request_id, route_name, ip_address, '
+                   . 'user_agent, occurred_at '
+                   . 'FROM maa_event_logging_behavior_trace' . $whereClause;
+
+          return new PdoPaginationQueryDescriptor(
+              totalSql: $totalSql,
+              totalParams: [],
+              filteredCountSql: $filteredCountSql,
+              filteredCountParams: $params,
+              dataSql: $dataSql,
+              dataParams: $params,
+          );
       }
 
-      if ($request->actorId !== null) {
-          $where[] = 'actor_id = :actor_id';
-          $params['actor_id'] = $request->actorId;
+      /**
+       * @return array{
+       *     whereSql: string,
+       *     params: array<string, string|int|bool|null>
+       * }
+       */
+      private function buildFilteredWhereAndParams(
+          BehaviorTraceAdminQueryRequestDTO $request
+      ): array {
+          $where = [];
+          $params = [];
+
+          if ($request->actorType !== null) {
+              $where[] = 'actor_type = :actor_type';
+              $params['actor_type'] = $request->actorType;
+          }
+
+          if ($request->actorId !== null) {
+              $where[] = 'actor_id = :actor_id';
+              $params['actor_id'] = $request->actorId;
+          }
+
+          if ($request->action !== null) {
+              $where[] = 'action = :action';
+              $params['action'] = $request->action;
+          }
+
+          if ($request->entityType !== null) {
+              $where[] = 'entity_type = :entity_type';
+              $params['entity_type'] = $request->entityType;
+          }
+
+          if ($request->entityId !== null) {
+              $where[] = 'entity_id = :entity_id';
+              $params['entity_id'] = $request->entityId;
+          }
+
+          if ($request->requestId !== null) {
+              $where[] = 'request_id = :request_id';
+              $params['request_id'] = $request->requestId;
+          }
+
+          if ($request->correlationId !== null) {
+              $where[] = 'correlation_id = :correlation_id';
+              $params['correlation_id'] = $request->correlationId;
+          }
+
+          $utc = new \DateTimeZone('UTC');
+          if ($request->after !== null) {
+              $where[] = 'occurred_at >= :after';
+              $params['after'] = $request->after->setTimezone($utc)->format('Y-m-d H:i:s.u');
+          }
+
+          if ($request->before !== null) {
+              $where[] = 'occurred_at <= :before';
+              $params['before'] = $request->before->setTimezone($utc)->format('Y-m-d H:i:s.u');
+          }
+
+          $whereClause = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+
+          return [
+              'whereSql' => $whereClause,
+              'params' => $params,
+          ];
       }
-
-      if ($request->action !== null) {
-          $where[] = 'action = :action';
-          $params['action'] = $request->action;
-      }
-
-      if ($request->entityType !== null) {
-          $where[] = 'entity_type = :entity_type';
-          $params['entity_type'] = $request->entityType;
-      }
-
-      if ($request->entityId !== null) {
-          $where[] = 'entity_id = :entity_id';
-          $params['entity_id'] = $request->entityId;
-      }
-
-      if ($request->requestId !== null) {
-          $where[] = 'request_id = :request_id';
-          $params['request_id'] = $request->requestId;
-      }
-
-      if ($request->correlationId !== null) {
-          $where[] = 'correlation_id = :correlation_id';
-          $params['correlation_id'] = $request->correlationId;
-      }
-
-      $utc = new \DateTimeZone('UTC');
-      if ($request->after !== null) {
-          $where[] = 'occurred_at >= :after';
-          $params['after'] = $request->after->setTimezone($utc)->format('Y-m-d H:i:s.u');
-      }
-
-      if ($request->before !== null) {
-          $where[] = 'occurred_at <= :before';
-          $params['before'] = $request->before->setTimezone($utc)->format('Y-m-d H:i:s.u');
-      }
-
-      $whereClause = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
-
-      $totalSql = 'SELECT COUNT(*) FROM maa_event_logging_behavior_trace';
-
-      $filteredCountSql = 'SELECT COUNT(*) FROM maa_event_logging_behavior_trace' . $whereClause;
-
-      $dataSql = 'SELECT id, event_id, actor_type, actor_id, action, entity_type, entity_id, '
-               . 'metadata, correlation_id, request_id, route_name, ip_address, '
-               . 'user_agent, occurred_at '
-               . 'FROM maa_event_logging_behavior_trace' . $whereClause;
-
-      return new PdoPaginationQueryDescriptor(
-          $totalSql,
-          [],
-          $filteredCountSql,
-          $params,
-          $dataSql,
-          $params
-      );
   }
   ```
 
@@ -341,27 +474,61 @@ Canonical pagination configuration:
 * minimum per page: 1
 * maximum per page: 200
 
-### Define Exact Policy-Aware Construction
+### Define Exact Admin Repository Execution Contract
 
-The future Admin repository constructor must be:
+Define the exact private properties, constructor, pagination configuration, `PageRequest`, paginator call, result adaptation, and catch boundaries.
+
+Constructor:
 
 ```php
 public function __construct(
-    PDO $pdo,
-    ?BehaviorTracePolicyInterface $policy = null
-)
-```
+    private PDO $pdo,
+    ?BehaviorTracePolicyInterface $policy = null,
+) {
+    $effectivePolicy = $policy ?? new BehaviorTraceDefaultPolicy();
 
-Exact internal construction:
-
-```php
-$effectivePolicy = $policy ?? new BehaviorTraceDefaultPolicy();
-$this->mapper = new BehaviorTraceRowMapper($effectivePolicy);
-$this->descriptorBuilder = new BehaviorTraceAdminQueryDescriptorBuilder();
-$this->paginator = new PdoPaginator();
+    $this->mapper = new BehaviorTraceRowMapper($effectivePolicy);
+    $this->descriptorBuilder = new BehaviorTraceAdminQueryDescriptorBuilder();
+    $this->paginator = new PdoPaginator();
+}
 ```
 
 The primitive constructor signature, parameter names, order, custom policy support, and default policy fallback remain unchanged.
+
+Provide the complete:
+```php
+private function createPaginationConfig(): PaginationConfig;
+public function paginate(
+    BehaviorTraceAdminQueryRequestDTO $request
+): BehaviorTraceAdminPageResultDTO;
+```
+
+Mapper and policy exceptions must be translated through a dedicated mapping boundary, not a generic `catch (Exception)` around the whole paginator:
+
+```php
+private function mapRow(array $row): BehaviorTraceEventDTO
+{
+    try {
+        return $this->mapper->map($row);
+    } catch (\Exception $exception) {
+        throw new BehaviorTraceStorageException(
+            message: 'Failed to map BehaviorTrace row: ' . $exception->getMessage(),
+            previous: $exception,
+        );
+    }
+}
+```
+
+The paginator callback must call that method.
+
+Repository catches must remain limited to:
+* `PaginationExecutionException | PDOException`
+  -> `BehaviorTraceStorageException`
+  -> `Failed to query BehaviorTrace records: {message}`
+* `InvalidPaginationConfigurationException | InvalidPaginationQueryException`
+  -> `BehaviorTraceAdminQueryExecutionException`
+
+Do not catch generic `Throwable` or generic `Exception` around the entire paginate operation.
 
 ## 7. Define Policy-Aware Row Hydration
 
@@ -378,7 +545,7 @@ Document every current fallback exactly:
 * `occurred_at`: non-string -> 1970-01-01 00:00:00 UTC
 * invalid DateTime string or policy exception: mapper throws Exception
 
-**Decision for mapper/policy failures:** The primitive repository catches `\Exception` around the mapping process and translates it to `BehaviorTraceStorageException`. The future shared mapper must throw its raw `\Exception` on failure. The `BehaviorTraceAdminQueryMysqlRepository` must catch this exception and translate it to `BehaviorTraceStorageException`, explicitly preserving the original exception as the previous throwable, matching exactly the primitive boundary's translation strategy.
+**Decision for mapper/policy failures:** The primitive repository catches `\Exception` around the mapping process and translates it to `BehaviorTraceStorageException`. The future shared mapper must throw its raw `\Exception` on failure. The `BehaviorTraceAdminQueryMysqlRepository` must catch this exception through the dedicated `mapRow` method and translate it to `BehaviorTraceStorageException`, explicitly preserving the original exception as the previous throwable, matching exactly the primitive boundary's translation strategy.
 
 Preserve the primitive exception messages exactly:
 * find PDO: Failed to query BehaviorTrace records: {message}
@@ -403,13 +570,11 @@ Validation exception (`BehaviorTraceAdminQueryInvalidArgumentException`):
 * implements `EventLoggingExceptionInterface`
 * `ErrorCodeEnum::INVALID_ARGUMENT`
 
-Named constructors:
-* `invalidId`
-* `invalidLength`
-* `invalidEncoding`
-* `invalidDateRange`
-
-Stable messages must use `BehaviorTrace Admin Query`.
+Named constructors and exact messages:
+* `invalidId($field)`: `Invalid BehaviorTrace Admin Query ID: {field}`
+* `invalidLength($field)`: `Invalid BehaviorTrace Admin Query length: {field}`
+* `invalidEncoding($field)`: `Invalid BehaviorTrace Admin Query UTF-8 encoding: {field}`
+* `invalidDateRange()`: `Invalid BehaviorTrace Admin Query date range: after must be before or equal to before`
 
 Execution exception (`BehaviorTraceAdminQueryExecutionException`):
 * extends `SystemMaatifyException`
@@ -483,13 +648,15 @@ Document that `read()` already uses distinct placeholders and remains unchanged.
 * `tests/Unit/BehaviorTrace/DTO/BehaviorTraceAdminPageResultDTOTest.php`
 * `tests/Unit/BehaviorTrace/Exception/BehaviorTraceAdminQueryInvalidArgumentExceptionTest.php`
 * `tests/Unit/BehaviorTrace/Exception/BehaviorTraceAdminQueryExecutionExceptionTest.php`
-* `tests/Unit/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceAdminQueryDescriptorBuilderTest.php`
+* `tests/Unit/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceAdminQueryMysqlRepositoryTest.php`
+* `tests/Unit/BehaviorTrace/Infrastructure/Mysql/Pagination/BehaviorTraceAdminQueryDescriptorBuilderTest.php`
 * `tests/Unit/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceRowMapperTest.php`
+* `tests/Regression/BehaviorTrace/BehaviorTraceQueryMysqlRepositoryRegressionTest.php`
 * `tests/Integration/BehaviorTrace/BehaviorTraceAdminQueryMysqlRepositoryTest.php`
+* `tests/Integration/BehaviorTrace/BehaviorTraceQueryMysqlRepositoryTest.php`
 
 **Tests to modify:**
-* `tests/Integration/BehaviorTrace/BehaviorTraceRepositoryTest.php` (Regression coverage to prove primitive behaviors)
-* `tests/Unit/BehaviorTrace/Repository/BehaviorTraceQueryMysqlRepositoryTest.php` (Update mapping test if required by mapper extraction)
+* `tests/Integration/BehaviorTrace/BehaviorTraceRepositoryTest.php` remains unchanged as the existing protected integration test unless a separately documented reason proves modification is unavoidable.
 
 **Tests to delete (Superseded Post-v1 Experiment):**
 * `tests/Unit/BehaviorTrace/Service/BehaviorTracePaginatedQueryServiceTest.php`
@@ -534,7 +701,7 @@ Prove preservation of:
 * absence of out-of-scope Admin Query APIs.
 
 ### Real MySQL Integration
-Prove:
+Prove for Admin Query:
 * every Admin Query filter;
 * multiple filters;
 * inclusive dates;
@@ -546,10 +713,13 @@ Prove:
 * nullable columns;
 * native prepared statements;
 * transaction non-ownership;
-* primitive `find()` remains functional;
-* primitive `read()` remains functional;
-* custom policy behavior remains functional;
 * new integration tests are not skipped.
+
+The new primitive integration test must cover both:
+* `find()` descending cursor behavior;
+* `read()` ascending stream behavior;
+
+using native prepared statements.
 
 ## Status and Approval Gate
 
