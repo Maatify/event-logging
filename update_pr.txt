@@ -1,0 +1,47 @@
+## Task Scope
+This PR completes the SecuritySignals Admin Query Rebuild Blueprint correction as requested.
+
+## Status
+**Proposed / Runtime Implementation Blocked**
+No Runtime implementation is authorized or included.
+
+## Core Commit Information
+* **Starting `main` SHA:** 3169947e107df66f61884abb5c95f1dfa621a69b
+* **Previous PR HEAD:** d5121cee3a3069aaaaea5dded2521ae1316f5fdb
+* **Final PR HEAD:** $(git rev-parse HEAD)
+
+## Commits
+* `614a4cd docs(security-signals): complete admin query rebuild blueprint`
+(Plus original commits preserved intact on the branch).
+
+## Changed Files
+* `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md`
+* `docs/architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md`
+*(Note: `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` and `docs/audits/DOCUMENTATION_INVENTORY.md` were preserved from the previous commit state but verified).*
+
+## Verification & Output
+```text
+$ composer validate --strict
+./composer.json is valid
+
+$ composer analyse
+ [OK] No errors
+
+$ composer test:unit
+OK (283 tests, 1081 assertions)
+
+$ composer test:regression
+OK (25 tests, 8164 assertions)
+
+$ git diff --check
+(No output, meaning no whitespace errors)
+```
+*Note: Real MySQL integration suite cannot run locally without DB, but GitHub Actions CI runs the full suite.*
+
+## Summary of Changes
+* **Protected Primitive Inventory:** Verified `SecuritySignalsQueryInterface`, constructor order, explicit JSON fallback/mappings, `find()` bounds, and limit clamping semantics.
+* **Superseded Artifacts:** Reclassified exactly the four service/DTO/interface files and three tests introduced in PR #74 as obsolete post-v1 experiments.
+* **Proposed Admin Query:** Defined strict DTO constructs (`SecuritySignalsAdminQueryRequestDTO`, `SecuritySignalsAdminPageResultDTO`), explicitly rejecting `SELECT *`, policy injections in `SecuritySignalsRowMapper`, and ensuring error isolation from `maatify/persistence`.
+* **Unresolved Owner Decision:** Acknowledged the decision on whether `actorId` requires `actorType`.
+
+No Runtime, tests, schema, Composer, CI, tag, release, or Owner-approval changes were made.
