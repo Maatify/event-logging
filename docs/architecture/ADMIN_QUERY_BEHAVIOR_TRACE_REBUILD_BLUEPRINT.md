@@ -1,4 +1,4 @@
-# Owner Approved / Runtime Implementation Authorized
+# Owner Approved / Runtime Implemented
 
 ## 1. Audit the Current Main State
 
@@ -890,8 +890,8 @@ using native prepared statements.
 - [x] no SecuritySignals or AuthoritativeAudit work is authorized;
 - [x] no tag or release is authorized;
 - [x] the complete BehaviorTrace blueprint is approved;
-- [x] BehaviorTrace Runtime implementation is authorized in a separate implementation PR;
-- [x] deletion of the superseded post-v1 artifacts is authorized only atomically after the replacement Runtime and its complete tests pass.
+- [x] BehaviorTrace Runtime implementation is complete;
+- [x] deletion of the superseded post-v1 artifacts is complete after the replacement Runtime and its complete tests passed.
 - [x] approve this behavior-preserving primitive correction:
 
   ```sql

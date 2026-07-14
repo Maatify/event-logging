@@ -79,7 +79,10 @@ class BehaviorTraceQueryMysqlRepositoryTest extends TestCase
         $repository->find($query);
 
         $this->assertNotNull($pdo->lastStatement);
-        $this->assertStringContainsString('WHERE (occurred_at < :cursor_at OR (occurred_at = :cursor_at AND id < :cursor_id))', $pdo->lastStatement->queryString);
+        $this->assertStringContainsString('WHERE (occurred_at < :cursor_at_before OR (occurred_at = :cursor_at_equal AND id < :cursor_id))', $pdo->lastStatement->queryString);
+        $this->assertSame('2024-01-01 12:00:00.000000', $pdo->lastStatement->executedParams['cursor_at_before']);
+        $this->assertSame('2024-01-01 12:00:00.000000', $pdo->lastStatement->executedParams['cursor_at_equal']);
+        $this->assertSame(999, $pdo->lastStatement->executedParams['cursor_id']);
     }
 
     public function testFindMapsRowsToDtoCorrectly(): void

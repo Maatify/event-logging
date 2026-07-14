@@ -76,7 +76,6 @@ final class AuditTrailQueryMysqlRepositoryRegressionTest extends TestCase
     public function testNoOutOfScopeAdminQuerySurfaceWasAdded(): void
     {
         $this->assertFalse(interface_exists('Maatify\EventLogging\Contract\AdminQueryInterface'));
-        $this->assertFalse(class_exists('Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceAdminQueryMysqlRepository'));
         $this->assertFalse(class_exists('Maatify\EventLogging\Http\AuditTrailAdminQueryController'));
         $this->assertFileExists(__DIR__ . '/../../../src/AuditTrail/Database/schema.maa_event_logging_audit_trail.sql');
 
