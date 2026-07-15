@@ -35,7 +35,7 @@ The pagination work must proceed in this exact order so that incorrectly impleme
 |---:|---|---|---|
 | 1 | `AuditTrail` | **REBUILD** | Replace the incorrect post-v1.0 pagination experiment with the approved `maatify/persistence`-based Admin Query API POC. |
 | 2 | `BehaviorTrace` | **REBUILD** | Rebuild the incorrect post-v1.0 pagination implementation using the approved POC architecture. |
-| 3 | `SecuritySignals` | **REBUILD** | Rebuild the incorrect post-v1.0 pagination implementation while preserving its domain-specific security and failure semantics. |
+| 3 | `SecuritySignals` | **REBUILD** | Rebuild the incorrect post-v1.0 pagination implementation, delete its superseded wrapper in the same Runtime change set, and preserve only the protected `v1.0.0` security and failure semantics. |
 | 4 | `AuthoritativeAudit` | **REBUILD** | Rebuild the incorrect post-v1.0 pagination implementation last among the remediation domains because of its fail-closed behavior and outbox/materialized-log boundary. |
 | 5 | `DiagnosticsTelemetry` | **NEW** | Add the Admin Query API pagination path for the first time. No post-v1.0 wrapper remediation exists in this domain. |
 | 6 | `DeliveryOperations` | **NEW** | Add the Admin Query API pagination path for the first time after the simpler domains are proven, because of its broader state and provider-related query surface. |
@@ -70,16 +70,18 @@ Apply the approved `AuditTrail` POC architecture in this order:
 2. `SecuritySignals` — rebuild.
 3. `AuthoritativeAudit` — rebuild last because of its higher operational and authority risk.
 
-For each domain:
+For each rebuild domain:
 
-- Replace the incorrect post-v1.0 pagination implementation.
-- Remove or retire only the superseded post-v1.0 artifacts after the replacement passes its full test and compatibility gate.
+- Replace the incorrect post-v1.0 pagination implementation with the approved package-owned Admin Query API.
+- Treat post-v1.0 wrapper interfaces, page DTOs, cursor DTOs, service shapes, serialization, and cursor-wrapper mechanics as remediation inputs rather than protected compatibility contracts.
+- Delete the superseded post-v1.0 Runtime/test artifacts in the same Runtime rebuild change set after the replacement and its complete tests are present; do not defer deletion to a later cleanup phase.
 - Preserve every `v1.0.0` contract and Runtime behavior.
+- Search maintained host repositories and migrate any discovered post-v1 wrapper usage, without keeping the obsolete package API alive or postponing its package-level deletion.
 - Do not copy pagination mechanics owned by `maatify/persistence`.
 
 - **Status:**
   - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
-  - `SecuritySignals`: [Proposed Blueprint / Runtime Implementation Blocked](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md)
+  - `SecuritySignals`: [Proposed Blueprint / Runtime Implementation Blocked](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
   - `AuthoritativeAudit`: Blocked
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
@@ -128,9 +130,11 @@ Every implementation phase must prove all of the following:
 2. Existing primitive read/query behavior remains identical.
 3. Existing write/logging Runtime behavior remains identical.
 4. Existing schemas remain compatible unless a separately approved migration is strictly required for the new post-v1.0 feature.
-5. Existing host integrations continue to work without modification.
-6. Incorrect post-v1.0 pagination artifacts are not preserved merely because they already exist; they must be replaced or retired through the approved remediation path.
-7. No domain is skipped from the final pagination and reporting coverage.
+5. Existing host integrations that depend on the protected first-release contracts continue to work without modification.
+6. Incorrect post-v1.0 pagination artifacts are not preserved merely because they already exist or expose public PHP symbols; rebuild phases replace and delete them atomically.
+7. Post-v1 wrapper page/cursor contracts and cursor-wrapper mechanics are not compatibility targets unless a separate explicit Owner decision says otherwise.
+8. Host repositories are searched and migrated as integration work, but host migration does not keep superseded package artifacts alive or defer deletion to a later package cleanup.
+9. No domain is skipped from the final pagination and reporting coverage.
 
 ## 6. Current Gate
 
@@ -138,7 +142,7 @@ The `AuditTrail` Admin Query Runtime is implemented and merged, pending the futu
 
 The `BehaviorTrace` Admin Query Runtime is implemented and complete on the current branch.
 
-`SecuritySignals` remains blocked. It is not implicitly authorized by the BehaviorTrace implementation. Its future work must start with a separate audit, blueprint, and Owner approval.
+`SecuritySignals` remains blocked pending complete blueprint approval and a separate Runtime task. Its post-v1 wrapper retirement rule is resolved: preserve the `v1.0.0` primitive contract, replace the post-v1 pagination experiment, and delete its exact superseded Runtime/test files inside the same Runtime rebuild change set.
 
 `AuthoritativeAudit` remains blocked. Its future work must start with a separate audit, blueprint, and Owner approval.
 

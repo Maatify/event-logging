@@ -4,7 +4,7 @@
 
 This document defines the complete proposed architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API.
 
-It records the Owner decisions made on `2026-07-14`, but it does **not** authorize Runtime implementation, deletion, tagging, or release work.
+It records the Owner decisions made on `2026-07-14`, including the post-v1 retirement rule recorded by `ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md`, but it does **not** itself implement or authorize Runtime, tagging, or release work.
 
 ---
 
@@ -51,6 +51,7 @@ It records the Owner decisions made on `2026-07-14`, but it does **not** authori
 - `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md`
 - `docs/architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md`
 - `docs/architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md`
+- `docs/architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md`
 - `docs/architecture/PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md`
 - `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md`
 - `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md`
@@ -64,7 +65,7 @@ The audit distinguishes three different contracts:
 1. **Protected `v1.0.0` Runtime**
    - primitive public interface;
    - primitive query and view DTOs;
-   - primitive repository constructor and behavior;
+   - primitive repository constructor and observable behavior;
    - schema;
    - row hydration;
    - storage exception boundary;
@@ -73,13 +74,15 @@ The audit distinguishes three different contracts:
 2. **Superseded post-v1 pagination experiment**
    - four Runtime wrapper artifacts;
    - three directly associated unit tests;
-   - introduced by PR #74.
+   - introduced by PR #74;
+   - not part of the protected `v1.0.0` surface;
+   - replaced and deleted atomically inside the approved Runtime rebuild.
 3. **Proposed Admin Query path**
    - SecuritySignals-specific package API;
    - offset/page pagination through `maatify/persistence`;
    - no change to the primitive public contract.
 
-Current code, current schema, active canonical documents, and already implemented package-owned Admin Query patterns take precedence over historical documents.
+Current code, current schema, active canonical documents, the post-v1 retirement decision, and already implemented package-owned Admin Query patterns take precedence over historical documents.
 
 ---
 
@@ -210,7 +213,7 @@ The protected limit behavior is:
 $limit = max(1, $query->limit);
 ```
 
-The primitive path currently uses `SELECT *`. That existing behavior is protected. The new Admin Query path must use an explicit selected-column list.
+The primitive path currently uses `SELECT *`. That existing observable behavior is preserved. The new Admin Query path must use an explicit selected-column list.
 
 The primitive repository does not begin, commit, or roll back transactions.
 
@@ -400,24 +403,33 @@ Known package references are limited to the wrapper family itself, its tests, an
 
 No current default factory, provider, bootstrap binding, or package example makes this wrapper the approved Admin Query target.
 
-### 5.1 Required host migration gate
+The wrapper interface, service shape, constructors, page DTO, cursor DTO, serialized keys, cursor-generation approach, wrapper pagination semantics, and coupling to the primitive query path are **not** protected compatibility targets.
 
-This is a public library. Absence of external consumers cannot be proven from this repository alone.
+### 5.1 Atomic retirement and host repository handling
 
-The current known state is that the superseded wrapper has not been fully adopted by any host project. That does not remove the required verification gate.
+This is a public library. Maintained host repositories must be searched for imports, construction, interface implementation, service calls, DTO usage, factories, bindings, tests, and documentation references.
 
-Before deletion:
+The known current state is that the superseded wrapper has not been fully adopted by any host project.
 
-1. search every maintained host repository;
-2. identify imports, construction, interface implementation, service calls, DTO usage, factories, bindings, tests, and documentation references;
-3. migrate every discovered Runtime use to the replacement Admin Query API;
-4. update affected host tests and documentation;
-5. verify each host independently;
-6. only then delete the seven superseded package artifacts atomically with the approved replacement.
+Any discovered host use must be migrated to the approved Admin Query API and verified in the relevant host repository.
 
-This is a mandatory migration and verification gate, not an unresolved architecture choice.
+However:
 
-PR #102 authorizes no deletion.
+- host search and migration do not convert the superseded package artifacts into protected contracts;
+- host search and migration do not postpone package-level deletion;
+- the seven superseded Runtime/test artifacts are deleted in the same SecuritySignals Runtime rebuild change set that adds and verifies the replacement;
+- host migration may be delivered through coordinated host-repository PRs against the package version containing the rebuilt API;
+- retaining the obsolete wrapper as an active or deprecated compatibility layer requires a new explicit Owner decision.
+
+The package-level Runtime rebuild is atomic:
+
+1. add the approved SecuritySignals Admin Query implementation;
+2. add its Unit, Regression, and strict real-MySQL Integration coverage;
+3. preserve the protected `v1.0.0` primitive behavior;
+4. delete the exact seven superseded post-v1 artifacts;
+5. update package and integration documentation.
+
+PR #102 and PR #103 are documentation-only and implement no deletion themselves.
 
 ---
 
@@ -540,7 +552,7 @@ Maximum lengths:
 
 ### 7.2 ID and actor-filter rules
 
-- `actorId`, when non-null, must be greater than zero.
+- `actorId`, when non-null, must be greater than zero;
 - a positive `actorId` is valid when `actorType` is `null`;
 - `actorType` is valid when `actorId` is `null`;
 - both may be supplied together;
@@ -1122,7 +1134,7 @@ PR #102 documents the requirement but does not implement it.
 - previous throwable preservation;
 - mapper storage exception propagation without rewrapping.
 
-### 16.6 Primitive regression tests
+### 16.6 Primitive regression and retirement tests
 
 - `SecuritySignalsQueryInterface::find()` signature;
 - primitive DTO constructor order;
@@ -1147,7 +1159,9 @@ PR #102 documents the requirement but does not implement it.
 - no transaction ownership;
 - write-side policy behavior unchanged;
 - recorder fail-open behavior unchanged;
-- superseded wrapper artifacts retained until the approved replacement and migration gate.
+- exact seven superseded wrapper/test artifacts are absent from the completed Runtime rebuild;
+- no package-owned Runtime reference to a deleted wrapper artifact remains;
+- no regression test treats wrapper page/cursor contracts or cursor-wrapper mechanics as protected behavior.
 
 ### 16.7 Real MySQL integration tests
 
@@ -1242,7 +1256,7 @@ The primitive repository modification is restricted to:
 - mandatory distinct cursor timestamp placeholders;
 - complete regression and strict real-MySQL coverage.
 
-### 17.3 Future deletions after replacement and migration gate
+### 17.3 Future deletions inside the same Runtime rebuild
 
 ```text
 src/SecuritySignals/Contract/SecuritySignalsPaginatedQueryInterface.php
@@ -1254,7 +1268,9 @@ tests/Unit/SecuritySignals/DTO/SecuritySignalsQueryPageDTOTest.php
 tests/Unit/SecuritySignals/Service/SecuritySignalsPaginatedQueryServiceTest.php
 ```
 
-Deletion is authorized only after:
+The Runtime rebuild must contain both the approved replacement and these exact deletions.
+
+Package-level completion requires:
 
 - replacement Runtime is complete;
 - package unit tests pass;
@@ -1262,8 +1278,9 @@ Deletion is authorized only after:
 - strict real MySQL integration tests pass;
 - static analysis passes;
 - Composer validation passes;
-- all maintained host repositories have been searched;
-- every discovered host use has been migrated and verified.
+- no package Runtime or active documentation reference presents a deleted artifact as usable API.
+
+Maintained host repositories are searched and any discovered usage is migrated as coordinated integration work. That host work does not preserve the obsolete package API and does not defer the package-level deletion to a later cleanup phase.
 
 ### 17.4 Protected unchanged behavior
 
@@ -1335,19 +1352,24 @@ The primitive repeated `:cursor_at` placeholder must be replaced by:
 
 This is required by the project standard and is not an optional Owner choice.
 
-### 18.3 Host search and migration are mandatory before deletion
+### 18.3 Atomic post-v1 retirement and host migration
 
-Every maintained host repository must be searched before removing the seven superseded artifacts.
+The exact seven superseded artifacts are outside the protected `v1.0.0` contract.
 
-Any discovered use must be migrated and verified first.
+They must be deleted inside the same Runtime rebuild change set that adds and verifies the replacement Admin Query API.
 
-The known lack of full adoption does not waive this gate.
+Maintained host repositories must be searched and every discovered use migrated, but:
+
+- host search does not protect the superseded wrapper;
+- host migration does not postpone package-level deletion;
+- wrapper page/cursor contracts, serialization, and cursor-wrapper mechanics are not compatibility targets;
+- retaining the obsolete package API requires a new explicit Owner decision.
 
 ### 18.4 Review boundary before Runtime authorization
 
 The decisions above are resolved.
 
-The complete proposed package contract must now be reviewed as one coherent blueprint before Runtime starts, including:
+The complete proposed package contract must be reviewed as one coherent blueprint before Runtime starts, including:
 
 - public `paginate()` interface;
 - request DTO and normalization contract;
@@ -1358,7 +1380,7 @@ The complete proposed package contract must now be reviewed as one coherent blue
 - pagination configuration;
 - exception names and messages;
 - exact future file inventory;
-- test and migration gates.
+- test, atomic-retirement, and host-integration gates.
 
 This review gate prevents a partial Owner decision from being mistaken for authorization to implement an incomplete or different Runtime contract.
 
@@ -1366,21 +1388,21 @@ This review gate prevents a partial Owner decision from being mistaken for autho
 
 ## 19. Runtime Authorization Gate
 
-PR #102 is documentation-only.
+PR #102 and PR #103 are documentation-only.
 
-No SecuritySignals Runtime implementation is authorized by this blueprint alone.
-
-No superseded artifact deletion is authorized by this blueprint alone.
+No SecuritySignals Runtime implementation or artifact deletion is performed by these documentation PRs.
 
 Progression requires:
 
-1. review this corrected PR #102 content;
-2. explicitly confirm that this complete blueprint matches the recorded Owner decisions and package standards;
-3. merge the documentation PR only after that review;
-4. create a separate Runtime execution task;
-5. implement the exact reviewed contract;
-6. run complete Unit, Regression, strict real MySQL Integration, PHPStan, Composer, and architecture-boundary gates;
-7. search and migrate maintained host repositories before deleting superseded artifacts.
+1. review the corrected stacked documentation content;
+2. explicitly confirm that the complete blueprint matches the recorded Owner decisions and package standards;
+3. merge PR #103 into the PR #102 branch;
+4. re-review and merge PR #102 only after complete blueprint approval;
+5. create a separate Runtime execution task;
+6. implement the exact reviewed Admin Query contract and behavior-preserving primitive placeholder correction;
+7. add the replacement, execute all package gates, and delete the exact seven superseded artifacts inside the same Runtime rebuild change set;
+8. search maintained host repositories and migrate any discovered wrapper use through coordinated host-repository work, without preserving or postponing deletion of the obsolete package API;
+9. run complete Unit, Regression, strict real MySQL Integration, PHPStan, Composer, documentation, and architecture-boundary gates.
 
 Until the complete blueprint is reviewed, the status remains:
 
