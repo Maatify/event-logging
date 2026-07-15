@@ -82,7 +82,7 @@ For each rebuild domain:
 - **Status:**
   - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
   - `SecuritySignals`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
-  - `AuthoritativeAudit`: [Blueprint Proposed / Pending Owner Approval / Runtime Blocked](../architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md)
+  - `AuthoritativeAudit`: [Owner Approved / Runtime Pending](../architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md)
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
 
@@ -144,7 +144,7 @@ The `BehaviorTrace` Admin Query Runtime is implemented and complete.
 
 The `SecuritySignals` Admin Query Runtime is implemented and complete, pending only the future package release where applicable. The replacement API is present, the protected primitive behavior is preserved, the required distinct-placeholder correction is applied, the exact superseded Runtime/test artifacts are deleted, and strict real-MySQL Integration coverage is present.
 
-`AuthoritativeAudit` blueprint is Proposed / Pending Owner Approval / Runtime Blocked.
+`AuthoritativeAudit` blueprint is Owner Approved / Runtime Pending. Runtime implementation is authorized in a separate PR, but has not yet been implemented.
 
 `DiagnosticsTelemetry` remains blocked.
 
