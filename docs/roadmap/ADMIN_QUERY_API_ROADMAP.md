@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / Pending v1.1.0 Release
+**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Authorized / Pending v1.1.0 Release
 
 ## 1. Scope Boundary
 
@@ -66,8 +66,8 @@ The six domains must not be treated as one bulk implementation. Each domain requ
 
 Apply the approved `AuditTrail` POC architecture in this order:
 
-1. `BehaviorTrace` — rebuild. (Active Phase 3.1 architecture target)
-2. `SecuritySignals` — rebuild.
+1. `BehaviorTrace` — rebuild. (Runtime implemented)
+2. `SecuritySignals` — rebuild. (Owner approved / Runtime pending)
 3. `AuthoritativeAudit` — rebuild last because of its higher operational and authority risk.
 
 For each rebuild domain:
@@ -81,7 +81,7 @@ For each rebuild domain:
 
 - **Status:**
   - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
-  - `SecuritySignals`: [Proposed Blueprint / Runtime Implementation Blocked](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
+  - `SecuritySignals`: [Owner Approved / Runtime Pending](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
   - `AuthoritativeAudit`: Blocked
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
@@ -140,9 +140,9 @@ Every implementation phase must prove all of the following:
 
 The `AuditTrail` Admin Query Runtime is implemented and merged, pending the future `v1.1.0` release.
 
-The `BehaviorTrace` Admin Query Runtime is implemented and complete on the current branch.
+The `BehaviorTrace` Admin Query Runtime is implemented and complete.
 
-`SecuritySignals` remains blocked pending complete blueprint approval and a separate Runtime task. Its post-v1 wrapper retirement rule is resolved: preserve the `v1.0.0` primitive contract, replace the post-v1 pagination experiment, and delete its exact superseded Runtime/test files inside the same Runtime rebuild change set.
+The complete `SecuritySignals` blueprint and its recorded Owner decisions are approved. A separate Runtime task/PR is now authorized to implement the exact reviewed contract, preserve the protected `v1.0.0` primitive behavior, apply the required distinct-placeholder correction, add all required tests, and delete the exact superseded Runtime/test artifacts inside the same rebuild change set.
 
 `AuthoritativeAudit` remains blocked. Its future work must start with a separate audit, blueprint, and Owner approval.
 
