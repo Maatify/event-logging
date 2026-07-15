@@ -555,6 +555,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
 namespace Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Exception;
 use JsonException;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
@@ -728,17 +729,10 @@ Both placeholders will receive exactly the same datetime string representation.
 namespace Maatify\EventLogging\AuthoritativeAudit\Exception;
 
 use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
-use Maatify\Exceptions\Contract\ErrorCodeInterface;
-use Maatify\Exceptions\Enum\ErrorCodeEnum;
 use Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException;
 
 final class AuthoritativeAuditAdminQueryInvalidArgumentException extends InvalidArgumentMaatifyException implements EventLoggingExceptionInterface
 {
-    protected function defaultErrorCode(): ErrorCodeInterface
-    {
-        return ErrorCodeEnum::INVALID_ARGUMENT;
-    }
-
     public static function invalidId(string $field): self
     {
         return new self("Invalid AuthoritativeAudit Admin Query ID: {$field}");
@@ -765,21 +759,24 @@ final class AuthoritativeAuditAdminQueryInvalidArgumentException extends Invalid
 namespace Maatify\EventLogging\AuthoritativeAudit\Exception;
 
 use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
-use Maatify\Exceptions\Contract\ErrorCodeInterface;
+use Maatify\Exceptions\Contracts\ErrorCodeInterface;
 use Maatify\Exceptions\Enum\ErrorCodeEnum;
 use Maatify\Exceptions\Exception\System\SystemMaatifyException;
 use Throwable;
 
 final class AuthoritativeAuditAdminQueryExecutionException extends SystemMaatifyException implements EventLoggingExceptionInterface
 {
+    public static function executionFailed(Throwable $previous): self
+    {
+        return new self(
+            message: 'AuthoritativeAudit Admin Query execution failed: ' . $previous->getMessage(),
+            previous: $previous,
+        );
+    }
+
     protected function defaultErrorCode(): ErrorCodeInterface
     {
         return ErrorCodeEnum::MAATIFY_ERROR;
-    }
-
-    public static function executionFailed(Throwable $previous): self
-    {
-        return new self('AuthoritativeAudit Admin Query execution failed: ' . $previous->getMessage(), 0, $previous);
     }
 }
 ```
@@ -803,6 +800,7 @@ final class AuthoritativeAuditAdminQueryExecutionException extends SystemMaatify
 - `tests/Unit/AuthoritativeAudit/Infrastructure/Mysql/AuthoritativeAuditRowMapperTest.php`
 - `tests/Unit/AuthoritativeAudit/Exception/AuthoritativeAuditAdminQueryInvalidArgumentExceptionTest.php`
 - `tests/Unit/AuthoritativeAudit/Exception/AuthoritativeAuditAdminQueryExecutionExceptionTest.php`
+- `tests/Regression/AuthoritativeAudit/AuthoritativeAuditQueryMysqlRepositoryRegressionTest.php`
 - `tests/Integration/AuthoritativeAudit/AuthoritativeAuditAdminQueryMysqlRepositoryTest.php`
 
 ### 4.2 Modified:
