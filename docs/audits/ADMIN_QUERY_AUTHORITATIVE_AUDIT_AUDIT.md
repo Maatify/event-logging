@@ -46,7 +46,7 @@ The exact superseded artifacts to be replaced and deleted from the package:
 - The materialized log (`maa_event_logging_authoritative_audit_log`) is **not authoritative** and is written *only* by the outbox consumer.
 - **Admin listings strictly read from the log**, never from the outbox.
 - No schema changes are required or authorized.
-- No transaction ownership rules apply to the read layers.
+- Read repositories must not start, commit, or rollback transactions. They must maintain strict caller-owned transaction semantics.
 
 ## 4. Testing & Remediation Gaps
 
@@ -61,9 +61,10 @@ The implementation must address the following coverage and implementation gaps:
 
 - **Package Search:** Completed. The superseded interfaces are strictly isolated to `src/AuthoritativeAudit/Service` and their tests.
 - **Host Repositories Search (Exact Repositories):**
-  - **Athar (`maatify/athar` / private host):** Could not be searched. *Reason:* Access gap; sandbox lacks authentication to private organizational repositories.
-  - **EP4N (`maatify/ep4n` / private host):** Could not be searched. *Reason:* Access gap; sandbox lacks authentication to private organizational repositories.
-  - *Action:* Host teams must manually verify and migrate any usages of `AuthoritativeAuditPaginatedQueryInterface` to the new Admin Query API synchronously before or during the PR.
+  - `Maatify/athar-admin`: searched; no references found.
+  - `Maatify/athar-user`: searched; no references found.
+  - `Maatify/ep4n-2020`: searched; no references found.
+  - *Note:* The search included `AuthoritativeAuditPaginatedQueryInterface`, `AuthoritativeAuditPaginatedQueryService`, `AuthoritativeAuditQueryPageDTO`, and `AuthoritativeAuditQueryCursorDTO`.
 
 ## 6. Open Decisions Required Before Blueprint
 
@@ -73,8 +74,10 @@ The following decisions must be made before drafting the Admin Query API bluepri
 2. **Actor/Target Type-ID Semantics:** Is querying `actorId` or `targetId` without their corresponding `Type` permitted?
 3. **Mapper & Result DTO:** Will the Admin API reuse `AuthoritativeAuditViewDTO` or map to a distinct Admin DTO?
 4. **Validation Bounds:** What are the exact maximum limits for `per_page` in the Admin Query API?
-5. **Exception Boundaries (To Be Confirmed/Applied):**
-   - Invalid request (e.g., bad sort column) → `AdminQueryInvalidArgumentException`
-   - Invalid pagination configuration/query execution via Persistence → `AdminQueryExecutionException`
-   - Native PDO mapping/row extraction failures → `AuthoritativeAuditStorageException`
+5. **Exception Boundaries:**
+   - Invalid Admin request → `AuthoritativeAuditAdminQueryInvalidArgumentException`
+   - `InvalidPaginationConfigurationException` or `InvalidPaginationQueryException` → `AuthoritativeAuditAdminQueryExecutionException`
+   - `PaginationExecutionException` or `PDOException` → `AuthoritativeAuditStorageException`
+   - mapper/hydration `Throwable` → `AuthoritativeAuditStorageException`
+   - *Constraint:* Must preserve exact message prefixes and the previous throwable (`$e`). Any `AuthoritativeAuditStorageException` originating from the mapper must be passed through without re-wrapping.
 6. **Retirement Set Confirmation:** Explicit sign-off on the exact list of 7 files to be deleted.
