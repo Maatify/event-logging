@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Added Pending Strict MySQL Verification / Pending v1.1.0 Release
+**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Implemented / Pending v1.1.0 Release
 
 ## 1. Scope Boundary
 
@@ -67,7 +67,7 @@ The six domains must not be treated as one bulk implementation. Each domain requ
 Apply the approved `AuditTrail` POC architecture in this order:
 
 1. `BehaviorTrace` — rebuild. (Runtime implemented)
-2. `SecuritySignals` — rebuild. (Runtime added / strict MySQL verification pending)
+2. `SecuritySignals` — rebuild. (Runtime implemented)
 3. `AuthoritativeAudit` — rebuild last because of its higher operational and authority risk.
 
 For each rebuild domain:
@@ -81,7 +81,7 @@ For each rebuild domain:
 
 - **Status:**
   - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
-  - `SecuritySignals`: [Owner Approved / Runtime Added / Strict MySQL Verification Pending](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
+  - `SecuritySignals`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
   - `AuthoritativeAudit`: Blocked
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
@@ -142,7 +142,7 @@ The `AuditTrail` Admin Query Runtime is implemented and merged, pending the futu
 
 The `BehaviorTrace` Admin Query Runtime is implemented and complete.
 
-The `SecuritySignals` Admin Query Runtime code and tests are added. The replacement API is present, the protected primitive behavior is preserved, the required distinct-placeholder correction is applied, and the exact superseded Runtime/test artifacts are deleted. Final implementation status remains pending until strict real-MySQL Integration passes.
+The `SecuritySignals` Admin Query Runtime is implemented and complete, pending only the future package release where applicable. The replacement API is present, the protected primitive behavior is preserved, the required distinct-placeholder correction is applied, the exact superseded Runtime/test artifacts are deleted, and strict real-MySQL Integration coverage is present.
 
 `AuthoritativeAudit` remains blocked. Its future work must start with a separate audit, blueprint, and Owner approval.
 

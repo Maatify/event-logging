@@ -7,7 +7,9 @@ namespace Maatify\EventLogging\Tests\Integration\SecuritySignals;
 use DateTimeImmutable;
 use DateTimeZone;
 use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsAdminQueryRequestDTO;
+use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsQueryDTO;
 use Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsAdminQueryMysqlRepository;
+use Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsQueryMysqlRepository;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -127,6 +129,53 @@ final class SecuritySignalsAdminQueryMysqlRepositoryTest extends TestCase
         $this->repository->paginate(new SecuritySignalsAdminQueryRequestDTO());
         $this->assertTrue($this->pdo->inTransaction());
         $this->pdo->rollBack();
+    }
+
+    public function testInclusiveBeforeBoundaryAndPageTwoAreDirectlyVerified(): void
+    {
+        $this->seedDefaultRows();
+
+        $before = $this->repository->paginate(new SecuritySignalsAdminQueryRequestDTO(
+            before: new DateTimeImmutable('2024-01-01 11:00:00', new DateTimeZone('UTC')),
+            sortDirection: 'ASC',
+        ));
+        $this->assertSame(['evt-1', 'evt-2'], array_map(static fn ($item): string => $item->eventId, $before->items));
+
+        $pageTwo = $this->repository->paginate(new SecuritySignalsAdminQueryRequestDTO(
+            page: 2,
+            perPage: 2,
+            sortDirection: 'ASC',
+        ));
+        $this->assertSame(2, $pageTwo->page);
+        $this->assertSame(['evt-3', 'evt-5'], array_map(static fn ($item): string => $item->eventId, $pageTwo->items));
+        $this->assertTrue($pageTwo->hasNext);
+        $this->assertTrue($pageTwo->hasPrevious);
+    }
+
+    public function testPageNormalizationAndPrimitiveAdminSemanticAlignment(): void
+    {
+        $this->seedDefaultRows();
+
+        $normalized = $this->repository->paginate(new SecuritySignalsAdminQueryRequestDTO(page: 99, perPage: 2));
+        $this->assertSame(1, $normalized->page);
+        $this->assertSame(3, $normalized->totalPages);
+
+        $adminIds = $this->eventIds(new SecuritySignalsAdminQueryRequestDTO(
+            actorType: 'user',
+            signalType: 'login_failed',
+            severity: 'HIGH',
+        ));
+        $primitive = new SecuritySignalsQueryMysqlRepository($this->pdo);
+        $primitiveIds = array_map(
+            static fn ($item): string => $item->eventId,
+            $primitive->find(new SecuritySignalsQueryDTO(
+                actorType: 'user',
+                signalType: 'login_failed',
+                severity: 'HIGH',
+            )),
+        );
+
+        $this->assertSame($primitiveIds, $adminIds);
     }
 
     /** @return list<string> */

@@ -1,8 +1,8 @@
 # SecuritySignals Admin Query Rebuild Blueprint
 
-**Status:** Owner Approved / Runtime Added / Strict MySQL Verification Pending
+**Status:** Owner Approved / Runtime Implemented
 
-This document defines the complete approved architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API. The Runtime implementation is now present in the package branch, pending successful strict real-MySQL verification before final implementation status.
+This document defines the complete approved architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API. The Runtime implementation is now present, covered, and verified.
 
 It records the Owner decisions made on `2026-07-14`, the post-v1 retirement rule recorded by `ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md`, and final approval of the complete coherent blueprint on `2026-07-15`. It authorizes a separate Runtime implementation task/PR, but it does **not** itself implement Runtime, tagging, or release work.
 
@@ -1389,23 +1389,23 @@ This approval authorizes a separate Runtime implementation task/PR. It does not 
 
 PR #102 and PR #103 are merged documentation history. They implemented no SecuritySignals Runtime code or artifact deletion.
 
-SecuritySignals Runtime execution is now authorized through a separate task and PR from the latest remote `main`.
+Commit `907b24bd5e7553e02a182d4987bb46f459da8775` was pushed directly to `main` with the initial SecuritySignals Runtime implementation. The follow-up correction branch completes the review, coverage, and documentation contract without rewriting that history.
 
-The Runtime change must:
+The Runtime change:
 
-1. implement the exact approved Admin Query public and internal contracts in this blueprint;
-2. preserve every protected `v1.0.0` primitive, schema, write-policy, and fail-open behavior;
-3. apply the behavior-preserving native-PDO distinct-placeholder correction;
-4. add the complete Unit, Regression, and strict real-MySQL Integration coverage defined here;
-5. add the approved replacement and delete the exact seven superseded Runtime/test artifacts inside the same Runtime rebuild change set;
-6. search maintained host repositories and migrate any discovered wrapper usage through coordinated host-repository work without preserving or postponing deletion of the obsolete package API;
-7. update the Package Reference, SecuritySignals README, Admin integration documentation, roadmap, documentation inventory, and changelog as applicable;
-8. pass Composer validation, PHPStan, Unit, Regression, strict real-MySQL Integration, documentation, architecture-boundary, and `git diff --check` gates.
+1. implements the exact approved Admin Query public and internal contracts in this blueprint;
+2. preserves every protected `v1.0.0` primitive, schema, write-policy, and fail-open behavior;
+3. applies the behavior-preserving native-PDO distinct-placeholder correction;
+4. adds the complete Unit, Regression, and strict real-MySQL Integration coverage defined here;
+5. adds the approved replacement and deletes the exact seven superseded Runtime/test artifacts inside the same Runtime rebuild change set;
+6. searches maintained host repositories and records no discovered wrapper usage;
+7. updates the Package Reference, SecuritySignals README, Admin integration documentation, roadmap, documentation inventory, and changelog as applicable;
+8. passes Composer validation, PHPStan, Unit, Regression, strict real-MySQL Integration, documentation, architecture-boundary, and `git diff --check` gates.
 
 No tag, release publication, reporting work, dashboard work, schema change, Composer dependency change, CI workflow change, or host framework wiring is authorized by this approval.
 
 Current status:
 
 ```text
-Owner Approved / Runtime Added / Strict MySQL Verification Pending
+Owner Approved / Runtime Implemented
 ```

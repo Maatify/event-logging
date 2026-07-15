@@ -88,7 +88,7 @@ final class SecuritySignalsAdminQueryMysqlRepository implements SecuritySignalsA
             return $this->mapper->map($row);
         } catch (SecuritySignalsStorageException $exception) {
             throw $exception;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw new SecuritySignalsStorageException(
                 message: 'Failed to map SecuritySignals row: ' . $exception->getMessage(),
                 previous: $exception,
