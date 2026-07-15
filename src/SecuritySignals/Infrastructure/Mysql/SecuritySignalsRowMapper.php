@@ -10,7 +10,7 @@ use JsonException;
 use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsViewDTO;
 
 /** @internal */
-final class SecuritySignalsRowMapper
+class SecuritySignalsRowMapper
 {
     /**
      * @param array<string, mixed> $row

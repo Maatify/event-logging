@@ -6,17 +6,22 @@ namespace Maatify\EventLogging\Tests\Unit\SecuritySignals\Infrastructure\Mysql;
 
 use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsAdminPageResultDTO;
 use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsAdminQueryRequestDTO;
+use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsViewDTO;
 use Maatify\EventLogging\SecuritySignals\Exception\SecuritySignalsAdminQueryExecutionException;
 use Maatify\EventLogging\SecuritySignals\Exception\SecuritySignalsStorageException;
 use Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsAdminQueryMysqlRepository;
+use Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsRowMapper;
+use Maatify\Persistence\Exception\InvalidPaginationConfigurationException;
 use Maatify\Persistence\Exception\InvalidPaginationQueryException;
 use Maatify\Persistence\Exception\PaginationExecutionException;
+use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
 use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
 use PDO;
 use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use ReflectionProperty;
 
 final class SecuritySignalsAdminQueryMysqlRepositoryTest extends TestCase
 {
@@ -145,6 +150,75 @@ final class SecuritySignalsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame($previous, $exception->getPrevious());
     }
 
+    public function testInvalidPaginationConfigurationExceptionIsTranslatedThroughRepository(): void
+    {
+        $previous = new InvalidPaginationConfigurationException('bad pagination configuration');
+        $repository = new SecuritySignalsAdminQueryInvalidConfigurationRepository(
+            $this->createMock(PDO::class),
+            $previous,
+        );
+
+        try {
+            $repository->paginate(new SecuritySignalsAdminQueryRequestDTO());
+            $this->fail('Expected admin query execution exception.');
+        } catch (SecuritySignalsAdminQueryExecutionException $exception) {
+            $this->assertSame(
+                'SecuritySignals Admin Query execution failed: bad pagination configuration',
+                $exception->getMessage(),
+            );
+            $this->assertSame($previous, $exception->getPrevious());
+        }
+    }
+
+    public function testInvalidPaginationQueryExceptionIsTranslatedThroughRepository(): void
+    {
+        $previous = new InvalidPaginationQueryException('bad pagination descriptor');
+        $repository = new SecuritySignalsAdminQueryInvalidDescriptorRepository(
+            $this->createMock(PDO::class),
+            $previous,
+        );
+
+        try {
+            $repository->paginate(new SecuritySignalsAdminQueryRequestDTO());
+            $this->fail('Expected admin query execution exception.');
+        } catch (SecuritySignalsAdminQueryExecutionException $exception) {
+            $this->assertSame(
+                'SecuritySignals Admin Query execution failed: bad pagination descriptor',
+                $exception->getMessage(),
+            );
+            $this->assertSame($previous, $exception->getPrevious());
+        }
+    }
+
+    public function testStorageExceptionRaisedByMapperPassesThroughWithoutRewrap(): void
+    {
+        $previous = new SecuritySignalsStorageException('mapper storage boundary');
+        $repository = new SecuritySignalsAdminQueryMysqlRepository($this->pagedPdoWithOneDataRow());
+        $this->replaceMapper($repository, new SecuritySignalsAdminQueryThrowingMapper($previous));
+
+        try {
+            $repository->paginate(new SecuritySignalsAdminQueryRequestDTO());
+            $this->fail('Expected storage exception.');
+        } catch (SecuritySignalsStorageException $exception) {
+            $this->assertSame($previous, $exception);
+        }
+    }
+
+    public function testMapperThrowableThatIsNotExceptionIsTranslatedToStorageExceptionWithPrevious(): void
+    {
+        $previous = new \Error('mapper fatal boundary');
+        $repository = new SecuritySignalsAdminQueryMysqlRepository($this->pagedPdoWithOneDataRow());
+        $this->replaceMapper($repository, new SecuritySignalsAdminQueryThrowingMapper($previous));
+
+        try {
+            $repository->paginate(new SecuritySignalsAdminQueryRequestDTO());
+            $this->fail('Expected storage exception.');
+        } catch (SecuritySignalsStorageException $exception) {
+            $this->assertSame('Failed to map SecuritySignals row: mapper fatal boundary', $exception->getMessage());
+            $this->assertSame($previous, $exception->getPrevious());
+        }
+    }
+
     public function testPersistenceDescriptorRejectsInvalidQueryAtBoundary(): void
     {
         $this->expectException(InvalidPaginationQueryException::class);
@@ -172,6 +246,78 @@ final class SecuritySignalsAdminQueryMysqlRepositoryTest extends TestCase
             $this->assertStringStartsWith('Failed to map SecuritySignals row: ', $exception->getMessage());
             $this->assertNotNull($exception->getPrevious());
         }
+    }
+
+    private function pagedPdoWithOneDataRow(): SecuritySignalsAdminQueryPagedPdo
+    {
+        return new SecuritySignalsAdminQueryPagedPdo([
+            new SecuritySignalsAdminQueryCountStatement(1),
+            new SecuritySignalsAdminQueryCountStatement(1),
+            new SecuritySignalsAdminQueryDataStatement([
+                [
+                    'id' => '5',
+                    'event_id' => 'evt-5',
+                    'actor_type' => 'user',
+                    'actor_id' => '10',
+                    'signal_type' => 'login_failed',
+                    'severity' => 'HIGH',
+                    'correlation_id' => 'corr',
+                    'request_id' => 'req',
+                    'route_name' => 'route',
+                    'ip_address' => '127.0.0.1',
+                    'user_agent' => 'agent',
+                    'metadata' => '{"ok":true}',
+                    'occurred_at' => '2024-01-01 12:00:00.000000',
+                ],
+            ]),
+        ]);
+    }
+
+    private function replaceMapper(
+        SecuritySignalsAdminQueryMysqlRepository $repository,
+        SecuritySignalsRowMapper $mapper,
+    ): void {
+        $property = new ReflectionProperty(SecuritySignalsAdminQueryMysqlRepository::class, 'mapper');
+        $property->setValue($repository, $mapper);
+    }
+}
+
+final class SecuritySignalsAdminQueryInvalidConfigurationRepository extends SecuritySignalsAdminQueryMysqlRepository
+{
+    public function __construct(PDO $pdo, private readonly InvalidPaginationConfigurationException $previous)
+    {
+        parent::__construct($pdo);
+    }
+
+    protected function createPaginationConfig(): PaginationConfig
+    {
+        throw $this->previous;
+    }
+}
+
+final class SecuritySignalsAdminQueryInvalidDescriptorRepository extends SecuritySignalsAdminQueryMysqlRepository
+{
+    public function __construct(PDO $pdo, private readonly InvalidPaginationQueryException $previous)
+    {
+        parent::__construct($pdo);
+    }
+
+    protected function buildDescriptor(SecuritySignalsAdminQueryRequestDTO $request): PdoPaginationQueryDescriptor
+    {
+        throw $this->previous;
+    }
+}
+
+final class SecuritySignalsAdminQueryThrowingMapper extends SecuritySignalsRowMapper
+{
+    public function __construct(private readonly \Throwable $previous)
+    {
+    }
+
+    /** @param array<string, mixed> $row */
+    public function map(array $row): SecuritySignalsViewDTO
+    {
+        throw $this->previous;
     }
 }
 
