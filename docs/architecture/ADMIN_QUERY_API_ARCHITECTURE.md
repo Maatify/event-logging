@@ -226,11 +226,11 @@ The approved implementation sequence is:
 
 Runtime implementation remains blocked until the Owner explicitly approves the relevant phase blueprint.
 
-The current next phase is `BehaviorTrace`.
+The current next phase is `SecuritySignals`.
 
 Approval must cover at minimum:
 
-- `BehaviorTrace` replacement strategy.
+- The domain replacement strategy.
 - Public request and result contracts.
 - Filter and sort contracts.
 - Count/data semantic alignment.
@@ -241,6 +241,10 @@ Approval must cover at minimum:
 - The explicit primitive placeholder correction (`cursor_at_before` and `cursor_at_equal`) to support native prepared statements.
 
 Note that `maatify/persistence ^1.1.0` is already installed. No Composer dependency addition is required.
-SecuritySignals and AuthoritativeAudit remain blocked.
+
+- `AuditTrail`: Runtime implemented.
+- `BehaviorTrace`: Runtime implemented.
+- `SecuritySignals`: Proposed rebuild blueprint. Runtime implementation remains blocked.
+- `AuthoritativeAudit`: Blocked.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.
