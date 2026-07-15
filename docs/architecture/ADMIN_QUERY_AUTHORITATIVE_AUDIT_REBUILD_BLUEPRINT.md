@@ -1,10 +1,25 @@
 # AuthoritativeAudit Admin Query Rebuild Blueprint
 
-**Status:** Proposed / Pending Owner Approval
+**Status:** Owner Approved / Runtime Pending
 
-This document defines the complete proposed architecture for replacing the superseded post-v1 AuthoritativeAudit pagination wrapper with a package-owned Admin Query API.
+This document defines the complete approved architecture for replacing the superseded post-v1 AuthoritativeAudit pagination wrapper with a package-owned Admin Query API.
 
-It establishes the blueprint for the final remediation phase, ensuring strict fail-closed behavior, protected transaction boundaries, and separation from outbox semantics. It authorizes a separate Runtime implementation task/PR once approved, but it does **not** itself implement Runtime, tagging, or release work.
+It establishes the blueprint for the final remediation phase, ensuring strict fail-closed behavior, protected transaction boundaries, and separation from outbox semantics. Owner approval authorizes a separate Runtime implementation task/PR, but this document does not itself implement Runtime, tagging, or release work.
+
+## Owner Decision
+
+- **Owner approval date:** `2026-07-16`
+- The full contract defined in this Blueprint is approved exactly as written.
+- An independent Runtime implementation task/PR is authorized.
+- The Runtime PR must:
+  - Preserve `v1.0.0` contracts completely.
+  - Implement the Admin Query API exactly as documented here.
+  - Apply the primitive distinct-placeholder correction.
+  - Provide full coverage (Unit, Regression, and strict real-MySQL Integration).
+  - Delete the 7 superseded Runtime/test artifacts atomically.
+  - Update final documentation states within the Runtime PR.
+- **Disclaimer:** This approval does not execute the runtime implementation itself.
+- **Prohibited Actions:** No tagging, release, schema changes, Composer changes, CI changes, or host wiring are permitted in the documentation PR.
 
 ---
 
