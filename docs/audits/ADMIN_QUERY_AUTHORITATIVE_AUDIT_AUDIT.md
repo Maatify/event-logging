@@ -2,7 +2,7 @@
 
 **Target:** `AuthoritativeAudit` domain
 **Audited SHA:** `c8a121768ddfcec01793b63f46f7e7af37d951a9`
-**Audit Date:** 2024-07-15
+**Audit Date:** 2026-07-15
 **Purpose:** Rebuild post-v1 pagination experiment into Admin Query API architecture.
 
 ## 1. Protected `v1.0.0` Contracts (Do Not Modify)
@@ -17,12 +17,18 @@ The following `v1.0.0` baseline contracts are strictly protected and must remain
 
 **Primitive Read/Query:**
 - `AuthoritativeAuditQueryInterface::find(AuthoritativeAuditQueryDTO $query)`.
-- `AuthoritativeAuditQueryDTO` **in its entirety**, including the primitive cursor fields (`cursorOccurredAt`, `cursorId`, `limit`). This is a protected `v1.0.0` contract.
-- Primitive cursor behavior, limit normalization, and descending ordering (`occurred_at DESC, id DESC`) must remain unchanged.
-- `AuthoritativeAuditViewDTO`.
-- `AuthoritativeAuditQueryMysqlRepository` and its native PDO parameter usage.
-- Payload hydration fallbacks (mapping corrupt JSON strictly to `null`).
-- `AuthoritativeAuditStorageException` mappings.
+- **Observable primitive contract:** `AuthoritativeAuditQueryDTO` in its entirety, including the primitive cursor fields (`cursorOccurredAt`, `cursorId`, `limit`), is a protected `v1.0.0` contract.
+  *(Note: Placeholder naming for native PDO, like replacing reused `:cursor_at`, is an internal detail that can be corrected behavior-preservingly without breaking the observable contract).*
+- **Exact primitive constructor signature:** `public function __construct(public ?\DateTimeImmutable $after = null, public ?\DateTimeImmutable $before = null, public ?string $actorType = null, public ?int $actorId = null, public ?string $targetType = null, public ?int $targetId = null, public ?string $action = null, public ?string $correlationId = null, public ?\DateTimeImmutable $cursorOccurredAt = null, public ?int $cursorId = null, public int $limit = 50)`
+- **Defaults:** Filters default to `null`. Limit defaults to `50`.
+- **Serialization Key Order:** `after`, `before`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `cursorOccurredAt`, `cursorId`, `limit`.
+- **Cursor Activation:** Cursor is activated only if *both* `cursorOccurredAt` AND `cursorId` are strictly not null.
+- **Limit Normalization:** `max(1, $query->limit)` is enforced at the repository level.
+- **Ordering:** Descending order is strictly `occurred_at DESC, id DESC`.
+- **Hydration:** Payload hydration fallbacks (mapping corrupt JSON strictly to `null`).
+- **Exception Messages:**
+  - Query failure: `'Failed to query AuthoritativeAudit records: ' . $e->getMessage()`
+  - Hydration failure: `'Failed to map AuthoritativeAudit row: ' . $e->getMessage()`
 
 ## 2. Post-v1.0 Pagination Artifacts (To Be Superseded and Deleted)
 
@@ -31,7 +37,9 @@ The exact superseded artifacts to be replaced and deleted from the package:
 - `src/AuthoritativeAudit/Service/AuthoritativeAuditPaginatedQueryService.php`
 - `src/AuthoritativeAudit/DTO/AuthoritativeAuditQueryPageDTO.php`
 - `src/AuthoritativeAudit/DTO/AuthoritativeAuditQueryCursorDTO.php`
-- The three corresponding unit test files: `AuthoritativeAuditPaginatedQueryServiceTest.php`, `AuthoritativeAuditQueryPageDTOTest.php`, and `AuthoritativeAuditQueryCursorDTOTest.php`.
+- `tests/Unit/AuthoritativeAudit/Service/AuthoritativeAuditPaginatedQueryServiceTest.php`
+- `tests/Unit/AuthoritativeAudit/DTO/AuthoritativeAuditQueryPageDTOTest.php`
+- `tests/Unit/AuthoritativeAudit/DTO/AuthoritativeAuditQueryCursorDTOTest.php`
 
 ## 3. Storage and Boundary Semantics
 
@@ -39,30 +47,34 @@ The exact superseded artifacts to be replaced and deleted from the package:
 - **Admin listings strictly read from the log**, never from the outbox.
 - No schema changes are required or authorized.
 - No transaction ownership rules apply to the read layers.
-- Exact Primitive Signatures, Defaults & Serialization: Date filters use `DateTimeImmutable` mapped to `DATE_ATOM` in JSON. Default limit is 50. Empty queries filter nothing. Date bounds (`after`, `before`) translate to `>=` and `<=`.
-- Exceptions thrown extend `SystemMaatifyException` with `DATABASE_CONNECTION_FAILED`.
 
 ## 4. Testing & Remediation Gaps
 
 The implementation must address the following coverage and implementation gaps:
 
-- **MySQL Parameter Gap:** Primitive MySQL query currently reuses `:cursor_at` under native PDO, which violates native prepared statement rules. Needs unique placeholders (e.g., `:cursor_at_before`, `:cursor_at_equal`).
-- **Corrupt JSON Tests:** The current integration test for corrupt JSON (`testCorruptJsonMapsToNullSafely`) might skip on strict databases (MySQL 8+). Needs verification if it can be reliably tested.
+- **MySQL Parameter Gap:** Primitive MySQL query currently reuses `:cursor_at` under native PDO. Must be corrected behavior-preservingly.
+- **Corrupt JSON Tests:** The current integration test for corrupt JSON might skip on strict databases (MySQL 8+). Needs verification if it can be reliably tested.
 - **Matrix Gaps:** A full Unit, Regression, and strict MySQL Integration test matrix is required for the new Admin Query API.
 - **Admin Semantics:** Requires explicit filtered-count vs. data semantic alignment, precise pagination normalization (page/per_page), limit clamping, tie-breaker handling, null-column handling, and independent filter evaluation.
 
 ## 5. Host Integration Wrapper Usages
 
 - **Package Search:** Completed. The superseded interfaces are strictly isolated to `src/AuthoritativeAudit/Service` and their tests.
-- **Host Repositories Search:** *Access Gap*. The sandbox does not have access to private host repositories (e.g., Athar, EP4N) to confirm usage. Host teams must migrate any usages of `AuthoritativeAuditPaginatedQueryInterface` to the new Admin Query API synchronously before or during the PR.
+- **Host Repositories Search (Exact Repositories):**
+  - **Athar (`maatify/athar` / private host):** Could not be searched. *Reason:* Access gap; sandbox lacks authentication to private organizational repositories.
+  - **EP4N (`maatify/ep4n` / private host):** Could not be searched. *Reason:* Access gap; sandbox lacks authentication to private organizational repositories.
+  - *Action:* Host teams must manually verify and migrate any usages of `AuthoritativeAuditPaginatedQueryInterface` to the new Admin Query API synchronously before or during the PR.
 
 ## 6. Open Decisions Required Before Blueprint
 
 The following decisions must be made before drafting the Admin Query API blueprint:
 
-1. **Sort Whitelist:** Which specific columns are allowed for Admin Query API sorting? (e.g., `occurred_at` DESC, `id` DESC).
-2. **Actor/Target Type-ID Semantics:** Is querying `actorId` or `targetId` without their corresponding `Type` permitted? (In `SecuritySignals`, independent actor searches are permitted despite index implications; need to confirm this for AuthoritativeAudit).
-3. **Mapper & Result DTO:** Will the Admin API reuse `AuthoritativeAuditViewDTO` (since it already exposes the `id` field) or map to a distinct Admin DTO?
+1. **Sort Whitelist:** Which specific columns are allowed for Admin Query API sorting?
+2. **Actor/Target Type-ID Semantics:** Is querying `actorId` or `targetId` without their corresponding `Type` permitted?
+3. **Mapper & Result DTO:** Will the Admin API reuse `AuthoritativeAuditViewDTO` or map to a distinct Admin DTO?
 4. **Validation Bounds:** What are the exact maximum limits for `per_page` in the Admin Query API?
-5. **Exception Boundaries:** Differentiating strictly between invalid arguments (e.g., bad sort column) vs. execution failures (database connectivity).
-6. **Retirement Set Confirmation:** Explicit sign-off on the exact list of files to be deleted (the post-v1 pagination artifacts).
+5. **Exception Boundaries (To Be Confirmed/Applied):**
+   - Invalid request (e.g., bad sort column) → `AdminQueryInvalidArgumentException`
+   - Invalid pagination configuration/query execution via Persistence → `AdminQueryExecutionException`
+   - Native PDO mapping/row extraction failures → `AuthoritativeAuditStorageException`
+6. **Retirement Set Confirmation:** Explicit sign-off on the exact list of 7 files to be deleted.
