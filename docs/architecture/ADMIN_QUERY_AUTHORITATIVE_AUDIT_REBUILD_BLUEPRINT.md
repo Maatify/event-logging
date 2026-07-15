@@ -223,7 +223,6 @@ interface AuthoritativeAuditAdminQueryInterface
 namespace Maatify\EventLogging\AuthoritativeAudit\DTO;
 
 use DateTimeImmutable;
-use DateTimeZone;
 use JsonSerializable;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditAdminQueryInvalidArgumentException;
 
@@ -277,14 +276,11 @@ final readonly class AuthoritativeAuditAdminQueryRequestDTO implements JsonSeria
         }
         $this->targetId = $targetId;
 
-        $afterUtc = $after?->setTimezone(new DateTimeZone('UTC'));
-        $beforeUtc = $before?->setTimezone(new DateTimeZone('UTC'));
-
-        if ($afterUtc !== null && $beforeUtc !== null && $afterUtc > $beforeUtc) {
+        if ($after !== null && $before !== null && $after > $before) {
             throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidDateRange();
         }
-        $this->after = $afterUtc;
-        $this->before = $beforeUtc;
+        $this->after = $after;
+        $this->before = $before;
 
         $this->page = $page;
         $this->perPage = $perPage;
@@ -326,11 +322,11 @@ final readonly class AuthoritativeAuditAdminQueryRequestDTO implements JsonSeria
 
         $length = preg_match_all('/./us', $trimmed);
         if ($length === false || $length === 0) {
-            return null;
+            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding('sortBy');
         }
 
         if ($length > 64) {
-            return null;
+            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength('sortBy');
         }
 
         if ($trimmed === 'occurred_at') {
@@ -353,11 +349,11 @@ final readonly class AuthoritativeAuditAdminQueryRequestDTO implements JsonSeria
 
         $length = preg_match_all('/./us', $trimmed);
         if ($length === false || $length === 0) {
-            return null;
+            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding('sortDirection');
         }
 
         if ($length > 4) {
-            return null;
+            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength('sortDirection');
         }
 
         if ($trimmed === 'ASC' || $trimmed === 'DESC') {
@@ -458,12 +454,14 @@ use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditAdminQueryExecutionException;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination\AuthoritativeAuditAdminQueryDescriptorBuilder;
-use Maatify\Persistence\Pagination\Contract\PaginationExceptionInterface;
-use Maatify\Persistence\Pagination\DTO\PageRequest;
-use Maatify\Persistence\Pagination\Enum\SortDirectionEnum;
-use Maatify\Persistence\Pagination\PdoPaginator;
-use Maatify\Persistence\Pagination\ValueObject\PaginationConfig;
-use Maatify\Persistence\Pagination\ValueObject\SortWhitelist;
+use Maatify\Persistence\Exception\InvalidPaginationConfigurationException;
+use Maatify\Persistence\Exception\InvalidPaginationQueryException;
+use Maatify\Persistence\Exception\PaginationExecutionException;
+use Maatify\Persistence\Pdo\Pagination\PageRequest;
+use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
+use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
+use Maatify\Persistence\Pdo\Pagination\SortDirectionEnum;
+use Maatify\Persistence\Pdo\Pagination\SortWhitelist;
 use PDO;
 use PDOException;
 use Throwable;
@@ -478,13 +476,11 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
     {
         $this->mapper = new AuthoritativeAuditRowMapper();
         $this->descriptorBuilder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
-        $this->paginator = new PdoPaginator($this->pdo, $this->createPaginationConfig());
+        $this->paginator = new PdoPaginator();
     }
 
     public function paginate(AuthoritativeAuditAdminQueryRequestDTO $request): AuthoritativeAuditAdminPageResultDTO
     {
-        $descriptor = $this->descriptorBuilder->build($request);
-
         $pageRequest = new PageRequest(
             page: $request->page,
             perPage: $request->perPage,
@@ -493,34 +489,31 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
         );
 
         try {
-            $result = $this->paginator->paginate($descriptor, $pageRequest);
-        } catch (PaginationExceptionInterface $e) {
-            throw AuthoritativeAuditAdminQueryExecutionException::executionFailed($e);
-        } catch (PDOException $e) {
-            throw new AuthoritativeAuditStorageException('Failed to query AuthoritativeAudit records: ' . $e->getMessage(), 0, $e);
-        }
+            $result = $this->paginator->paginate(
+                $this->pdo,
+                $this->descriptorBuilder->build($request),
+                $pageRequest,
+                $this->createPaginationConfig(),
+                fn (array $row): AuthoritativeAuditViewDTO => $this->mapRow($row)
+            );
 
-        $items = [];
-        foreach ($result->data as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            /** @var array<string, mixed> $row */
-            $items[] = $this->mapRow($row);
+            return new AuthoritativeAuditAdminPageResultDTO(
+                items: $result->data,
+                page: $result->page,
+                perPage: $result->perPage,
+                total: $result->total,
+                filtered: $result->filtered,
+                totalPages: $result->totalPages,
+                hasNext: $result->hasNext,
+                hasPrevious: $result->hasPrevious,
+                sortBy: $result->sortBy,
+                sortDirection: $result->sortDirection->value
+            );
+        } catch (InvalidPaginationConfigurationException | InvalidPaginationQueryException $exception) {
+            throw AuthoritativeAuditAdminQueryExecutionException::executionFailed($exception);
+        } catch (PaginationExecutionException | PDOException $exception) {
+            throw new AuthoritativeAuditStorageException('Failed to query AuthoritativeAudit records: ' . $exception->getMessage(), 0, $exception);
         }
-
-        return new AuthoritativeAuditAdminPageResultDTO(
-            items: $items,
-            page: $result->page,
-            perPage: $result->perPage,
-            total: $result->total,
-            filtered: $result->filtered,
-            totalPages: $result->totalPages,
-            hasNext: $result->hasNext,
-            hasPrevious: $result->hasPrevious,
-            sortBy: $result->sortBy,
-            sortDirection: $result->sortDirection->value
-        );
     }
 
     private function createPaginationConfig(): PaginationConfig
@@ -548,10 +541,10 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
     {
         try {
             return $this->mapper->map($row);
-        } catch (AuthoritativeAuditStorageException $e) {
-            throw $e;
-        } catch (Throwable $e) {
-            throw new AuthoritativeAuditStorageException('Failed to map AuthoritativeAudit row: ' . $e->getMessage(), 0, $e);
+        } catch (AuthoritativeAuditStorageException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            throw new AuthoritativeAuditStorageException('Failed to map AuthoritativeAudit row: ' . $exception->getMessage(), 0, $exception);
         }
     }
 }
@@ -562,7 +555,6 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
 namespace Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql;
 
 use DateTimeImmutable;
-use DateTimeZone;
 use Exception;
 use JsonException;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
@@ -641,7 +633,8 @@ final class AuthoritativeAuditRowMapper
 namespace Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination;
 
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
-use Maatify\Persistence\Pagination\DTO\PdoPaginationQueryDescriptor;
+use DateTimeZone;
+use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
 
 /** @internal */
 final class AuthoritativeAuditAdminQueryDescriptorBuilder
@@ -700,13 +693,15 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilder
             $conditions[] = 'correlation_id = :correlation_id';
             $params['correlation_id'] = $request->correlationId;
         }
+        $utc = new DateTimeZone('UTC');
+
         if ($request->after !== null) {
             $conditions[] = 'occurred_at >= :after';
-            $params['after'] = $request->after->format('Y-m-d H:i:s.u');
+            $params['after'] = $request->after->setTimezone($utc)->format('Y-m-d H:i:s.u');
         }
         if ($request->before !== null) {
             $conditions[] = 'occurred_at <= :before';
-            $params['before'] = $request->before->format('Y-m-d H:i:s.u');
+            $params['before'] = $request->before->setTimezone($utc)->format('Y-m-d H:i:s.u');
         }
 
         $whereSql = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
@@ -729,22 +724,65 @@ Both placeholders will receive exactly the same datetime string representation.
 
 ### 3.3 Exception Classes and Mappings
 
-**Hierarchy:**
-Both exceptions implement `Maatify\EventLogging\Exception\EventLoggingExceptionInterface`.
-- `AuthoritativeAuditAdminQueryInvalidArgumentException` extends `Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException`.
-- `AuthoritativeAuditAdminQueryExecutionException` extends `Maatify\Exceptions\Exception\System\SystemMaatifyException`.
+```php
+namespace Maatify\EventLogging\AuthoritativeAudit\Exception;
 
-**Factories:**
-- `AuthoritativeAuditAdminQueryInvalidArgumentException::invalidId(string $field): self`
-  - Message: `Invalid AuthoritativeAudit Admin Query ID: {field}`
-- `AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength(string $field): self`
-  - Message: `Invalid AuthoritativeAudit Admin Query length: {field}`
-- `AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding(string $field): self`
-  - Message: `Invalid AuthoritativeAudit Admin Query UTF-8 encoding: {field}`
-- `AuthoritativeAuditAdminQueryInvalidArgumentException::invalidDateRange(): self`
-  - Message: `Invalid AuthoritativeAudit Admin Query date range: after must be before or equal to before`
-- `AuthoritativeAuditAdminQueryExecutionException::executionFailed(\Throwable $previous): self`
-  - Message: `AuthoritativeAudit Admin Query execution failed: {previous message}`
+use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
+use Maatify\Exceptions\Contract\ErrorCodeInterface;
+use Maatify\Exceptions\Enum\ErrorCodeEnum;
+use Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException;
+
+final class AuthoritativeAuditAdminQueryInvalidArgumentException extends InvalidArgumentMaatifyException implements EventLoggingExceptionInterface
+{
+    protected function defaultErrorCode(): ErrorCodeInterface
+    {
+        return ErrorCodeEnum::INVALID_ARGUMENT;
+    }
+
+    public static function invalidId(string $field): self
+    {
+        return new self("Invalid AuthoritativeAudit Admin Query ID: {$field}");
+    }
+
+    public static function invalidLength(string $field): self
+    {
+        return new self("Invalid AuthoritativeAudit Admin Query length: {$field}");
+    }
+
+    public static function invalidEncoding(string $field): self
+    {
+        return new self("Invalid AuthoritativeAudit Admin Query UTF-8 encoding: {$field}");
+    }
+
+    public static function invalidDateRange(): self
+    {
+        return new self("Invalid AuthoritativeAudit Admin Query date range: after must be before or equal to before");
+    }
+}
+```
+
+```php
+namespace Maatify\EventLogging\AuthoritativeAudit\Exception;
+
+use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
+use Maatify\Exceptions\Contract\ErrorCodeInterface;
+use Maatify\Exceptions\Enum\ErrorCodeEnum;
+use Maatify\Exceptions\Exception\System\SystemMaatifyException;
+use Throwable;
+
+final class AuthoritativeAuditAdminQueryExecutionException extends SystemMaatifyException implements EventLoggingExceptionInterface
+{
+    protected function defaultErrorCode(): ErrorCodeInterface
+    {
+        return ErrorCodeEnum::MAATIFY_ERROR;
+    }
+
+    public static function executionFailed(Throwable $previous): self
+    {
+        return new self('AuthoritativeAudit Admin Query execution failed: ' . $previous->getMessage(), 0, $previous);
+    }
+}
+```
 
 ---
 
