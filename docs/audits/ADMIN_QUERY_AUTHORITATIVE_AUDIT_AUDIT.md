@@ -1,59 +1,68 @@
 # Authoritative Audit: Admin Query API Remediation Audit
 
 **Target:** `AuthoritativeAudit` domain
+**Audited SHA:** `c8a121768ddfcec01793b63f46f7e7af37d951a9`
+**Audit Date:** 2024-07-15
 **Purpose:** Rebuild post-v1 pagination experiment into Admin Query API architecture.
 
 ## 1. Protected `v1.0.0` Contracts (Do Not Modify)
 
-**Recording:**
-- `AuthoritativeAuditRecorder` and `AuthoritativeAuditDefaultPolicy`.
-- `AuthoritativeAuditOutboxWriterInterface`.
-- Strict **fail-closed** behavior. Exceptions must not be swallowed; they must propagate to the caller to abort the transaction.
+The following `v1.0.0` baseline contracts are strictly protected and must remain unchanged:
+
+**Recording / Outbox:**
+- `AuthoritativeAuditRecorder::record()` and `AuthoritativeAuditDefaultPolicy::validatePayload()`.
+- `AuthoritativeAuditOutboxWriterInterface::write(AuthoritativeAuditOutboxWriteDTO $dto)`.
+- Strict **fail-closed** behavior: Exceptions during write must not be swallowed; they propagate to the caller to abort the transaction.
+- The outbox (`maa_event_logging_authoritative_audit_outbox`) is the **transactional source of truth**.
 
 **Primitive Read/Query:**
-- `AuthoritativeAuditQueryInterface::find()`
-- `AuthoritativeAuditQueryDTO` (base filters: `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, `before`).
+- `AuthoritativeAuditQueryInterface::find(AuthoritativeAuditQueryDTO $query)`.
+- `AuthoritativeAuditQueryDTO` **in its entirety**, including the primitive cursor fields (`cursorOccurredAt`, `cursorId`, `limit`). This is a protected `v1.0.0` contract.
+- Primitive cursor behavior, limit normalization, and descending ordering (`occurred_at DESC, id DESC`) must remain unchanged.
 - `AuthoritativeAuditViewDTO`.
-- `AuthoritativeAuditQueryMysqlRepository`.
+- `AuthoritativeAuditQueryMysqlRepository` and its native PDO parameter usage.
+- Payload hydration fallbacks (mapping corrupt JSON strictly to `null`).
+- `AuthoritativeAuditStorageException` mappings.
 
-## 2. Post-v1.0 Pagination Artifacts (To Be Deleted/Rebuilt)
+## 2. Post-v1.0 Pagination Artifacts (To Be Superseded and Deleted)
 
-The following artifacts belong to the abandoned cursor-based pagination experiment and must be **deleted** when the Admin Query API is introduced:
-- `AuthoritativeAuditPaginatedQueryInterface`
-- `AuthoritativeAuditPaginatedQueryService`
-- `AuthoritativeAuditQueryPageDTO`
-- `AuthoritativeAuditQueryCursorDTO`
-- Cursor fields (`cursorOccurredAt`, `cursorId`, `limit`) inside `AuthoritativeAuditQueryDTO`.
+The exact superseded artifacts to be replaced and deleted from the package:
+- `src/AuthoritativeAudit/Contract/AuthoritativeAuditPaginatedQueryInterface.php`
+- `src/AuthoritativeAudit/Service/AuthoritativeAuditPaginatedQueryService.php`
+- `src/AuthoritativeAudit/DTO/AuthoritativeAuditQueryPageDTO.php`
+- `src/AuthoritativeAudit/DTO/AuthoritativeAuditQueryCursorDTO.php`
+- The three corresponding unit test files: `AuthoritativeAuditPaginatedQueryServiceTest.php`, `AuthoritativeAuditQueryPageDTOTest.php`, and `AuthoritativeAuditQueryCursorDTOTest.php`.
 
-*Note: These should be replaced by a separate `AuthoritativeAuditAdminQueryInterface` using `maatify/persistence` for limit/offset pagination, and distinct DTOs for the query and page results.*
+## 3. Storage and Boundary Semantics
 
-## 3. Storage and Boundary Review
+- The materialized log (`maa_event_logging_authoritative_audit_log`) is **not authoritative** and is written *only* by the outbox consumer.
+- **Admin listings strictly read from the log**, never from the outbox.
+- No schema changes are required or authorized.
+- No transaction ownership rules apply to the read layers.
+- Exact Primitive Signatures, Defaults & Serialization: Date filters use `DateTimeImmutable` mapped to `DATE_ATOM` in JSON. Default limit is 50. Empty queries filter nothing. Date bounds (`after`, `before`) translate to `>=` and `<=`.
+- Exceptions thrown extend `SystemMaatifyException` with `DATABASE_CONNECTION_FAILED`.
 
-**Schema & Indexes:**
-- The domain maintains two tables: `maa_event_logging_authoritative_audit_outbox` (write truth) and `maa_event_logging_authoritative_audit_log` (read materialization).
-- Admin queries strictly read from the `_log` table. The outbox is **not** queried by the host for listing.
+## 4. Testing & Remediation Gaps
 
-**Filters:**
-- Standard equality filters are implemented (`actor_type`, `actor_id`, `target_type`, `target_id`, `action`, `correlation_id`).
-- Date filters (`after`, `before`) map to `occurred_at`.
+The implementation must address the following coverage and implementation gaps:
 
-**Hydration & Exceptions:**
-- `AuthoritativeAuditStorageException` is used correctly extending `SystemMaatifyException` (Code: `DATABASE_CONNECTION_FAILED`).
-- Payload hydration safely handles corrupt JSON (returns `null`), protecting read availability.
-
-## 4. Testing Gaps
-
-- **Integration:** Strict MySQL integration tests exist (`AuthoritativeAuditRepositoryTest`), covering roundtrips and JSON corrupt handling.
-- **Unit:** Extensive unit tests exist for commands, DTOs, recorders, and services.
-- **Regression:** A `tests/Regression/AuthoritativeAudit` directory is **missing**. Regression tests proving that primitive behavior remains identical after the rebuild will be required.
+- **MySQL Parameter Gap:** Primitive MySQL query currently reuses `:cursor_at` under native PDO, which violates native prepared statement rules. Needs unique placeholders (e.g., `:cursor_at_before`, `:cursor_at_equal`).
+- **Corrupt JSON Tests:** The current integration test for corrupt JSON (`testCorruptJsonMapsToNullSafely`) might skip on strict databases (MySQL 8+). Needs verification if it can be reliably tested.
+- **Matrix Gaps:** A full Unit, Regression, and strict MySQL Integration test matrix is required for the new Admin Query API.
+- **Admin Semantics:** Requires explicit filtered-count vs. data semantic alignment, precise pagination normalization (page/per_page), limit clamping, tie-breaker handling, null-column handling, and independent filter evaluation.
 
 ## 5. Host Integration Wrapper Usages
 
-- Package search: Currently, only internal services (`AuthoritativeAuditPaginatedQueryService`) and tests reference the post-v1 pagination interfaces.
-- Host repository search: **Must** be performed before or during the PR to ensure no host is relying on `AuthoritativeAuditPaginatedQueryInterface`. If found, they must be migrated to the new API synchronously.
+- **Package Search:** Completed. The superseded interfaces are strictly isolated to `src/AuthoritativeAudit/Service` and their tests.
+- **Host Repositories Search:** *Access Gap*. The sandbox does not have access to private host repositories (e.g., Athar, EP4N) to confirm usage. Host teams must migrate any usages of `AuthoritativeAuditPaginatedQueryInterface` to the new Admin Query API synchronously before or during the PR.
 
 ## 6. Open Decisions Required Before Blueprint
 
-1. **Sort Whitelist:** What are the permitted sort columns for the Admin Query API (e.g., `occurred_at`, `id`)?
-2. **Actor Search Performance:** Querying `actorId` without `actorType` is permitted in `SecuritySignals`, but we need to confirm if the same performance implication is accepted here.
-3. **Data Mapping:** Will the Admin API map to `AuthoritativeAuditViewDTO` or require a distinct Admin DTO (as done in other rebuilds if needed)? Since this domain already exposes `id` in `AuthoritativeAuditViewDTO`, it might be reusable.
+The following decisions must be made before drafting the Admin Query API blueprint:
+
+1. **Sort Whitelist:** Which specific columns are allowed for Admin Query API sorting? (e.g., `occurred_at` DESC, `id` DESC).
+2. **Actor/Target Type-ID Semantics:** Is querying `actorId` or `targetId` without their corresponding `Type` permitted? (In `SecuritySignals`, independent actor searches are permitted despite index implications; need to confirm this for AuthoritativeAudit).
+3. **Mapper & Result DTO:** Will the Admin API reuse `AuthoritativeAuditViewDTO` (since it already exposes the `id` field) or map to a distinct Admin DTO?
+4. **Validation Bounds:** What are the exact maximum limits for `per_page` in the Admin Query API?
+5. **Exception Boundaries:** Differentiating strictly between invalid arguments (e.g., bad sort column) vs. execution failures (database connectivity).
+6. **Retirement Set Confirmation:** Explicit sign-off on the exact list of files to be deleted (the post-v1 pagination artifacts).
