@@ -12,9 +12,9 @@
 | `./docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md` | Architecture Docs | Active | Approved post-v1 architecture |  |
 | `./docs/architecture/ADMIN_QUERY_AUDIT_TRAIL_POC_BLUEPRINT.md` | Architecture Docs | Active (Owner Approved / Runtime Implemented) | Blueprint and implementation status for AuditTrail POC | Owner approval granted; runtime implementation documented. |
 | `./docs/architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md` | Architecture Docs | Active (Owner Approved / Runtime Implemented) | BehaviorTrace rebuild blueprint | Runtime implementation is complete. The approved replacement is present, and the superseded post-v1 pagination artifacts were deleted after the test gate passed. |
-| `./docs/architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md` | Architecture Docs | Active | SecuritySignals Admin Query Rebuild Blueprint | Proposed Blueprint / Runtime Implementation Blocked |
+| `./docs/architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md` | Architecture Docs | Active (Owner Approved / Runtime Pending) | SecuritySignals Admin Query Rebuild Blueprint | Complete blueprint approved; separate Runtime implementation is authorized but not yet implemented. |
 | `./docs/architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md` | Architecture Docs | Active (Owner Decision) | Defines the mandatory retirement boundary for the SecuritySignals post-v1 wrapper | The seven superseded Runtime/test artifacts are outside `v1.0.0`, their wrapper/cursor contracts are not preserved, and they are deleted atomically in the Runtime rebuild. |
-| `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap |  |
+| `./docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` | Roadmap Docs | Active | Current post-v1 execution roadmap | SecuritySignals is Owner Approved / Runtime Pending. |
 | `./docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md` | Historical Audit Docs | Historical | Historical Phase 1 Baseline |  |
 | `./docs/architecture/logging/CANONICAL_LOGGER_DESIGN_STANDARD.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |
 | `./docs/architecture/logging/GLOBAL_LOGGING_RULES.md` | Standards / Architecture Docs | Active | Architectural rules and logging patterns |  |

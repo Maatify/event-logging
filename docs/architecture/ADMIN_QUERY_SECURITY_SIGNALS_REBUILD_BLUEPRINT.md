@@ -1,10 +1,10 @@
 # SecuritySignals Admin Query Rebuild Blueprint
 
-**Status:** Proposed / Runtime Implementation Blocked
+**Status:** Owner Approved / Runtime Pending
 
-This document defines the complete proposed architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API.
+This document defines the complete approved architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API.
 
-It records the Owner decisions made on `2026-07-14`, including the post-v1 retirement rule recorded by `ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md`, but it does **not** itself implement or authorize Runtime, tagging, or release work.
+It records the Owner decisions made on `2026-07-14`, the post-v1 retirement rule recorded by `ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md`, and final approval of the complete coherent blueprint on `2026-07-15`. It authorizes a separate Runtime implementation task/PR, but it does **not** itself implement Runtime, tagging, or release work.
 
 ---
 
@@ -43,6 +43,7 @@ It records the Owner decisions made on `2026-07-14`, including the post-v1 retir
 
 ### 1.3 Governing documents reviewed
 
+- `AGENTS.md`
 - `EVENT_LOGGING_PACKAGE_REFERENCE.md`
 - `docs/standards/PACKAGE_BUILDING_STANDARD.md`
 - `docs/standards/COMPOSER_PACKAGE_STANDARD.md`
@@ -77,7 +78,7 @@ The audit distinguishes three different contracts:
    - introduced by PR #74;
    - not part of the protected `v1.0.0` surface;
    - replaced and deleted atomically inside the approved Runtime rebuild.
-3. **Proposed Admin Query path**
+3. **Approved Admin Query path**
    - SecuritySignals-specific package API;
    - offset/page pagination through `maatify/persistence`;
    - no change to the primitive public contract.
@@ -429,13 +430,13 @@ The package-level Runtime rebuild is atomic:
 4. delete the exact seven superseded post-v1 artifacts;
 5. update package and integration documentation.
 
-PR #102 and PR #103 are documentation-only and implement no deletion themselves.
+PR #102 and PR #103 were documentation-only and implemented no deletion themselves.
 
 ---
 
-## 6. Proposed Public Admin Query Interface
+## 6. Approved Public Admin Query Interface
 
-The future public interface is:
+The public interface is:
 
 ```php
 namespace Maatify\EventLogging\SecuritySignals\Contract;
@@ -465,9 +466,9 @@ No `maatify/persistence` class appears in the public interface.
 
 ---
 
-## 7. Proposed Request DTO Contract
+## 7. Approved Request DTO Contract
 
-The future request DTO is:
+The request DTO is:
 
 ```php
 namespace Maatify\EventLogging\SecuritySignals\DTO;
@@ -598,9 +599,9 @@ invalid UTF-8        -> invalidEncoding(sortDirection)
 
 ---
 
-## 8. Proposed Page Result DTO Contract
+## 8. Approved Page Result DTO Contract
 
-The future result DTO is:
+The result DTO is:
 
 ```php
 namespace Maatify\EventLogging\SecuritySignals\DTO;
@@ -664,7 +665,7 @@ There is no root-level `id` field.
 
 ---
 
-## 9. Proposed Runtime Components and Visibility
+## 9. Approved Runtime Components and Visibility
 
 ### 9.1 Public infrastructure adapter
 
@@ -674,7 +675,7 @@ src/SecuritySignals/Infrastructure/Mysql/SecuritySignalsAdminQueryMysqlRepositor
 
 It is a public package infrastructure adapter implementing `SecuritySignalsAdminQueryInterface`.
 
-Proposed constructor:
+Approved constructor:
 
 ```php
 public function __construct(private PDO $pdo)
@@ -715,7 +716,7 @@ The Admin repository:
 
 ## 10. Policy-Free Shared Row Mapper
 
-Proposed mapper contract:
+Approved mapper contract:
 
 ```php
 /** @internal */
@@ -740,7 +741,7 @@ The mapper:
 - preserves every primitive fallback listed in Section 2.6;
 - throws on invalid persisted date text exactly as the current primitive mapping does.
 
-A future primitive refactor may delegate row construction to this mapper only after regression tests prove identical behavior.
+A primitive refactor may delegate row construction to this mapper only after regression tests prove identical behavior.
 
 The repository translates mapper failures using:
 
@@ -933,11 +934,11 @@ Storage failures must not be translated into `SecuritySignalsAdminQueryExecution
 
 ---
 
-## 14. Proposed Exception Classes and Exact Messages
+## 14. Approved Exception Classes and Exact Messages
 
 ### 14.1 Invalid argument exception
 
-Proposed class:
+Approved class:
 
 ```text
 SecuritySignalsAdminQueryInvalidArgumentException
@@ -968,7 +969,7 @@ invalidDateRange()
 
 ### 14.2 Execution exception
 
-Proposed class:
+Approved class:
 
 ```text
 SecuritySignalsAdminQueryExecutionException
@@ -981,7 +982,7 @@ It:
 - preserves the previous throwable;
 - uses `ErrorCodeEnum::MAATIFY_ERROR`.
 
-Exact proposed message:
+Exact approved message:
 
 ```text
 SecuritySignals Admin Query execution failed: {original message}
@@ -1001,7 +1002,7 @@ The current primitive SQL reuses the named placeholder `:cursor_at` twice.
 
 Repeated named placeholders are prohibited by the project standard and are not an Owner choice.
 
-The future Runtime implementation must use:
+The Runtime implementation must use:
 
 ```sql
 (
@@ -1027,11 +1028,11 @@ This required correction:
 - must be delivered with primitive regression coverage;
 - must be proven using real MySQL with native prepared statements.
 
-PR #102 documents the requirement but does not implement it.
+PR #102 documented the requirement but did not implement it.
 
 ---
 
-## 16. Future Test and Compatibility Matrix
+## 16. Required Test and Compatibility Matrix
 
 ### 16.1 Request DTO unit tests
 
@@ -1205,9 +1206,9 @@ A skipped Integration job is not a passing Integration result.
 
 ---
 
-## 17. Exact Future File Inventory
+## 17. Exact Runtime File Inventory
 
-### 17.1 Future additions
+### 17.1 Required additions
 
 Runtime:
 
@@ -1237,7 +1238,7 @@ tests/Integration/SecuritySignals/SecuritySignalsAdminQueryMysqlRepositoryTest.p
 tests/Integration/SecuritySignals/SecuritySignalsQueryMysqlRepositoryTest.php
 ```
 
-### 17.2 Future modifications
+### 17.2 Required modifications
 
 ```text
 src/SecuritySignals/Infrastructure/Mysql/SecuritySignalsQueryMysqlRepository.php
@@ -1256,7 +1257,7 @@ The primitive repository modification is restricted to:
 - mandatory distinct cursor timestamp placeholders;
 - complete regression and strict real-MySQL coverage.
 
-### 17.3 Future deletions inside the same Runtime rebuild
+### 17.3 Required deletions inside the same Runtime rebuild
 
 ```text
 src/SecuritySignals/Contract/SecuritySignalsPaginatedQueryInterface.php
@@ -1324,9 +1325,9 @@ release publication
 
 ---
 
-## 18. Owner Decisions Recorded
+## 18. Owner Decisions and Approval
 
-The following Owner decisions are final for this blueprint:
+The following Owner decisions are final and the complete blueprint is approved as one coherent Runtime contract.
 
 ### 18.1 Independent actor filters
 
@@ -1365,11 +1366,9 @@ Maintained host repositories must be searched and every discovered use migrated,
 - wrapper page/cursor contracts, serialization, and cursor-wrapper mechanics are not compatibility targets;
 - retaining the obsolete package API requires a new explicit Owner decision.
 
-### 18.4 Review boundary before Runtime authorization
+### 18.4 Complete blueprint approval
 
-The decisions above are resolved.
-
-The complete proposed package contract must be reviewed as one coherent blueprint before Runtime starts, including:
+The complete package contract has been reviewed and approved as one coherent blueprint, including:
 
 - public `paginate()` interface;
 - request DTO and normalization contract;
@@ -1379,33 +1378,34 @@ The complete proposed package contract must be reviewed as one coherent blueprin
 - descriptor and SQL contract;
 - pagination configuration;
 - exception names and messages;
-- exact future file inventory;
+- exact Runtime file inventory;
 - test, atomic-retirement, and host-integration gates.
 
-This review gate prevents a partial Owner decision from being mistaken for authorization to implement an incomplete or different Runtime contract.
+This approval authorizes a separate Runtime implementation task/PR. It does not authorize deviation from this contract, a tag, or a release.
 
 ---
 
-## 19. Runtime Authorization Gate
+## 19. Runtime Authorization
 
-PR #102 and PR #103 are documentation-only.
+PR #102 and PR #103 are merged documentation history. They implemented no SecuritySignals Runtime code or artifact deletion.
 
-No SecuritySignals Runtime implementation or artifact deletion is performed by these documentation PRs.
+SecuritySignals Runtime execution is now authorized through a separate task and PR from the latest remote `main`.
 
-Progression requires:
+The Runtime change must:
 
-1. review the corrected stacked documentation content;
-2. explicitly confirm that the complete blueprint matches the recorded Owner decisions and package standards;
-3. merge PR #103 into the PR #102 branch;
-4. re-review and merge PR #102 only after complete blueprint approval;
-5. create a separate Runtime execution task;
-6. implement the exact reviewed Admin Query contract and behavior-preserving primitive placeholder correction;
-7. add the replacement, execute all package gates, and delete the exact seven superseded artifacts inside the same Runtime rebuild change set;
-8. search maintained host repositories and migrate any discovered wrapper use through coordinated host-repository work, without preserving or postponing deletion of the obsolete package API;
-9. run complete Unit, Regression, strict real MySQL Integration, PHPStan, Composer, documentation, and architecture-boundary gates.
+1. implement the exact approved Admin Query public and internal contracts in this blueprint;
+2. preserve every protected `v1.0.0` primitive, schema, write-policy, and fail-open behavior;
+3. apply the behavior-preserving native-PDO distinct-placeholder correction;
+4. add the complete Unit, Regression, and strict real-MySQL Integration coverage defined here;
+5. add the approved replacement and delete the exact seven superseded Runtime/test artifacts inside the same Runtime rebuild change set;
+6. search maintained host repositories and migrate any discovered wrapper usage through coordinated host-repository work without preserving or postponing deletion of the obsolete package API;
+7. update the Package Reference, SecuritySignals README, Admin integration documentation, roadmap, documentation inventory, and changelog as applicable;
+8. pass Composer validation, PHPStan, Unit, Regression, strict real-MySQL Integration, documentation, architecture-boundary, and `git diff --check` gates.
 
-Until the complete blueprint is reviewed, the status remains:
+No tag, release publication, reporting work, dashboard work, schema change, Composer dependency change, CI workflow change, or host framework wiring is authorized by this approval.
+
+Current status:
 
 ```text
-Proposed / Runtime Implementation Blocked
+Owner Approved / Runtime Pending
 ```
