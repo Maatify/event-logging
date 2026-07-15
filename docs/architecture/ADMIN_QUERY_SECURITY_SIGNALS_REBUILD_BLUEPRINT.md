@@ -1,8 +1,8 @@
 # SecuritySignals Admin Query Rebuild Blueprint
 
-**Status:** Owner Approved / Runtime Pending
+**Status:** Owner Approved / Runtime Added / Strict MySQL Verification Pending
 
-This document defines the complete approved architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API.
+This document defines the complete approved architecture for replacing the superseded post-v1 SecuritySignals pagination wrapper with a package-owned Admin Query API. The Runtime implementation is now present in the package branch, pending successful strict real-MySQL verification before final implementation status.
 
 It records the Owner decisions made on `2026-07-14`, the post-v1 retirement rule recorded by `ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md`, and final approval of the complete coherent blueprint on `2026-07-15`. It authorizes a separate Runtime implementation task/PR, but it does **not** itself implement Runtime, tagging, or release work.
 
@@ -1407,5 +1407,5 @@ No tag, release publication, reporting work, dashboard work, schema change, Comp
 Current status:
 
 ```text
-Owner Approved / Runtime Pending
+Owner Approved / Runtime Added / Strict MySQL Verification Pending
 ```

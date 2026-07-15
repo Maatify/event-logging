@@ -21,7 +21,7 @@ The package intentionally uses explicit runtime dependencies rather than hiding 
 - PHP `^8.2`.
 - PHP extensions: `ext-json`, `ext-pdo`.
 - `maatify/exceptions`.
-- `maatify/persistence` for AuditTrail and BehaviorTrace Admin Query offset pagination mechanics.
+- `maatify/persistence` for AuditTrail, BehaviorTrace, and SecuritySignals Admin Query offset pagination mechanics.
 - `maatify/shared-common` for shared contracts such as `ClockInterface`.
 - `psr/log` for optional fail-open fallback logging.
 - `ramsey/uuid` for UUID generation; the package does not provide an internal UUID fallback generator.
@@ -54,7 +54,6 @@ The package exposes `Maatify\EventLogging\` via PSR-4 autoloading. The public ru
 - `Maatify\EventLogging\SecuritySignals\Exception\*`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\*`
 - `Maatify\EventLogging\SecuritySignals\Recorder\*`
-- `Maatify\EventLogging\SecuritySignals\Service\*`
 - `Maatify\EventLogging\BehaviorTrace\Command\*`
 - `Maatify\EventLogging\BehaviorTrace\Contract\*`
 - `Maatify\EventLogging\BehaviorTrace\DTO\*`
@@ -181,7 +180,7 @@ The primitive read side is designed for archiving, sequential processing, export
 
 ## 12. Admin Query APIs
 
-AuditTrail and BehaviorTrace additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+AuditTrail, BehaviorTrace, and SecuritySignals additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
 
 ### AuditTrail
 
@@ -261,6 +260,45 @@ BehaviorTrace Admin Query exception boundaries:
 - `BehaviorTraceAdminQueryExecutionException` for invalid pagination configuration or descriptor construction.
 - `BehaviorTraceStorageException` for PDO and pagination execution failures, using the existing `Failed to query BehaviorTrace records: ...` message pattern.
 
+### SecuritySignals
+
+Public contract:
+
+```php
+use Maatify\EventLogging\SecuritySignals\Contract\SecuritySignalsAdminQueryInterface;
+use Maatify\EventLogging\SecuritySignals\DTO\SecuritySignalsAdminQueryRequestDTO;
+use Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsAdminQueryMysqlRepository;
+
+$query = new SecuritySignalsAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new SecuritySignalsAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    signalType: 'login_failed',
+    severity: 'HIGH',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `signalType`, `severity`, `requestId`, `correlationId`, `after`, and `before`. `actorType` and `actorId` are independent filters: type-only, ID-only, both, and neither are all valid. Empty strings are normalized to `null`, IDs must be positive, equal date boundaries are valid, and date filters are inclusive.
+
+The result DTO serializes as:
+
+```text
+items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection
+```
+
+Caller-selectable sorting is limited to `occurred_at`; `id` is used only as the internal deterministic tie-breaker. Pagination normalization, clamping, offset calculation, count execution, and ordering mechanics are delegated to `maatify/persistence`. The public EventLogging API does not expose persistence package classes.
+
+SecuritySignals Admin Query exception boundaries:
+
+- `SecuritySignalsAdminQueryInvalidArgumentException` for invalid request filters and ranges.
+- `SecuritySignalsAdminQueryExecutionException` for invalid pagination configuration or descriptor construction.
+- `SecuritySignalsStorageException` for PDO and pagination execution failures, using the existing `Failed to query SecuritySignals records: ...` message pattern.
+
 The package does not provide HTTP controllers, routes, authorization, middleware, UI, exports, localization, dashboards, free-text search, metadata search, joins, caching, or approximate counts for Admin Query. Hosts own those concerns.
 
 ### Superseded Post-v1 Pagination Artifacts
@@ -272,7 +310,7 @@ The following pagination artifacts were added after the `v1.0.0` release and are
 - `*QueryPageDTO`
 - `*PaginatedQueryService`
 
-The AuditTrail and BehaviorTrace versions of these artifacts have been removed by their Admin Query implementations because they were unreleased post-v1 experiments, not protected `v1.0.0` contracts. Remaining domains must not use these artifacts as the architecture for new integrations or extend them to additional domains. Advanced domain-scoped Admin Query and reporting contracts remain governed by the approved architecture and roadmap.
+The AuditTrail, BehaviorTrace, and SecuritySignals versions of these artifacts have been removed by their Admin Query implementations because they were unreleased post-v1 experiments, not protected `v1.0.0` contracts. Remaining domains must not use these artifacts as the architecture for new integrations or extend them to additional domains. Advanced domain-scoped Admin Query and reporting contracts remain governed by the approved architecture and roadmap.
 
 Advanced querying (UI-driven generic search, arbitrary filtering, complex host analytics) remains the responsibility of the host application outside this package.
 
@@ -281,7 +319,7 @@ Advanced querying (UI-driven generic search, arbitrary filtering, complex host a
 
 Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring when they are repository or writer adapters. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
 
-Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository` and `BehaviorTraceAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, and `SecuritySignalsAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
 
 Classes marked `@internal` under infrastructure namespaces are package implementation details, not stable public API. Hosts must not construct, type against, extend, or depend on them, and their signatures are not part of the stable compatibility contract. The Admin Query implementations explicitly exclude these internal classes from the stable public API:
 
@@ -289,6 +327,8 @@ Classes marked `@internal` under infrastructure namespaces are package implement
 - `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\Pagination\AuditTrailAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceRowMapper`
 - `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\Pagination\BehaviorTraceAdminQueryDescriptorBuilder`
+- `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsRowMapper`
+- `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\Pagination\SecuritySignalsAdminQueryDescriptorBuilder`
 
 ## 14. Failure and exception behavior
 
