@@ -1389,7 +1389,11 @@ This approval authorizes a separate Runtime implementation task/PR. It does not 
 
 PR #102 and PR #103 are merged documentation history. They implemented no SecuritySignals Runtime code or artifact deletion.
 
-Commit `907b24bd5e7553e02a182d4987bb46f459da8775` was pushed directly to `main` with the initial SecuritySignals Runtime implementation. Commit `2b4003bde9c7bb913c87303100989a9e2af387e9` was also pushed directly to `main` and completes the review, coverage, and documentation contract without rewriting that history.
+The implementation occurred across the following sequence:
+* `907b24b`: added the initial Runtime implementation.
+* `2b4003b`: expanded the Runtime coverage and updated the documentation, but later review identified remaining exception-boundary gaps.
+* `bcadba8`: added the missing exception-boundary tests but opened unauthorized production seams.
+* `4cfb536`: removed those seams and established the final accepted Runtime state.
 
 The Runtime change:
 
