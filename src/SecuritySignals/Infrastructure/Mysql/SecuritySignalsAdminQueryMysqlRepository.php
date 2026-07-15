@@ -16,14 +16,13 @@ use Maatify\Persistence\Exception\InvalidPaginationQueryException;
 use Maatify\Persistence\Exception\PaginationExecutionException;
 use Maatify\Persistence\Pdo\Pagination\PageRequest;
 use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
 use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
 use Maatify\Persistence\Pdo\Pagination\SortDirectionEnum;
 use Maatify\Persistence\Pdo\Pagination\SortWhitelist;
 use PDO;
 use PDOException;
 
-class SecuritySignalsAdminQueryMysqlRepository implements SecuritySignalsAdminQueryInterface
+final class SecuritySignalsAdminQueryMysqlRepository implements SecuritySignalsAdminQueryInterface
 {
     private SecuritySignalsRowMapper $mapper;
     private SecuritySignalsAdminQueryDescriptorBuilder $descriptorBuilder;
@@ -49,7 +48,7 @@ class SecuritySignalsAdminQueryMysqlRepository implements SecuritySignalsAdminQu
         try {
             $result = $this->paginator->paginate(
                 $this->pdo,
-                $this->buildDescriptor($request),
+                $this->descriptorBuilder->build($request),
                 $pageRequest,
                 $this->createPaginationConfig(),
                 fn (array $row): SecuritySignalsViewDTO => $this->mapRow($row),
@@ -80,15 +79,10 @@ class SecuritySignalsAdminQueryMysqlRepository implements SecuritySignalsAdminQu
         );
     }
 
-    protected function buildDescriptor(SecuritySignalsAdminQueryRequestDTO $request): PdoPaginationQueryDescriptor
-    {
-        return $this->descriptorBuilder->build($request);
-    }
-
     /**
      * @param array<string, mixed> $row
      */
-    protected function mapRow(array $row): SecuritySignalsViewDTO
+    private function mapRow(array $row): SecuritySignalsViewDTO
     {
         try {
             return $this->mapper->map($row);
@@ -102,7 +96,7 @@ class SecuritySignalsAdminQueryMysqlRepository implements SecuritySignalsAdminQu
         }
     }
 
-    protected function createPaginationConfig(): PaginationConfig
+    private function createPaginationConfig(): PaginationConfig
     {
         return new PaginationConfig(
             sortWhitelist: new SortWhitelist([
