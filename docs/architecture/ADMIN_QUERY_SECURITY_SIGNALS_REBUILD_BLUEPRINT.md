@@ -1343,11 +1343,11 @@ Any discovered use must be migrated and verified first.
 
 The known lack of full adoption does not waive this gate.
 
-### 18.4 Remaining architecture approval boundary
+### 18.4 Review boundary before Runtime authorization
 
 The decisions above are resolved.
 
-The complete proposed package contract still requires an explicit Owner approval action before Runtime starts, covering:
+The complete proposed package contract must now be reviewed as one coherent blueprint before Runtime starts, including:
 
 - public `paginate()` interface;
 - request DTO and normalization contract;
@@ -1359,6 +1359,8 @@ The complete proposed package contract still requires an explicit Owner approval
 - exception names and messages;
 - exact future file inventory;
 - test and migration gates.
+
+This review gate prevents a partial Owner decision from being mistaken for authorization to implement an incomplete or different Runtime contract.
 
 ---
 
@@ -1373,14 +1375,14 @@ No superseded artifact deletion is authorized by this blueprint alone.
 Progression requires:
 
 1. review this corrected PR #102 content;
-2. record explicit Owner approval for the complete blueprint;
-3. merge the documentation PR only after approval;
+2. explicitly confirm that this complete blueprint matches the recorded Owner decisions and package standards;
+3. merge the documentation PR only after that review;
 4. create a separate Runtime execution task;
-5. implement the exact approved contract;
+5. implement the exact reviewed contract;
 6. run complete Unit, Regression, strict real MySQL Integration, PHPStan, Composer, and architecture-boundary gates;
 7. search and migrate maintained host repositories before deleting superseded artifacts.
 
-Until explicit full-blueprint approval is recorded, the status remains:
+Until the complete blueprint is reviewed, the status remains:
 
 ```text
 Proposed / Runtime Implementation Blocked
