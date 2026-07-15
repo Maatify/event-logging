@@ -1390,10 +1390,10 @@ This approval authorizes a separate Runtime implementation task/PR. It does not 
 PR #102 and PR #103 are merged documentation history. They implemented no SecuritySignals Runtime code or artifact deletion.
 
 The implementation occurred across the following sequence:
-* `907b24b`: executed the initial Runtime implementation.
-* `2b4003b`: completed the coverage and documentation.
-* `bcadba8`: added exception boundary tests but opened unauthorized seams.
-* `4cfb536`: closed the unauthorized seams and achieved the final, accepted, strict state.
+* `907b24b`: added the initial Runtime implementation.
+* `2b4003b`: expanded the Runtime coverage and updated the documentation, but later review identified remaining exception-boundary gaps.
+* `bcadba8`: added the missing exception-boundary tests but opened unauthorized production seams.
+* `4cfb536`: removed those seams and established the final accepted Runtime state.
 
 The Runtime change:
 
