@@ -118,7 +118,7 @@ The following primitive contracts are protected and preserved:
     - `event_id`: fallback to empty string `''`.
     - `action`: fallback to empty string `''`.
     - `actor_type`, `actor_id`, `target_type`, `target_id`, `ip_address`, `user_agent`, `correlation_id`: explicit strict types extracted, otherwise mapped to `null`.
-    - `changes` JSON extraction: missing/non-string/empty/malformed/scalar/numeric-key array -> `null`. Associative JSON object -> `array`.
+    - `changes` JSON extraction loop: missing/non-string/empty/malformed/scalar/numeric-key array -> `null`. Any key non-string -> `null`. Empty associative result -> allowed. Associative object correctly parsed -> `array`.
     - `occurred_at` date value: missing/non-string -> epoch UTC (`1970-01-01 00:00:00`).
     - Invalid persisted date text throws an exception during `DateTimeImmutable` construction.
   - Exact query exception catch boundaries (PDOException): `Failed to query AuthoritativeAudit records: {message}` with previous throwable.
@@ -223,6 +223,7 @@ interface AuthoritativeAuditAdminQueryInterface
 namespace Maatify\EventLogging\AuthoritativeAudit\DTO;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use JsonSerializable;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditAdminQueryInvalidArgumentException;
 
@@ -276,11 +277,14 @@ final readonly class AuthoritativeAuditAdminQueryRequestDTO implements JsonSeria
         }
         $this->targetId = $targetId;
 
-        if ($after !== null && $before !== null && $after > $before) {
+        $afterUtc = $after?->setTimezone(new DateTimeZone('UTC'));
+        $beforeUtc = $before?->setTimezone(new DateTimeZone('UTC'));
+
+        if ($afterUtc !== null && $beforeUtc !== null && $afterUtc > $beforeUtc) {
             throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidDateRange();
         }
-        $this->after = $after;
-        $this->before = $before;
+        $this->after = $afterUtc;
+        $this->before = $beforeUtc;
 
         $this->page = $page;
         $this->perPage = $perPage;
@@ -322,11 +326,11 @@ final readonly class AuthoritativeAuditAdminQueryRequestDTO implements JsonSeria
 
         $length = preg_match_all('/./us', $trimmed);
         if ($length === false || $length === 0) {
-            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding('sortBy');
+            return null;
         }
 
         if ($length > 64) {
-            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength('sortBy');
+            return null;
         }
 
         if ($trimmed === 'occurred_at') {
@@ -349,11 +353,11 @@ final readonly class AuthoritativeAuditAdminQueryRequestDTO implements JsonSeria
 
         $length = preg_match_all('/./us', $trimmed);
         if ($length === false || $length === 0) {
-            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding('sortDirection');
+            return null;
         }
 
         if ($length > 4) {
-            throw AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength('sortDirection');
+            return null;
         }
 
         if ($trimmed === 'ASC' || $trimmed === 'DESC') {
@@ -448,64 +452,106 @@ final readonly class AuthoritativeAuditAdminPageResultDTO implements IteratorAgg
 namespace Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql;
 
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditAdminQueryInterface;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminPageResultDTO;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
+use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditAdminQueryExecutionException;
+use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
+use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination\AuthoritativeAuditAdminQueryDescriptorBuilder;
+use Maatify\Persistence\Pagination\Contract\PaginationExceptionInterface;
+use Maatify\Persistence\Pagination\DTO\PageRequest;
+use Maatify\Persistence\Pagination\Enum\SortDirectionEnum;
+use Maatify\Persistence\Pagination\PdoPaginator;
+use Maatify\Persistence\Pagination\ValueObject\PaginationConfig;
+use Maatify\Persistence\Pagination\ValueObject\SortWhitelist;
 use PDO;
+use PDOException;
+use Throwable;
 
 final class AuthoritativeAuditAdminQueryMysqlRepository implements AuthoritativeAuditAdminQueryInterface
 {
-    public function __construct(private readonly PDO $pdo)
+    private AuthoritativeAuditRowMapper $mapper;
+    private AuthoritativeAuditAdminQueryDescriptorBuilder $descriptorBuilder;
+    private PdoPaginator $paginator;
+
+    public function __construct(private PDO $pdo)
     {
+        $this->mapper = new AuthoritativeAuditRowMapper();
+        $this->descriptorBuilder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
+        $this->paginator = new PdoPaginator($this->pdo, $this->createPaginationConfig());
     }
 
     public function paginate(AuthoritativeAuditAdminQueryRequestDTO $request): AuthoritativeAuditAdminPageResultDTO
     {
+        $descriptor = $this->descriptorBuilder->build($request);
+
+        $pageRequest = new PageRequest(
+            page: $request->page,
+            perPage: $request->perPage,
+            sortBy: $request->sortBy,
+            sortDirection: $request->sortDirection
+        );
+
         try {
-            $mapper = new AuthoritativeAuditRowMapper();
-            $descriptorBuilder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
-            $descriptor = $descriptorBuilder->build($request);
-
-            $paginationConfig = new PaginationConfig(
-                ['occurred_at', 'id'],
-                'occurred_at DESC',
-                'id DESC',
-                20,
-                1,
-                200
-            );
-
-            $pageRequest = new PageRequest(
-                $request->page,
-                $request->perPage,
-                $request->sortBy,
-                $request->sortDirection
-            );
-
-            $executor = new PdoPaginationExecutor($this->pdo, $paginationConfig);
-            $pageResult = $executor->paginate($descriptor, $pageRequest);
-
-            $mappedItems = [];
-            foreach ($pageResult->items as $row) {
-                if (!is_array($row)) {
-                    continue;
-                }
-                $mappedItems[] = $mapper->mapRow($row);
-            }
-
-            return new AuthoritativeAuditAdminPageResultDTO(
-                $mappedItems,
-                $pageResult->page,
-                $pageResult->perPage,
-                $pageResult->total,
-                $pageResult->filtered,
-                $pageResult->totalPages,
-                $pageResult->hasNext,
-                $pageResult->hasPrevious,
-                $pageResult->sortBy,
-                $pageResult->sortDirection
-            );
-        } catch (InvalidPaginationConfigurationException | InvalidPaginationQueryException $e) {
+            $result = $this->paginator->paginate($descriptor, $pageRequest);
+        } catch (PaginationExceptionInterface $e) {
             throw AuthoritativeAuditAdminQueryExecutionException::executionFailed($e);
-        } catch (PaginationExecutionException | PDOException $e) {
+        } catch (PDOException $e) {
             throw new AuthoritativeAuditStorageException('Failed to query AuthoritativeAudit records: ' . $e->getMessage(), 0, $e);
+        }
+
+        $items = [];
+        foreach ($result->data as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            /** @var array<string, mixed> $row */
+            $items[] = $this->mapRow($row);
+        }
+
+        return new AuthoritativeAuditAdminPageResultDTO(
+            items: $items,
+            page: $result->page,
+            perPage: $result->perPage,
+            total: $result->total,
+            filtered: $result->filtered,
+            totalPages: $result->totalPages,
+            hasNext: $result->hasNext,
+            hasPrevious: $result->hasPrevious,
+            sortBy: $result->sortBy,
+            sortDirection: $result->sortDirection->value
+        );
+    }
+
+    private function createPaginationConfig(): PaginationConfig
+    {
+        return new PaginationConfig(
+            sortWhitelist: new SortWhitelist([
+                'occurred_at' => 'occurred_at',
+                'id' => 'id',
+            ]),
+            defaultSortBy: 'occurred_at',
+            defaultSortDirection: SortDirectionEnum::DESC,
+            tieBreakerSortBy: 'id',
+            tieBreakerDirection: SortDirectionEnum::DESC,
+            defaultPerPage: 20,
+            minPerPage: 1,
+            maxPerPage: 200,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @throws AuthoritativeAuditStorageException
+     */
+    private function mapRow(array $row): AuthoritativeAuditViewDTO
+    {
+        try {
+            return $this->mapper->map($row);
+        } catch (AuthoritativeAuditStorageException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw new AuthoritativeAuditStorageException('Failed to map AuthoritativeAudit row: ' . $e->getMessage(), 0, $e);
         }
     }
 }
@@ -515,68 +561,71 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
 ```php
 namespace Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use Exception;
+use JsonException;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
+
 /** @internal */
 final class AuthoritativeAuditRowMapper
 {
     /**
      * @param array<string, mixed> $row
-     * @throws \Exception
+     * @throws Exception
      */
-    public function mapRow(array $row): AuthoritativeAuditViewDTO
+    public function map(array $row): AuthoritativeAuditViewDTO
     {
-        try {
-            $id = isset($row['id']) && is_numeric($row['id']) ? (int) $row['id'] : 0;
-            $eventId = is_string($row['event_id'] ?? null) ? $row['event_id'] : '';
-            $actorType = is_string($row['actor_type'] ?? null) ? $row['actor_type'] : null;
-            $actorId = isset($row['actor_id']) && is_numeric($row['actor_id']) ? (int) $row['actor_id'] : null;
-            $action = is_string($row['action'] ?? null) ? $row['action'] : '';
-            $targetType = is_string($row['target_type'] ?? null) ? $row['target_type'] : null;
-            $targetId = isset($row['target_id']) && is_numeric($row['target_id']) ? (int) $row['target_id'] : null;
-            $ipAddress = is_string($row['ip_address'] ?? null) ? $row['ip_address'] : null;
-            $userAgent = is_string($row['user_agent'] ?? null) ? $row['user_agent'] : null;
-            $correlationId = is_string($row['correlation_id'] ?? null) ? $row['correlation_id'] : null;
+        $id = isset($row['id']) && is_numeric($row['id']) ? (int) $row['id'] : 0;
+        $eventId = is_string($row['event_id'] ?? null) ? $row['event_id'] : '';
+        $actorType = is_string($row['actor_type'] ?? null) ? $row['actor_type'] : null;
+        $actorId = isset($row['actor_id']) && is_numeric($row['actor_id']) ? (int) $row['actor_id'] : null;
+        $action = is_string($row['action'] ?? null) ? $row['action'] : '';
+        $targetType = is_string($row['target_type'] ?? null) ? $row['target_type'] : null;
+        $targetId = isset($row['target_id']) && is_numeric($row['target_id']) ? (int) $row['target_id'] : null;
+        $ipAddress = is_string($row['ip_address'] ?? null) ? $row['ip_address'] : null;
+        $userAgent = is_string($row['user_agent'] ?? null) ? $row['user_agent'] : null;
+        $correlationId = is_string($row['correlation_id'] ?? null) ? $row['correlation_id'] : null;
 
-            $changes = null;
-            if (isset($row['changes']) && is_string($row['changes']) && $row['changes'] !== '') {
-                try {
-                    $decoded = json_decode($row['changes'], true, 512, JSON_THROW_ON_ERROR);
-                    if (is_array($decoded)) {
-                        $isAssociative = false;
-                        foreach (array_keys($decoded) as $key) {
-                            if (is_string($key)) {
-                                $isAssociative = true;
-                                break;
-                            }
+        $changes = null;
+        if (isset($row['changes']) && is_string($row['changes']) && $row['changes'] !== '') {
+            try {
+                $decoded = json_decode($row['changes'], true, 512, JSON_THROW_ON_ERROR);
+                if (is_array($decoded)) {
+                    $isAssociative = false;
+                    foreach (array_keys($decoded) as $key) {
+                        if (!is_string($key)) {
+                            $isAssociative = false;
+                            break;
                         }
-                        if ($isAssociative || empty($decoded)) {
-                            $changes = $decoded;
-                        }
+                        $isAssociative = true;
                     }
-                } catch (\JsonException $e) {
-                    $changes = null;
+                    if ($isAssociative || empty($decoded)) {
+                        $changes = $decoded;
+                    }
                 }
+            } catch (JsonException $e) {
+                $changes = null;
             }
-
-            $occurredAtString = is_string($row['occurred_at'] ?? null) ? $row['occurred_at'] : '1970-01-01 00:00:00';
-            $occurredAt = new \DateTimeImmutable($occurredAtString, new \DateTimeZone('UTC'));
-
-            return new AuthoritativeAuditViewDTO(
-                $id,
-                $eventId,
-                $actorType,
-                $actorId,
-                $action,
-                $targetType,
-                $targetId,
-                $ipAddress,
-                $userAgent,
-                $correlationId,
-                $changes,
-                $occurredAt
-            );
-        } catch (\Throwable $e) {
-            throw new \Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException('Failed to map AuthoritativeAudit row: ' . $e->getMessage(), 0, $e);
         }
+
+        $occurredAtString = is_string($row['occurred_at'] ?? null) ? $row['occurred_at'] : '1970-01-01 00:00:00';
+        $occurredAt = new DateTimeImmutable($occurredAtString, new DateTimeZone('UTC'));
+
+        return new AuthoritativeAuditViewDTO(
+            $id,
+            $eventId,
+            $actorType,
+            $actorId,
+            $action,
+            $targetType,
+            $targetId,
+            $ipAddress,
+            $userAgent,
+            $correlationId,
+            $changes,
+            $occurredAt
+        );
     }
 }
 ```
@@ -591,24 +640,34 @@ final class AuthoritativeAuditRowMapper
 ```php
 namespace Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination;
 
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\Persistence\Pagination\DTO\PdoPaginationQueryDescriptor;
+
 /** @internal */
 final class AuthoritativeAuditAdminQueryDescriptorBuilder
 {
     public function build(AuthoritativeAuditAdminQueryRequestDTO $request): PdoPaginationQueryDescriptor
     {
-        $filtered = self::buildFilteredWhereAndParams($request);
-        $whereSql = $filtered['where'];
+        $filtered = $this->buildFilteredWhereAndParams($request);
+        $whereSql = $filtered['whereSql'];
         $params = $filtered['params'];
 
         $totalSql = 'SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log';
-        $filteredCountSql = 'SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log ' . $whereSql;
-        $dataSql = 'SELECT id, event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, correlation_id, changes, occurred_at FROM maa_event_logging_authoritative_audit_log ' . $whereSql;
+        $filteredCountSql = 'SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log' . $whereSql;
+        $dataSql = 'SELECT id, event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, correlation_id, changes, occurred_at FROM maa_event_logging_authoritative_audit_log' . $whereSql;
 
-        return new PdoPaginationQueryDescriptor($totalSql, $filteredCountSql, $dataSql, $params);
+        return new PdoPaginationQueryDescriptor(
+            totalSql: $totalSql,
+            totalParams: [],
+            filteredCountSql: $filteredCountSql,
+            filteredCountParams: $params,
+            dataSql: $dataSql,
+            dataParams: $params
+        );
     }
 
-    /** @return array{where: string, params: array<string, mixed>} */
-    private static function buildFilteredWhereAndParams(AuthoritativeAuditAdminQueryRequestDTO $request): array
+    /** @return array{whereSql: string, params: array<string, string|int|bool|null>} */
+    private function buildFilteredWhereAndParams(AuthoritativeAuditAdminQueryRequestDTO $request): array
     {
         $conditions = [];
         $params = [];
@@ -650,8 +709,12 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilder
             $params['before'] = $request->before->format('Y-m-d H:i:s.u');
         }
 
-        $whereSql = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
-        return ['where' => $whereSql, 'params' => $params];
+        $whereSql = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
+
+        return [
+            'whereSql' => $whereSql,
+            'params' => $params
+        ];
     }
 }
 ```
@@ -668,8 +731,8 @@ Both placeholders will receive exactly the same datetime string representation.
 
 **Hierarchy:**
 Both exceptions implement `Maatify\EventLogging\Exception\EventLoggingExceptionInterface`.
-- `AuthoritativeAuditAdminQueryInvalidArgumentException` extends `Maatify\Exceptions\InvalidArgumentMaatifyException`.
-- `AuthoritativeAuditAdminQueryExecutionException` extends `Maatify\Exceptions\SystemMaatifyException`.
+- `AuthoritativeAuditAdminQueryInvalidArgumentException` extends `Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException`.
+- `AuthoritativeAuditAdminQueryExecutionException` extends `Maatify\Exceptions\Exception\System\SystemMaatifyException`.
 
 **Factories:**
 - `AuthoritativeAuditAdminQueryInvalidArgumentException::invalidId(string $field): self`
@@ -682,12 +745,6 @@ Both exceptions implement `Maatify\EventLogging\Exception\EventLoggingExceptionI
   - Message: `Invalid AuthoritativeAudit Admin Query date range: after must be before or equal to before`
 - `AuthoritativeAuditAdminQueryExecutionException::executionFailed(\Throwable $previous): self`
   - Message: `AuthoritativeAudit Admin Query execution failed: {previous message}`
-
-**Repository Catch Block Translation:**
-- `InvalidPaginationConfigurationException` or `InvalidPaginationQueryException` → throws `AuthoritativeAuditAdminQueryExecutionException::executionFailed($e)`.
-- `PaginationExecutionException` or `PDOException` → throws `new AuthoritativeAuditStorageException('Failed to query AuthoritativeAudit records: ' . $e->getMessage(), 0, $e)`.
-- Mapper `Throwable` → throws `new AuthoritativeAuditStorageException('Failed to map AuthoritativeAudit row: ' . $e->getMessage(), 0, $e)`.
-- Existing instances of `AuthoritativeAuditStorageException` must pass through unchanged without re-wrapping.
 
 ---
 
@@ -716,7 +773,7 @@ Both exceptions implement `Maatify\EventLogging\Exception\EventLoggingExceptionI
 - `src/AuthoritativeAudit/README.md`
 - `EVENT_LOGGING_PACKAGE_REFERENCE.md`
 - `CHANGELOG.md`
-- `tests/Integration/AuthoritativeAudit/AuthoritativeAuditRepositoryTest.php` (This file will remain and be strictly amended to assert primitive cursor fixes and storage semantics, continuing to serve as the unified Outbox/Primitive Integration proof).
+- `tests/Integration/AuthoritativeAudit/AuthoritativeAuditRepositoryTest.php` (This file remains exactly in its path. It will be amended to assert primitive cursor fixes and storage semantics, continuing to serve as the unified Outbox/Primitive Integration proof. No nested integration testing namespace creation is authorized).
 - `docs/architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md` (Update status within future Runtime PR)
 - `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md` (Update status within future Runtime PR)
 - `docs/audits/DOCUMENTATION_INVENTORY.md` (Update status within future Runtime PR)
