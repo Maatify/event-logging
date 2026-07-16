@@ -26,6 +26,9 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
     {
         parent::setUp();
         if ($this->pdo !== null) {
+            $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        }
+        if ($this->pdo !== null) {
             $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($this->pdo);
             $this->query = new AuthoritativeAuditQueryMysqlRepository($this->pdo);
         }
@@ -186,6 +189,22 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         $res3 = $this->query->find($query3);
         $this->assertCount(1, $res3);
         $this->assertSame('evt-1', $res3[0]->eventId);
+    }
+
+    public function testPrimitiveRepositoryDoesNotOwnTransactions(): void
+    {
+        $pdo = $this->pdo;
+        if ($pdo === null) {
+            $this->markTestSkipped('PDO not initialized.');
+        }
+
+        $pdo->beginTransaction();
+        $query = new AuthoritativeAuditQueryDTO(limit: 1);
+        $this->query->find($query);
+
+        // The repository should not have committed or rolled back the caller's transaction
+        $this->assertTrue($pdo->inTransaction());
+        $pdo->rollBack();
     }
 
     private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
