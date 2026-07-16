@@ -43,7 +43,7 @@ final class AuthoritativeAuditAdminPageResultDTOTest extends TestCase
             sortDirection: 'DESC'
         );
 
-        $this->assertCount(1, $dto->items);
+        $this->assertCount(1, $dto);
         $iterator = $dto->getIterator();
         $this->assertCount(1, $iterator);
 
@@ -57,9 +57,6 @@ final class AuthoritativeAuditAdminPageResultDTOTest extends TestCase
         $this->assertFalse($json['hasPrevious']);
         $this->assertSame('occurred_at', $json['sortBy']);
         $this->assertSame('DESC', $json['sortDirection']);
-
-        $items = $json['items'];
-        $this->assertIsArray($items);
-        $this->assertCount(1, $items);
+        $this->assertCount(1, $json['items']);
     }
 }
