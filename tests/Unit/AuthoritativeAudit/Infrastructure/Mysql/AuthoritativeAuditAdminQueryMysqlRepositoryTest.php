@@ -18,22 +18,22 @@ use PHPUnit\Framework\TestCase;
 
 final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
 {
-    public function testInvalidPaginationConfigurationMapsToExecutionException(): void
+    public function testInvalidPaginationConfigurationExceptionFactory(): void
     {
         $prev = new InvalidPaginationConfigurationException('Config error');
         $e = AuthoritativeAuditAdminQueryExecutionException::executionFailed($prev);
         $this->assertSame('AuthoritativeAudit Admin Query execution failed: Config error', $e->getMessage());
         $this->assertSame($prev, $e->getPrevious());
-        $this->assertSame(0, $e->getCode()); // SystemMaatifyException does not assign code to property directly from defaultErrorCode without executing properly
+        $this->assertSame(0, $e->getCode());
     }
 
-    public function testInvalidPaginationQueryMapsToExecutionException(): void
+    public function testInvalidPaginationQueryExceptionFactory(): void
     {
         $prev = new InvalidPaginationQueryException('Query error');
         $e = AuthoritativeAuditAdminQueryExecutionException::executionFailed($prev);
         $this->assertSame('AuthoritativeAudit Admin Query execution failed: Query error', $e->getMessage());
         $this->assertSame($prev, $e->getPrevious());
-        $this->assertSame(0, $e->getCode()); // SystemMaatifyException does not assign code to property directly from defaultErrorCode without executing properly
+        $this->assertSame(0, $e->getCode());
     }
 
     public function testPaginationExecutionFailureMapsToStorageException(): void
@@ -77,29 +77,49 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
     public function testMapperThrowableIsCaughtAndWrappedInStorageException(): void
     {
         $pdo = $this->createMock(PDO::class);
+        $stmtCount = $this->createMock(PDOStatement::class);
+        $stmtData = $this->createMock(PDOStatement::class);
+
+        $pdo->expects($this->exactly(3))
+            ->method('prepare')
+            ->willReturnOnConsecutiveCalls($stmtCount, $stmtCount, $stmtData);
+
+        $stmtCount->expects($this->any())->method('execute')->willReturn(true);
+        $stmtCount->expects($this->any())->method('columnCount')->willReturn(1);
+        $stmtCount->expects($this->any())->method('errorCode')->willReturn('00000');
+        // Need bindValue to return true so 'Failed to bind pagination parameter.' is not thrown.
+        $stmtCount->expects($this->any())->method('bindValue')->willReturn(true);
+
+        $c1 = 0;
+        $stmtCount->expects($this->any())
+            ->method('fetch')
+            ->with(PDO::FETCH_ASSOC)
+            ->willReturnCallback(function() use (&$c1) {
+                $c1++;
+                if ($c1 === 1 || $c1 === 3) return ['c' => '1'];
+                return false;
+            });
+
+        $stmtData->expects($this->any())->method('execute')->willReturn(true);
+        $stmtData->expects($this->any())->method('errorCode')->willReturn('00000');
+        $stmtData->expects($this->any())->method('bindValue')->willReturn(true);
+
+        $c2 = 0;
+        $stmtData->expects($this->any())
+            ->method('fetch')
+            ->with(PDO::FETCH_ASSOC)
+            ->willReturnCallback(function() use (&$c2) {
+                $c2++;
+                if ($c2 === 1) return ['id_str' => '1', 'occurred_at' => 'totally invalid'];
+                return false;
+            });
 
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
-
-        // Paginator's strict matching in `fetch` returns false if the PHPUnit mock isn't perfect,
-        // which throws the generic "must return associative array".
-        // The most accurate and robust way to test the exact mapRow boundary is to use reflection.
-        // It strictly verifies that mapRow() captures Throwables and wraps them in AuthoritativeAuditStorageException,
-        // without depending on PdoPaginator's internal data-fetching details.
-        $reflection = new \ReflectionClass($repository);
-        $mapRow = $reflection->getMethod('mapRow');
-        $mapRow->setAccessible(true);
+        $request = new AuthoritativeAuditAdminQueryRequestDTO();
 
         try {
-            // 'occurred_at' expects a valid datetime string. 'invalid' causes DateTimeImmutable to throw.
-            $mapRow->invoke($repository, ['occurred_at' => 'invalid date']);
+            $repository->paginate($request);
             $this->fail('Expected exception was not thrown');
-        } catch (\ReflectionException $e) {
-            // The exception thrown by invoke is wrapped in ReflectionException.
-            $original = $e->getPrevious();
-            $this->assertInstanceOf(AuthoritativeAuditStorageException::class, $original);
-            $this->assertStringContainsString('Failed to map AuthoritativeAudit row', $original->getMessage());
-            // It should preserve the underlying DateTimeImmutable exception
-            $this->assertInstanceOf(\Exception::class, $original->getPrevious());
         } catch (AuthoritativeAuditStorageException $e) {
             $this->assertStringContainsString('Failed to map AuthoritativeAudit row', $e->getMessage());
             $this->assertInstanceOf(\Exception::class, $e->getPrevious());

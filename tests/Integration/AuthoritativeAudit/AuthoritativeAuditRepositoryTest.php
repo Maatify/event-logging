@@ -60,51 +60,48 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
     {
         /** @var \PDO $pdo */
         $pdo = $this->pdo;
-
         $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
 
-        $this->writer->write(new AuthoritativeAuditOutboxWriteDTO(
+        $writeDto = new AuthoritativeAuditOutboxWriteDTO(
             eventId: 'event-123',
-            actorType: 'system',
-            actorId: 1,
-            action: 'test_action',
-            targetType: 'target',
-            targetId: 2,
-            riskLevel: 'LOW',
-            payload: ['key' => 'value'],
-            correlationId: 'corr-1',
+            actorType: 'admin',
+            actorId: 42,
+            action: 'update_user',
+            targetType: 'user',
+            targetId: 100,
+            riskLevel: 'HIGH',
+            payload: ['old_name' => 'John', 'new_name' => 'Jane'],
+            correlationId: 'corr-xyz',
             createdAt: $now
-        ));
+        );
 
-        // Simulate materialized outbox
-        $pdo->exec('INSERT INTO maa_event_logging_authoritative_audit_log (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at) SELECT event_id, actor_type, actor_id, action, target_type, target_id, payload, correlation_id, created_at FROM maa_event_logging_authoritative_audit_outbox');
+        $this->writer->write($writeDto);
+
+        // To test query, we need to populate the log table (simulating outbox consumer)
+        $this->simulateOutboxConsumer($writeDto);
 
         $queryDto = new AuthoritativeAuditQueryDTO(
-            action: 'test_action'
+            actorType: 'admin',
+            actorId: 42,
+            action: 'update_user'
         );
 
         $results = $this->query->find($queryDto);
-
         $this->assertCount(1, $results);
+
         $viewDto = $results[0];
-
         $this->assertSame('event-123', $viewDto->eventId);
-        $this->assertSame('system', $viewDto->actorType);
-        $this->assertSame(1, $viewDto->actorId);
-        $this->assertSame('test_action', $viewDto->action);
-        $this->assertSame('target', $viewDto->targetType);
-        $this->assertSame(2, $viewDto->targetId);
-        $this->assertSame('corr-1', $viewDto->correlationId);
-        $this->assertSame(['key' => 'value'], $viewDto->changes);
-        $this->assertSame('2024-01-01 10:00:00', $viewDto->occurredAt->format('Y-m-d H:i:s'));
-
-        $serverVersionAttr = $pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-        $serverVersion = is_scalar($serverVersionAttr) ? (string) $serverVersionAttr : '';
-        $isMariaDb = str_contains($serverVersion, 'MariaDB');
-        $expectedMicroseconds = $isMariaDb ? '000000' : '000000';
-
-        $this->assertSame($expectedMicroseconds, $viewDto->occurredAt->format('u'));
+        $this->assertSame('admin', $viewDto->actorType);
+        $this->assertSame(42, $viewDto->actorId);
+        $this->assertSame('update_user', $viewDto->action);
+        $this->assertSame('user', $viewDto->targetType);
+        $this->assertSame(100, $viewDto->targetId);
+        $this->assertEquals(['old_name' => 'John', 'new_name' => 'Jane'], $viewDto->changes); // Note: we map payload to changes here for testing roundtrip
+        $this->assertSame('corr-xyz', $viewDto->correlationId);
+        $this->assertEquals($now, $viewDto->occurredAt);
     }
+
+
 
     public function testCursorPagination(): void
     {
@@ -152,5 +149,29 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         $this->assertFalse($pdo->inTransaction());
     }
 
+    private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
+    {
+        if ($this->pdo === null) {
+            $this->fail('PDO not initialized.');
+        }
+        /** @var \PDO $pdo */
+        $pdo = $this->pdo;
+        $stmt = $pdo->prepare("
+            INSERT INTO maa_event_logging_authoritative_audit_log
+            (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
 
+        $stmt->execute([
+            $dto->eventId,
+            $dto->actorType,
+            $dto->actorId,
+            $dto->action,
+            $dto->targetType,
+            $dto->targetId,
+            json_encode($dto->payload),
+            $dto->correlationId,
+            $dto->createdAt->format('Y-m-d H:i:s.u')
+        ]);
+    }
 }

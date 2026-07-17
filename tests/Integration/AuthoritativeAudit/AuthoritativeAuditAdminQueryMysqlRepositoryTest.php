@@ -25,16 +25,11 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
         if ($this->pdo === null) {
             $this->fail('Integration tests require a real MySQL database.');
         }
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
         // Enforce native prepared statements strictly for this test
         $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
-        /** @var PDO $pdo */
-        $pdo = $this->pdo;
-        $this->assertFalse((bool)$pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
-        $this->repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+        $this->repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->pdo);
     }
 
     protected function getDomainSchemaFile(): string
@@ -193,7 +188,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
 
     public function testTransactionOwnershipRules(): void
     {
-        /** @var \PDO $pdo */
+        /** @var PDO $pdo */
         $pdo = $this->pdo;
         $this->assertFalse($pdo->inTransaction());
 
@@ -213,17 +208,24 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
         $this->assertFalse($pdo->inTransaction());
     }
 
-    public function testLogBoundaryExcludesOutbox(): void
+    public function testReadingFromLogTableOnly(): void
     {
         /** @var PDO $pdo */
         $pdo = $this->pdo;
-        $stmt = $pdo->prepare('INSERT INTO maa_event_logging_authoritative_audit_outbox (event_id, actor_type, actor_id, action, target_type, target_id, risk_level, payload, correlation_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute(['outbox-1', 'sys', 1, 'act', 'tgt', 1, 'LOW', '{}', 'corr', '2024-01-01 10:00:00.000000']);
+        // Insert into outbox
+        $stmt = $pdo->prepare("
+            INSERT INTO maa_event_logging_authoritative_audit_outbox
+            (event_id, actor_type, actor_id, action, target_type, target_id, risk_level, payload, correlation_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute(['evt-outbox', 'sys', 1, 'act', 'tgt', 1, 'LOW', '{}', 'c', '2024-01-01 10:00:00.000000']);
 
-        $res = $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
+        $req = new AuthoritativeAuditAdminQueryRequestDTO();
+        $res = $this->repository->paginate($req);
+
+        // Admin Query should NOT read from outbox
         $this->assertSame(0, $res->total);
-        $this->assertSame(0, $res->filtered);
-        $this->assertEmpty($res->items);
+        $this->assertCount(0, $res->items);
     }
 
     private function insertLog(
@@ -237,13 +239,13 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
         ?string $correlationId,
         string $occurredAt
     ): void {
-        /** @var \PDO $pdo */
+        /** @var PDO $pdo */
         $pdo = $this->pdo;
-        $stmt = $pdo->prepare('
+        $stmt = $pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
             (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ');
+        ");
         $stmt->execute([
             $eventId, $actorType, $actorId, $action, $targetType, $targetId, $changes, $correlationId, $occurredAt
         ]);

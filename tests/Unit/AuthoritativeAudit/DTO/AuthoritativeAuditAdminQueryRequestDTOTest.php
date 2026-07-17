@@ -48,38 +48,6 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
         $this->assertSame('DESC', $dto->sortDirection);
     }
 
-    public function testInvalidActorIdThrows(): void
-    {
-        $this->expectException(AuthoritativeAuditAdminQueryInvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid AuthoritativeAudit Admin Query ID: actorId');
-        new AuthoritativeAuditAdminQueryRequestDTO(actorId: 0);
-    }
-
-    public function testInvalidTargetIdThrows(): void
-    {
-        $this->expectException(AuthoritativeAuditAdminQueryInvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid AuthoritativeAudit Admin Query ID: targetId');
-        new AuthoritativeAuditAdminQueryRequestDTO(targetId: -1);
-    }
-
-    public function testInvalidDateRangeThrows(): void
-    {
-        $this->expectException(AuthoritativeAuditAdminQueryInvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid AuthoritativeAudit Admin Query date range: after must be before or equal to before');
-        new AuthoritativeAuditAdminQueryRequestDTO(
-            after: new DateTimeImmutable('2024-01-02 00:00:00'),
-            before: new DateTimeImmutable('2024-01-01 00:00:00')
-        );
-    }
-
-    public function testInvalidEventIdLengthThrows(): void
-    {
-        $this->expectException(AuthoritativeAuditAdminQueryInvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid AuthoritativeAudit Admin Query length: eventId');
-        new AuthoritativeAuditAdminQueryRequestDTO(eventId: str_repeat('a', 37));
-    }
-
-
     public function testDefaultsTrimAndBlankStringToNull(): void
     {
         $dto = new AuthoritativeAuditAdminQueryRequestDTO(
@@ -103,15 +71,26 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
         $this->assertNull($dto->sortDirection);
     }
 
+    public function testTrimPreservesValidValues(): void
+    {
+        $dto = new AuthoritativeAuditAdminQueryRequestDTO(
+            eventId: '  valid-id  ',
+            actorType: ' user '
+        );
+
+        $this->assertSame('valid-id', $dto->eventId);
+        $this->assertSame('user', $dto->actorType);
+    }
+
     public function testRawPageAndPerPage(): void
     {
         $dto = new AuthoritativeAuditAdminQueryRequestDTO(
-            page: 5,
-            perPage: 50
+            page: ' 02 ',
+            perPage: '300'
         );
 
-        $this->assertSame(5, $dto->page);
-        $this->assertSame(50, $dto->perPage);
+        $this->assertSame(' 02 ', $dto->page);
+        $this->assertSame('300', $dto->perPage);
     }
 
     public function testZeroOrNegativeActorIdThrows(): void
@@ -145,6 +124,30 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
             after: new DateTimeImmutable('2024-01-02 00:00:00'),
             before: new DateTimeImmutable('2024-01-01 00:00:00')
         );
+    }
+
+    public function testExactMaximumAcceptedLengthsAreValid(): void
+    {
+        $dto = new AuthoritativeAuditAdminQueryRequestDTO(
+            eventId: str_repeat('a', 36),
+            actorType: str_repeat('b', 32),
+            targetType: str_repeat('c', 64),
+            action: str_repeat('d', 128),
+            correlationId: str_repeat('e', 36)
+        );
+
+        $this->assertSame(str_repeat('a', 36), $dto->eventId);
+        $this->assertSame(str_repeat('b', 32), $dto->actorType);
+        $this->assertSame(str_repeat('c', 64), $dto->targetType);
+        $this->assertSame(str_repeat('d', 128), $dto->action);
+        $this->assertSame(str_repeat('e', 36), $dto->correlationId);
+    }
+
+    public function testInvalidEventIdLengthThrows(): void
+    {
+        $this->expectException(AuthoritativeAuditAdminQueryInvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid AuthoritativeAudit Admin Query length: eventId');
+        new AuthoritativeAuditAdminQueryRequestDTO(eventId: str_repeat('a', 37));
     }
 
     public function testInvalidActorTypeLengthThrows(): void
