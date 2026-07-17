@@ -34,14 +34,14 @@ final class AuthoritativeAuditRowMapper
         if (isset($row['changes']) && is_string($row['changes']) && $row['changes'] !== '') {
             try {
                 $decoded = json_decode($row['changes'], true, 512, JSON_THROW_ON_ERROR);
-                if (is_array($decoded)) {
-                    $isAssociative = false;
+                $decodedObj = json_decode($row['changes'], false, 512, JSON_THROW_ON_ERROR);
+                if (is_array($decoded) && is_object($decodedObj)) {
+                    $isAssociative = true;
                     foreach (array_keys($decoded) as $key) {
                         if (!is_string($key)) {
                             $isAssociative = false;
                             break;
                         }
-                        $isAssociative = true;
                     }
                     if ($isAssociative || empty($decoded)) {
                         /** @var array<string, mixed> $decoded */
@@ -53,8 +53,16 @@ final class AuthoritativeAuditRowMapper
             }
         }
 
-        $occurredAtString = is_string($row['occurred_at'] ?? null) ? $row['occurred_at'] : '1970-01-01 00:00:00';
-        $occurredAt = new DateTimeImmutable($occurredAtString, new DateTimeZone('UTC'));
+        if (!isset($row['occurred_at']) || !is_string($row['occurred_at'])) {
+            $occurredAtString = '1970-01-01 00:00:00.000000';
+            $occurredAt = new DateTimeImmutable($occurredAtString, new DateTimeZone('UTC'));
+        } else {
+            try {
+                $occurredAt = new DateTimeImmutable($row['occurred_at'], new DateTimeZone('UTC'));
+            } catch (Exception $e) {
+                throw new Exception("Invalid occurred_at format");
+            }
+        }
 
         return new AuthoritativeAuditViewDTO(
             $id,

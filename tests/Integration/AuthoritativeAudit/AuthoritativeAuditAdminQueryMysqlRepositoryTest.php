@@ -190,7 +190,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
     {
         $pdo = $this->pdo;
         if ($pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
+            $this->fail('PDO not initialized.');
         }
         $this->assertFalse($pdo->inTransaction());
 
@@ -214,7 +214,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
     {
         $pdo = $this->pdo;
         if ($pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
+            $this->fail('PDO not initialized.');
         }
         // Insert into outbox
         $stmt = $pdo->prepare("
@@ -245,7 +245,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
     ): void {
         $pdo = $this->pdo;
         if ($pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
+            $this->fail('PDO not initialized.');
         }
         $stmt = $pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
