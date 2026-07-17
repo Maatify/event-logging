@@ -19,6 +19,10 @@ use PDO;
  */
 final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
 {
+    protected function isStrictMysqlRequired(): bool
+    {
+        return true;
+    }
     private AuthoritativeAuditOutboxWriterMysqlRepository $writer;
     private AuthoritativeAuditQueryMysqlRepository $query;
 
@@ -93,7 +97,7 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         $this->assertEquals($now, $viewDto->occurredAt);
     }
 
-    public function testCorruptJsonMapsToNullSafely(): void
+    public function testStrictJsonDatabaseRejectsCorruptJson(): void
     {
         $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
 
@@ -101,15 +105,8 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
             $this->fail('PDO not initialized.');
         }
 
-        $serverVersionAttr = $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-        $serverVersion = is_scalar($serverVersionAttr) ? (string) $serverVersionAttr : '';
-        $isMariaDb = str_contains($serverVersion, 'MariaDB');
-
-        if ($isMariaDb) {
-            $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log DROP CONSTRAINT IF EXISTS `changes`");
-        }
-
-        // Insert corrupt JSON directly into log table
+        // Insert corrupt JSON directly into log table.
+        // We expect the strict JSON constraint to reject this insertion at the database level.
         $stmt = $this->pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
             (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)

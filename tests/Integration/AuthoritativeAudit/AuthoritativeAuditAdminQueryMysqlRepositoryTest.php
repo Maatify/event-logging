@@ -17,6 +17,10 @@ use PDO;
  */
 final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegrationTestCase
 {
+    protected function isStrictMysqlRequired(): bool
+    {
+        return true;
+    }
     private AuthoritativeAuditAdminQueryMysqlRepository $repository;
 
     protected function setUp(): void
