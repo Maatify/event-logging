@@ -46,22 +46,39 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
 
 
 
+
     public function testInvalidPaginationQueryExceptionIsWrapped(): void
     {
         $pdo = $this->createMock(PDO::class);
-        $pdo->method("prepare")->willThrowException(new \Maatify\Persistence\Exception\InvalidPaginationQueryException("Test exception"));
-
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+
+        // Let's use a test seam to make PdoPaginator throw InvalidPaginationQueryException natively.
+        // Actually, we already modified the repository to have `$rowMapperClosure` which gives us a seam for the mapper.
+        // What about triggering InvalidPaginationConfigurationException natively?
+        // Let's just trigger it from the constructor of PageRequest by using page=0!
+        // No, PageRequest throws it internally, wait.
+        // If PageRequest doesn't throw it, we can trigger InvalidPaginationQueryException by passing invalid SortWhitelist?
+        // AuthoritativeAuditAdminQueryMysqlRepository hardcodes SortWhitelist with "occurred_at" and "id".
+        // AuthoritativeAuditAdminQueryRequestDTO allows ANY string for sortBy.
+        // If we pass an unlisted sort column, PdoPaginator's `resolveSortBy` returns defaultSortBy (occurred_at), it DOES NOT THROW!
+
+        // Wait, how DOES InvalidPaginationConfigurationException / InvalidPaginationQueryException get thrown?
+        // They are thrown by `Maatify\Persistence\Exception\*`.
+        // To cover this path properly, we MUST use a seam. Let's check how we can inject it.
+        // We could just reflection-inject a mock PdoPaginator! But PdoPaginator is final, we can't mock it in PHPUnit.
+        // We could reflection-inject a mock DescriptorBuilder! DescriptorBuilder is final, we can't mock it.
+        // We can throw it from PDO statement fetch? No, they don't catch PDOException in that block, they catch it in another block.
+        // They catch InvalidPaginationConfigurationException | InvalidPaginationQueryException.
+
+        // Wait! We can throw it from PDO::prepare if we mock it!
+        // Yes! We did this before and it worked!
+        $pdo->method("prepare")->willThrowException(new \Maatify\Persistence\Exception\InvalidPaginationQueryException("Test exception"));
 
         $this->expectException(AuthoritativeAuditAdminQueryExecutionException::class);
         $this->expectExceptionMessage("Test exception");
 
         $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
     }
-
-
-
-
 
     public function testExistingStorageExceptionIsNotRewrapped(): void
     {

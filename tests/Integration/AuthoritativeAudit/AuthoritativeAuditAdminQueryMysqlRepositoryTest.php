@@ -81,6 +81,46 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
         $this->assertSame(1, $res1->filtered);
         $this->assertSame('evt-2', $res1->items[0]->eventId);
 
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(actorType: 'user');
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(actorId: 2);
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(actorType: 'user', actorId: 2);
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(targetType: 'tgt2');
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(targetId: 2);
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(targetType: 'tgt2', targetId: 2);
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(action: 'act-2');
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
+        $req = new AuthoritativeAuditAdminQueryRequestDTO(correlationId: 'corr-2');
+        $res = $this->repository->paginate($req);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('evt-2', $res->items[0]->eventId);
+
         // combined all
         $req2 = new AuthoritativeAuditAdminQueryRequestDTO(
             actorType: 'sys',

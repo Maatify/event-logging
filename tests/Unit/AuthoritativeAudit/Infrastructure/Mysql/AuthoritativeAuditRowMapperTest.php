@@ -89,6 +89,36 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
         $this->assertNull($dto->changes);
     }
 
+    public function testMissingAndNonStringScalarFieldsMapToNull(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        // Provide non-string or missing fields
+        $row = [
+            'id' => 1, // int instead of string
+            'event_id' => null, // missing string
+            'actor_id' => '42', // string numeric mapped to int
+            'actor_type' => 123, // int instead of string
+            'action' => null,
+            'target_id' => 100, // int instead of string
+            'target_type' => 456,
+            'changes' => 789, // non-string json
+        ];
+
+        $dto = $mapper->map($row);
+
+        $this->assertSame(1, $dto->id);
+        $this->assertSame('', $dto->eventId); // Default cast
+        $this->assertSame(42, $dto->actorId);
+        $this->assertNull($dto->actorType);
+        $this->assertSame('', $dto->action);
+        $this->assertSame(100, $dto->targetId);
+        $this->assertNull($dto->targetType);
+        $this->assertNull($dto->changes);
+        $this->assertNull($dto->ipAddress);
+        $this->assertNull($dto->userAgent);
+        $this->assertNull($dto->correlationId);
+    }
+
     public function testMissingOccurredAtFallback(): void
     {
         $mapper = new AuthoritativeAuditRowMapper();
