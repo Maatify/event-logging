@@ -10,10 +10,6 @@ use RuntimeException;
 
 abstract class MysqlIntegrationTestCase extends TestCase
 {
-    protected function isStrictMysqlRequired(): bool
-    {
-        return false;
-    }
     protected ?PDO $pdo = null;
 
     protected function setUp(): void
@@ -22,11 +18,7 @@ abstract class MysqlIntegrationTestCase extends TestCase
 
         $dsn = getenv('EVENT_LOGGING_TEST_MYSQL_DSN');
         if (!$dsn) {
-            if ($this->isStrictMysqlRequired()) {
-                $this->fail('Strict MySQL integration failed: EVENT_LOGGING_TEST_MYSQL_DSN is not set');
-            } else {
-                $this->markTestSkipped('Skipping MySQL integration test: EVENT_LOGGING_TEST_MYSQL_DSN is not set');
-            }
+            $this->markTestSkipped('Skipping MySQL integration test: EVENT_LOGGING_TEST_MYSQL_DSN is not set');
         }
 
         $user = getenv('EVENT_LOGGING_TEST_MYSQL_USER') ?: 'root';
@@ -38,11 +30,7 @@ abstract class MysqlIntegrationTestCase extends TestCase
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
         } catch (\PDOException $e) {
-            if ($this->isStrictMysqlRequired()) {
-                $this->fail('Strict MySQL integration failed: Could not connect to MySQL using provided DSN: ' . $e->getMessage());
-            } else {
-                $this->markTestSkipped('Could not connect to MySQL using provided DSN: ' . $e->getMessage());
-            }
+            $this->markTestSkipped('Could not connect to MySQL using provided DSN: ' . $e->getMessage());
         }
 
         $this->setUpSchema();

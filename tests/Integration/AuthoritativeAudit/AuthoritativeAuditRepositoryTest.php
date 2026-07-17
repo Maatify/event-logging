@@ -10,14 +10,14 @@ use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditOutboxWriteDTO
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
-use Maatify\EventLogging\Tests\Integration\Support\MysqlIntegrationTestCase;
+use Maatify\EventLogging\Tests\Integration\AuthoritativeAudit\Support\StrictAuthoritativeAuditMysqlIntegrationTestCase;
 use PDO;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository
  */
-final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
+final class AuthoritativeAuditRepositoryTest extends StrictAuthoritativeAuditMysqlIntegrationTestCase
 {
     protected function isStrictMysqlRequired(): bool
     {

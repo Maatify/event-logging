@@ -28,12 +28,18 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
     private AuthoritativeAuditRowMapper $mapper;
     private AuthoritativeAuditAdminQueryDescriptorBuilder $descriptorBuilder;
     private PdoPaginator $paginator;
+    /** @var \Closure(array<string, mixed>): AuthoritativeAuditViewDTO */
+    private \Closure $rowMapperClosure;
 
     public function __construct(private PDO $pdo)
     {
         $this->mapper = new AuthoritativeAuditRowMapper();
         $this->descriptorBuilder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
         $this->paginator = new PdoPaginator();
+        $this->rowMapperClosure = function (array $row): AuthoritativeAuditViewDTO {
+            /** @var array<string, mixed> $row */
+            return $this->mapRow($row);
+        };
     }
 
     public function paginate(AuthoritativeAuditAdminQueryRequestDTO $request): AuthoritativeAuditAdminPageResultDTO
@@ -46,12 +52,13 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
         );
 
         try {
+            /** @var \Maatify\Persistence\Pdo\Pagination\PageResult<AuthoritativeAuditViewDTO> $result */
             $result = $this->paginator->paginate(
                 $this->pdo,
                 $this->descriptorBuilder->build($request),
                 $pageRequest,
                 $this->createPaginationConfig(),
-                fn (array $row): AuthoritativeAuditViewDTO => $this->mapRow($row)
+                $this->rowMapperClosure
             );
 
             return new AuthoritativeAuditAdminPageResultDTO(
@@ -94,7 +101,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
      * @param array<string, mixed> $row
      * @throws AuthoritativeAuditStorageException
      */
-    private function mapRow(array $row): AuthoritativeAuditViewDTO
+private function mapRow(array $row): AuthoritativeAuditViewDTO
     {
         try {
             return $this->mapper->map($row);

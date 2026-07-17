@@ -9,13 +9,13 @@ use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository;
-use Maatify\EventLogging\Tests\Integration\Support\MysqlIntegrationTestCase;
+use Maatify\EventLogging\Tests\Integration\AuthoritativeAudit\Support\StrictAuthoritativeAuditMysqlIntegrationTestCase;
 use PDO;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository
  */
-final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegrationTestCase
+final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthoritativeAuditMysqlIntegrationTestCase
 {
     protected function isStrictMysqlRequired(): bool
     {
