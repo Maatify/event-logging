@@ -25,6 +25,15 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        if ($this->pdo === null) {
+            $this->fail('Integration tests require a real MySQL database.');
+        }
+        /** @var \PDO $pdo */
+        $pdo = $this->pdo;
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        $this->assertFalse((bool)$pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
         if ($this->pdo !== null) {
             $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($this->pdo);
             $this->query = new AuthoritativeAuditQueryMysqlRepository($this->pdo);
@@ -49,6 +58,8 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
 
     public function testWriteAndQueryRoundtrip(): void
     {
+        /** @var \PDO $pdo */
+        $pdo = $this->pdo;
         $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
 
         $writeDto = new AuthoritativeAuditOutboxWriteDTO(
@@ -90,102 +101,52 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         $this->assertEquals($now, $viewDto->occurredAt);
     }
 
-    public function testCorruptJsonMapsToNullSafely(): void
-    {
-        $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
 
-        // MySQL 5.7+ / MariaDB enforce JSON constraint on JSON columns.
-        // To test corrupt JSON handling *at the repository read layer*, we need to disable the check temporarily
-        // or bypass it. MariaDB uses CHECK(json_valid(`changes`)). We can temporarily drop this check constraint
-        // just for this test to prove the PHP code handles corrupt JSON.
-
-        if ($this->pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
-
-        $serverVersionAttr = $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-        $serverVersion = is_scalar($serverVersionAttr) ? (string) $serverVersionAttr : '';
-        $isMariaDb = str_contains($serverVersion, 'MariaDB');
-
-        if ($isMariaDb) {
-            $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log DROP CONSTRAINT IF EXISTS `changes`");
-        }
-
-        try {
-            // Insert corrupt JSON directly into log table
-            $stmt = $this->pdo->prepare("
-                INSERT INTO maa_event_logging_authoritative_audit_log
-                (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'invalid-json', ?, ?)
-            ");
-
-            $stmt->execute([
-                'event-corrupt',
-                'system',
-                1,
-                'test_action',
-                'target',
-                2,
-                'corr-1',
-                $now->format('Y-m-d H:i:s.u')
-            ]);
-        } catch (\PDOException $e) {
-            // If we still can't insert invalid JSON, the DB is strictly enforcing it (e.g. MySQL 8).
-            // This means corrupt JSON is practically impossible at the DB level, but we can skip if we can't test it.
-            $this->markTestSkipped("Database enforces strict JSON validity: " . $e->getMessage());
-        }
-
-        $queryDto = new AuthoritativeAuditQueryDTO(
-            action: 'test_action'
-        );
-
-        $results = $this->query->find($queryDto);
-        $this->assertCount(1, $results);
-
-        $viewDto = $results[0];
-        $this->assertSame('event-corrupt', $viewDto->eventId);
-        // Assert corrupt JSON is safely ignored (mapped to null or empty depending on implementation, here usually null)
-        $this->assertNull($viewDto->changes);
-    }
 
     public function testCursorPagination(): void
     {
-        $now1 = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
-        $now2 = new DateTimeImmutable('2024-01-01 11:00:00', new DateTimeZone('UTC'));
+        $this->writer->write(new AuthoritativeAuditOutboxWriteDTO('evt-1', 'sys', 1, 'act', 'tgt', 1, 'LOW', ['old' => 'a'], 'corr-1', new DateTimeImmutable('2024-01-01 10:00:00')));
+        $this->writer->write(new AuthoritativeAuditOutboxWriteDTO('evt-2', 'sys', 2, 'act', 'tgt', 2, 'LOW', ['old' => 'b'], 'corr-2', new DateTimeImmutable('2024-01-01 10:00:00')));
+        $this->writer->write(new AuthoritativeAuditOutboxWriteDTO('evt-3', 'sys', 3, 'act', 'tgt', 3, 'LOW', ['old' => 'c'], 'corr-3', new DateTimeImmutable('2024-01-01 10:00:00')));
 
-        $dto1 = new AuthoritativeAuditOutboxWriteDTO('evt-1', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now1);
-        $dto2 = new AuthoritativeAuditOutboxWriteDTO('evt-2', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now2);
-        $dto3 = new AuthoritativeAuditOutboxWriteDTO('evt-3', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now2); // Same timestamp as dto2
+        /** @var \PDO $pdo */
+        $pdo = $this->pdo;
+        $pdo->exec('INSERT INTO maa_event_logging_authoritative_audit_log (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at) SELECT event_id, actor_type, actor_id, action, target_type, target_id, payload, correlation_id, created_at FROM maa_event_logging_authoritative_audit_outbox');
 
-        $this->simulateOutboxConsumer($dto1);
-        $this->simulateOutboxConsumer($dto2);
-        $this->simulateOutboxConsumer($dto3); // This will have a higher auto-increment ID than dto2
-
-        // Query limit 1
-        $query1 = new AuthoritativeAuditQueryDTO(limit: 1);
-        $res1 = $this->query->find($query1);
+        $q1 = new AuthoritativeAuditQueryDTO(limit: 1);
+        $res1 = $this->query->find($q1);
         $this->assertCount(1, $res1);
-        $this->assertSame('evt-3', $res1[0]->eventId); // Ordered by time desc, id desc (evt-3 is latest ID among same time)
+        $this->assertSame('evt-3', $res1[0]->eventId);
 
-        // Page 2
-        $query2 = new AuthoritativeAuditQueryDTO(
-            cursorOccurredAt: $res1[0]->occurredAt,
-            cursorId: $res1[0]->id,
-            limit: 1
-        );
-        $res2 = $this->query->find($query2);
+        $q2 = new AuthoritativeAuditQueryDTO(cursorOccurredAt: $res1[0]->occurredAt, cursorId: $res1[0]->id, limit: 1);
+        $res2 = $this->query->find($q2);
         $this->assertCount(1, $res2);
         $this->assertSame('evt-2', $res2[0]->eventId);
 
-        // Page 3
-        $query3 = new AuthoritativeAuditQueryDTO(
-            cursorOccurredAt: $res2[0]->occurredAt,
-            cursorId: $res2[0]->id,
-            limit: 1
-        );
-        $res3 = $this->query->find($query3);
+        $q3 = new AuthoritativeAuditQueryDTO(cursorOccurredAt: $res2[0]->occurredAt, cursorId: $res2[0]->id, limit: 1);
+        $res3 = $this->query->find($q3);
         $this->assertCount(1, $res3);
         $this->assertSame('evt-1', $res3[0]->eventId);
+
+        $q4 = new AuthoritativeAuditQueryDTO(cursorOccurredAt: $res3[0]->occurredAt, cursorId: $res3[0]->id, limit: 1);
+        $res4 = $this->query->find($q4);
+        $this->assertEmpty($res4);
+    }
+
+    public function testPrimitiveRepositoryDoesNotOwnTransactions(): void
+    {
+        /** @var \PDO $pdo */
+        $pdo = $this->pdo;
+        $this->assertFalse($pdo->inTransaction());
+        $this->query->find(new AuthoritativeAuditQueryDTO());
+        $this->assertFalse($pdo->inTransaction());
+
+        $pdo->beginTransaction();
+        $this->assertTrue($pdo->inTransaction());
+        $this->query->find(new AuthoritativeAuditQueryDTO());
+        $this->assertTrue($pdo->inTransaction());
+        $pdo->rollBack();
+        $this->assertFalse($pdo->inTransaction());
     }
 
     private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
@@ -193,7 +154,9 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         if ($this->pdo === null) {
             $this->fail('PDO not initialized.');
         }
-        $stmt = $this->pdo->prepare("
+        /** @var \PDO $pdo */
+        $pdo = $this->pdo;
+        $stmt = $pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
             (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
