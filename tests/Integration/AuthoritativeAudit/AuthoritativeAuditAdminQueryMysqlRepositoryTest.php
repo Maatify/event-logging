@@ -188,10 +188,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
 
     public function testTransactionOwnershipRules(): void
     {
+        /** @var PDO $pdo */
         $pdo = $this->pdo;
-        if ($pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
         $this->assertFalse($pdo->inTransaction());
 
         $pdo->beginTransaction();
@@ -212,10 +210,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
 
     public function testReadingFromLogTableOnly(): void
     {
+        /** @var PDO $pdo */
         $pdo = $this->pdo;
-        if ($pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
         // Insert into outbox
         $stmt = $pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_outbox
@@ -243,10 +239,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends MysqlIntegra
         ?string $correlationId,
         string $occurredAt
     ): void {
+        /** @var PDO $pdo */
         $pdo = $this->pdo;
-        if ($pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
         $stmt = $pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
             (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
