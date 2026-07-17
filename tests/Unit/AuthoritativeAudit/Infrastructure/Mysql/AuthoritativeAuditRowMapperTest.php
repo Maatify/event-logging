@@ -119,6 +119,26 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
         $this->assertNull($dto->correlationId);
     }
 
+    public function testValidOccurredAtPreservesMicrosecondsAndUsesUtc(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'occurred_at' => '2024-05-15 14:32:01.123456'];
+
+        $dto = $mapper->map($row);
+
+        $this->assertSame('2024-05-15 14:32:01.123456', $dto->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $dto->occurredAt->getTimezone()->getName());
+    }
+
+    public function testMissingChangesMapsToNull(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1'];
+
+        $dto = $mapper->map($row);
+        $this->assertNull($dto->changes);
+    }
+
     public function testMissingOccurredAtFallback(): void
     {
         $mapper = new AuthoritativeAuditRowMapper();
