@@ -97,10 +97,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
 
         $paginateCallableProp->setValue($repository, function (\PDO $pdo, \Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor $query, \Maatify\Persistence\Pdo\Pagination\PageRequest $pageRequest, \Maatify\Persistence\Pdo\Pagination\PaginationConfig $config, callable $mapper) use ($originalException) {
             try {
-                // If mapper throws, mapRow catches and re-throws AuthoritativeAuditStorageException
                 $mapper(['occurred_at' => 'invalid']);
             } catch (AuthoritativeAuditStorageException $e) {
-                // We throw the original exception directly to ensure paginate() doesn't rewrap
                 throw $originalException;
             }
         });

@@ -107,7 +107,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
      * @param array<string, mixed> $row
      * @throws AuthoritativeAuditStorageException
      */
-private function mapRow(array $row): AuthoritativeAuditViewDTO
+    private function mapRow(array $row): AuthoritativeAuditViewDTO
     {
         try {
             return $this->mapper->map($row);
