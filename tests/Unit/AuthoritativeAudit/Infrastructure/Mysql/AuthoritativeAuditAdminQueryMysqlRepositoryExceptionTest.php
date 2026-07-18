@@ -59,6 +59,31 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
     }
 
+    public function testPaginationExecutionExceptionIsWrappedInStorageException(): void
+    {
+        $pdo = $this->createMock(PDO::class);
+        $repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+
+        $originalException = new \Maatify\Persistence\Exception\PaginationExecutionException('Injected pagination execution error');
+
+        $reflection = new ReflectionClass($repository);
+        $paginateCallableProp = $reflection->getProperty('paginateExecutionCallable');
+        $paginateCallableProp->setAccessible(true);
+        $paginateCallableProp->setValue($repository, function () use ($originalException) {
+            throw $originalException;
+        });
+
+        $this->expectException(AuthoritativeAuditStorageException::class);
+        $this->expectExceptionMessage('Failed to query AuthoritativeAudit records: Injected pagination execution error');
+
+        try {
+            $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
+        } catch (AuthoritativeAuditStorageException $e) {
+            $this->assertSame($originalException, $e->getPrevious());
+            throw $e;
+        }
+    }
+
     public function testExistingStorageExceptionIsNotRewrapped(): void
     {
         $pdo = $this->createMock(PDO::class);
