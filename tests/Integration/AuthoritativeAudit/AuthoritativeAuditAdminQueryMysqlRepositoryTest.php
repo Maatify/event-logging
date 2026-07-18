@@ -288,6 +288,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
         $res = $this->repository->paginate($req);
         $this->assertCount(1, $res->items);
 
+        $this->assertTrue($pdo->inTransaction());
+
         $pdo->rollBack();
 
         $res2 = $this->repository->paginate($req);
