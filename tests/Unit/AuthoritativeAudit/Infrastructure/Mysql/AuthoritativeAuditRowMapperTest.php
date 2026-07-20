@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\Tests\Unit\AuthoritativeAudit\Infrastructure\Mysql;
 
+use Exception;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditRowMapper;
 use PHPUnit\Framework\TestCase;
 
@@ -54,5 +55,105 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
 
         $dto = $mapper->map($row);
         $this->assertNull($dto->changes);
+    }
+
+    public function testMapEmptyJsonObject(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'changes' => '{}'];
+        $dto = $mapper->map($row);
+        $this->assertSame([], $dto->changes);
+    }
+
+    public function testMapEmptyJsonList(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'changes' => '[]'];
+        $dto = $mapper->map($row);
+        $this->assertNull($dto->changes);
+    }
+
+    public function testMapNumericKeyArray(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'changes' => '["x"]'];
+        $dto = $mapper->map($row);
+        $this->assertNull($dto->changes);
+    }
+
+    public function testMapScalarJson(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'changes' => '"scalar"'];
+        $dto = $mapper->map($row);
+        $this->assertNull($dto->changes);
+    }
+
+    public function testMissingAndNonStringScalarFieldsMapToNull(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        // Provide non-string or missing fields
+        $row = [
+            'id' => 1, // int instead of string
+            'event_id' => null, // missing string
+            'actor_id' => '42', // string numeric mapped to int
+            'actor_type' => 123, // int instead of string
+            'action' => null,
+            'target_id' => 100, // int instead of string
+            'target_type' => 456,
+            'changes' => 789, // non-string json
+        ];
+
+        $dto = $mapper->map($row);
+
+        $this->assertSame(1, $dto->id);
+        $this->assertSame('', $dto->eventId); // Default cast
+        $this->assertSame(42, $dto->actorId);
+        $this->assertNull($dto->actorType);
+        $this->assertSame('', $dto->action);
+        $this->assertSame(100, $dto->targetId);
+        $this->assertNull($dto->targetType);
+        $this->assertNull($dto->changes);
+        $this->assertNull($dto->ipAddress);
+        $this->assertNull($dto->userAgent);
+        $this->assertNull($dto->correlationId);
+    }
+
+    public function testValidOccurredAtPreservesMicrosecondsAndUsesUtc(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'occurred_at' => '2024-05-15 14:32:01.123456'];
+
+        $dto = $mapper->map($row);
+
+        $this->assertSame('2024-05-15 14:32:01.123456', $dto->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $dto->occurredAt->getTimezone()->getName());
+    }
+
+    public function testMissingChangesMapsToNull(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1'];
+
+        $dto = $mapper->map($row);
+        $this->assertNull($dto->changes);
+    }
+
+    public function testMissingOccurredAtFallback(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1'];
+        $dto = $mapper->map($row);
+        $this->assertSame('1970-01-01 00:00:00.000000', $dto->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $dto->occurredAt->getTimezone()->getName());
+    }
+
+    public function testInvalidOccurredAtThrowsException(): void
+    {
+        $mapper = new AuthoritativeAuditRowMapper();
+        $row = ['event_id' => 'event-1', 'occurred_at' => 'invalid-date'];
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage("Invalid occurred_at format");
+        $mapper->map($row);
     }
 }

@@ -28,12 +28,19 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
     private AuthoritativeAuditRowMapper $mapper;
     private AuthoritativeAuditAdminQueryDescriptorBuilder $descriptorBuilder;
     private PdoPaginator $paginator;
+    /** @var \Closure(\PDO, \Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor, \Maatify\Persistence\Pdo\Pagination\PageRequest, \Maatify\Persistence\Pdo\Pagination\PaginationConfig, callable): \Maatify\Persistence\Pdo\Pagination\PageResult<\Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO> */
+    private \Closure $paginateExecutionCallable;
 
     public function __construct(private PDO $pdo)
     {
         $this->mapper = new AuthoritativeAuditRowMapper();
         $this->descriptorBuilder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
         $this->paginator = new PdoPaginator();
+        $this->paginateExecutionCallable = function (\PDO $pdo, \Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor $query, \Maatify\Persistence\Pdo\Pagination\PageRequest $pageRequest, \Maatify\Persistence\Pdo\Pagination\PaginationConfig $config, callable $mapper): \Maatify\Persistence\Pdo\Pagination\PageResult {
+            /** @var callable(array<string, mixed>): \Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO $mapperTyped */
+            $mapperTyped = $mapper;
+            return $this->paginator->paginate($pdo, $query, $pageRequest, $config, $mapperTyped);
+        };
     }
 
     public function paginate(AuthoritativeAuditAdminQueryRequestDTO $request): AuthoritativeAuditAdminPageResultDTO
@@ -46,12 +53,18 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
         );
 
         try {
-            $result = $this->paginator->paginate(
+            $mapperCallable = function (array $row): AuthoritativeAuditViewDTO {
+                /** @var array<string, mixed> $row */
+                return $this->mapRow($row);
+            };
+            $callable = $this->paginateExecutionCallable;
+            /** @var \Maatify\Persistence\Pdo\Pagination\PageResult<AuthoritativeAuditViewDTO> $result */
+            $result = $callable(
                 $this->pdo,
                 $this->descriptorBuilder->build($request),
                 $pageRequest,
                 $this->createPaginationConfig(),
-                fn (array $row): AuthoritativeAuditViewDTO => $this->mapRow($row)
+                $mapperCallable
             );
 
             return new AuthoritativeAuditAdminPageResultDTO(
