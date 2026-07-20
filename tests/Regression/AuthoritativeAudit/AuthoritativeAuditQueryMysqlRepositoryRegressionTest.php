@@ -214,7 +214,11 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $property = new ReflectionProperty(AuthoritativeAuditQueryMysqlRepository::class, 'pdo');
         self::assertTrue($property->isPrivate());
         self::assertTrue($property->isReadOnly());
-        self::assertSame(PDO::class, (string) $property->getType());
+        $propertyType = $property->getType();
+        if ($propertyType === null) {
+            self::fail('Primitive repository PDO property type is missing.');
+        }
+        self::assertSame(PDO::class, (string) $propertyType);
 
         $pdo = new FakePdo();
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
