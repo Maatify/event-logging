@@ -34,22 +34,22 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
             sortDirection: '  asc  '
         );
 
-        $this->assertSame('event-123', $dto->eventId);
-        $this->assertSame('user', $dto->actorType);
-        $this->assertSame(42, $dto->actorId);
-        $this->assertSame('resource', $dto->targetType);
-        $this->assertSame(100, $dto->targetId);
-        $this->assertSame('create', $dto->action);
-        $this->assertSame('corr-456', $dto->correlationId);
-        $this->assertSame($after, $dto->after);
-        $this->assertSame($before, $dto->before);
-        $this->assertSame('003', $dto->page);
-        $this->assertSame(20, $dto->perPage);
-        $this->assertSame('occurred_at', $dto->sortBy);
-        $this->assertSame('ASC', $dto->sortDirection);
+        self::assertSame('event-123', $dto->eventId);
+        self::assertSame('user', $dto->actorType);
+        self::assertSame(42, $dto->actorId);
+        self::assertSame('resource', $dto->targetType);
+        self::assertSame(100, $dto->targetId);
+        self::assertSame('create', $dto->action);
+        self::assertSame('corr-456', $dto->correlationId);
+        self::assertSame($after, $dto->after);
+        self::assertSame($before, $dto->before);
+        self::assertSame('003', $dto->page);
+        self::assertSame(20, $dto->perPage);
+        self::assertSame('occurred_at', $dto->sortBy);
+        self::assertSame('ASC', $dto->sortDirection);
 
         $serialized = $dto->jsonSerialize();
-        $this->assertSame([
+        self::assertSame([
             'eventId',
             'actorType',
             'actorId',
@@ -64,7 +64,7 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
             'sortBy',
             'sortDirection',
         ], array_keys($serialized));
-        $this->assertSame([
+        self::assertSame([
             'eventId' => 'event-123',
             'actorType' => 'user',
             'actorId' => 42,
@@ -81,7 +81,7 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
         ], $serialized);
     }
 
-    public function testEmptyStringsAndUnknownSortValuesNormalizeToNull(): void
+    public function testEmptyStringsAndUnsupportedShortSortValuesNormalizeToNull(): void
     {
         $dto = new AuthoritativeAuditAdminQueryRequestDTO(
             eventId: '   ',
@@ -90,16 +90,16 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
             action: '',
             correlationId: '  ',
             sortBy: 'id',
-            sortDirection: 'sideways'
+            sortDirection: 'up'
         );
 
-        $this->assertNull($dto->eventId);
-        $this->assertNull($dto->actorType);
-        $this->assertNull($dto->targetType);
-        $this->assertNull($dto->action);
-        $this->assertNull($dto->correlationId);
-        $this->assertNull($dto->sortBy);
-        $this->assertNull($dto->sortDirection);
+        self::assertNull($dto->eventId);
+        self::assertNull($dto->actorType);
+        self::assertNull($dto->targetType);
+        self::assertNull($dto->action);
+        self::assertNull($dto->correlationId);
+        self::assertNull($dto->sortBy);
+        self::assertNull($dto->sortDirection);
     }
 
     public function testEqualDateBoundsAreAccepted(): void
@@ -108,8 +108,8 @@ final class AuthoritativeAuditAdminQueryRequestDTOTest extends TestCase
 
         $dto = new AuthoritativeAuditAdminQueryRequestDTO(after: $bound, before: $bound);
 
-        $this->assertSame($bound, $dto->after);
-        $this->assertSame($bound, $dto->before);
+        self::assertSame($bound, $dto->after);
+        self::assertSame($bound, $dto->before);
     }
 
     #[DataProvider('invalidIdProvider')]
