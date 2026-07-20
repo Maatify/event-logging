@@ -6,12 +6,15 @@ namespace Maatify\EventLogging\Tests\Integration\AuthoritativeAudit;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use JsonException;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditOutboxWriteDTO;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
 use Maatify\EventLogging\Tests\Integration\AuthoritativeAudit\Support\StrictAuthoritativeAuditMysqlIntegrationTestCase;
 use PDO;
+use PDOException;
+use PDOStatement;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository
@@ -19,23 +22,19 @@ use PDO;
  */
 final class AuthoritativeAuditRepositoryTest extends StrictAuthoritativeAuditMysqlIntegrationTestCase
 {
-    protected function isStrictMysqlRequired(): bool
-    {
-        return true;
-    }
     private AuthoritativeAuditOutboxWriterMysqlRepository $writer;
     private AuthoritativeAuditQueryMysqlRepository $query;
 
     protected function setUp(): void
     {
         parent::setUp();
-        if ($this->pdo !== null) {
-            $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        }
-        if ($this->pdo !== null) {
-            $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($this->pdo);
-            $this->query = new AuthoritativeAuditQueryMysqlRepository($this->pdo);
-        }
+
+        $pdo = $this->requirePdo();
+        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        self::assertFalse((bool) $pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
+
+        $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($pdo);
+        $this->query = new AuthoritativeAuditQueryMysqlRepository($pdo);
     }
 
     protected function getDomainSchemaFile(): string
@@ -43,21 +42,19 @@ final class AuthoritativeAuditRepositoryTest extends StrictAuthoritativeAuditMys
         return 'src/AuthoritativeAudit/Database/schema.maa_event_logging_authoritative_audit.sql';
     }
 
-    /**
-     * @return array<int, string>
-     */
+    /** @return list<string> */
     protected function getTableNames(): array
     {
         return [
             'maa_event_logging_authoritative_audit_outbox',
-            'maa_event_logging_authoritative_audit_log'
+            'maa_event_logging_authoritative_audit_log',
         ];
     }
 
+    /** @throws JsonException */
     public function testWriteAndQueryRoundtrip(): void
     {
-        $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
-
+        $occurredAt = new DateTimeImmutable('2024-01-01 10:00:00.123456', new DateTimeZone('UTC'));
         $writeDto = new AuthoritativeAuditOutboxWriteDTO(
             eventId: 'event-123',
             actorType: 'admin',
@@ -68,141 +65,172 @@ final class AuthoritativeAuditRepositoryTest extends StrictAuthoritativeAuditMys
             riskLevel: 'HIGH',
             payload: ['old_name' => 'John', 'new_name' => 'Jane'],
             correlationId: 'corr-xyz',
-            createdAt: $now
+            createdAt: $occurredAt
         );
 
         $this->writer->write($writeDto);
+        $this->materializeLog($writeDto);
 
-        // To test query, we need to populate the log table (simulating outbox consumer)
-        $this->simulateOutboxConsumer($writeDto);
-
-        $queryDto = new AuthoritativeAuditQueryDTO(
+        $results = $this->query->find(new AuthoritativeAuditQueryDTO(
             actorType: 'admin',
             actorId: 42,
-            action: 'update_user'
-        );
+            targetType: 'user',
+            targetId: 100,
+            action: 'update_user',
+            correlationId: 'corr-xyz'
+        ));
 
-        $results = $this->query->find($queryDto);
-        $this->assertCount(1, $results);
-
-        $viewDto = $results[0];
-        $this->assertSame('event-123', $viewDto->eventId);
-        $this->assertSame('admin', $viewDto->actorType);
-        $this->assertSame(42, $viewDto->actorId);
-        $this->assertSame('update_user', $viewDto->action);
-        $this->assertSame('user', $viewDto->targetType);
-        $this->assertSame(100, $viewDto->targetId);
-        $this->assertEquals(['old_name' => 'John', 'new_name' => 'Jane'], $viewDto->changes); // Note: we map payload to changes here for testing roundtrip
-        $this->assertSame('corr-xyz', $viewDto->correlationId);
-        $this->assertEquals($now, $viewDto->occurredAt);
+        self::assertCount(1, $results);
+        $view = $results[0];
+        self::assertSame('event-123', $view->eventId);
+        self::assertSame('admin', $view->actorType);
+        self::assertSame(42, $view->actorId);
+        self::assertSame('update_user', $view->action);
+        self::assertSame('user', $view->targetType);
+        self::assertSame(100, $view->targetId);
+        self::assertSame(['old_name' => 'John', 'new_name' => 'Jane'], $view->changes);
+        self::assertSame('corr-xyz', $view->correlationId);
+        self::assertSame('2024-01-01 10:00:00.123456', $view->occurredAt->format('Y-m-d H:i:s.u'));
+        self::assertSame('UTC', $view->occurredAt->getTimezone()->getName());
     }
 
-    public function testStrictJsonDatabaseRejectsCorruptJson(): void
+    public function testDatabaseRejectsMalformedJsonWithoutConstraintChanges(): void
     {
-        $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
+        $statement = $this->prepareStatement(
+            'INSERT INTO maa_event_logging_authoritative_audit_log '
+            . '(event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
 
-        if ($this->pdo === null) {
-            $this->fail('PDO not initialized.');
-        }
-
-        // Insert corrupt JSON directly into log table.
-        // We expect the strict JSON constraint to reject this insertion at the database level.
-        $stmt = $this->pdo->prepare("
-            INSERT INTO maa_event_logging_authoritative_audit_log
-            (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'invalid-json', ?, ?)
-        ");
-
-        $this->expectException(\PDOException::class);
-        $stmt->execute([
+        $this->expectException(PDOException::class);
+        $statement->execute([
             'event-corrupt',
             'system',
             1,
             'test_action',
             'target',
             2,
+            'invalid-json',
             'corr-1',
-            $now->format('Y-m-d H:i:s.u')
+            '2024-01-01 10:00:00.000000',
         ]);
     }
 
-    public function testCursorPagination(): void
+    /** @throws JsonException */
+    public function testPrimitiveCursorPaginationUsesTimeAndId(): void
     {
-        $now1 = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
-        $now2 = new DateTimeImmutable('2024-01-01 11:00:00', new DateTimeZone('UTC'));
-
-        $dto1 = new AuthoritativeAuditOutboxWriteDTO('evt-1', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now1);
-        $dto2 = new AuthoritativeAuditOutboxWriteDTO('evt-2', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now2);
-        $dto3 = new AuthoritativeAuditOutboxWriteDTO('evt-3', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now2); // Same timestamp as dto2
-
-        $this->simulateOutboxConsumer($dto1);
-        $this->simulateOutboxConsumer($dto2);
-        $this->simulateOutboxConsumer($dto3); // This will have a higher auto-increment ID than dto2
-
-        // Query limit 1
-        $query1 = new AuthoritativeAuditQueryDTO(limit: 1);
-        $res1 = $this->query->find($query1);
-        $this->assertCount(1, $res1);
-        $this->assertSame('evt-3', $res1[0]->eventId); // Ordered by time desc, id desc (evt-3 is latest ID among same time)
-
-        // Page 2
-        $query2 = new AuthoritativeAuditQueryDTO(
-            cursorOccurredAt: $res1[0]->occurredAt,
-            cursorId: $res1[0]->id,
-            limit: 1
+        $first = new AuthoritativeAuditOutboxWriteDTO(
+            'evt-1',
+            'admin',
+            1,
+            'action',
+            'target',
+            1,
+            'LOW',
+            [],
+            'corr-1',
+            new DateTimeImmutable('2024-01-01 10:00:00.000000', new DateTimeZone('UTC'))
         );
-        $res2 = $this->query->find($query2);
-        $this->assertCount(1, $res2);
-        $this->assertSame('evt-2', $res2[0]->eventId);
-
-        // Page 3
-        $query3 = new AuthoritativeAuditQueryDTO(
-            cursorOccurredAt: $res2[0]->occurredAt,
-            cursorId: $res2[0]->id,
-            limit: 1
+        $second = new AuthoritativeAuditOutboxWriteDTO(
+            'evt-2',
+            'admin',
+            1,
+            'action',
+            'target',
+            1,
+            'LOW',
+            [],
+            'corr-2',
+            new DateTimeImmutable('2024-01-01 11:00:00.000000', new DateTimeZone('UTC'))
         );
-        $res3 = $this->query->find($query3);
-        $this->assertCount(1, $res3);
-        $this->assertSame('evt-1', $res3[0]->eventId);
+        $third = new AuthoritativeAuditOutboxWriteDTO(
+            'evt-3',
+            'admin',
+            1,
+            'action',
+            'target',
+            1,
+            'LOW',
+            [],
+            'corr-3',
+            new DateTimeImmutable('2024-01-01 11:00:00.000000', new DateTimeZone('UTC'))
+        );
+
+        $this->materializeLog($first);
+        $this->materializeLog($second);
+        $this->materializeLog($third);
+
+        $pageOne = $this->query->find(new AuthoritativeAuditQueryDTO(limit: 1));
+        self::assertCount(1, $pageOne);
+        self::assertSame('evt-3', $pageOne[0]->eventId);
+
+        $pageTwo = $this->query->find(new AuthoritativeAuditQueryDTO(
+            cursorOccurredAt: $pageOne[0]->occurredAt,
+            cursorId: $pageOne[0]->id,
+            limit: 1
+        ));
+        self::assertCount(1, $pageTwo);
+        self::assertSame('evt-2', $pageTwo[0]->eventId);
+
+        $pageThree = $this->query->find(new AuthoritativeAuditQueryDTO(
+            cursorOccurredAt: $pageTwo[0]->occurredAt,
+            cursorId: $pageTwo[0]->id,
+            limit: 1
+        ));
+        self::assertCount(1, $pageThree);
+        self::assertSame('evt-1', $pageThree[0]->eventId);
     }
 
-    public function testPrimitiveRepositoryDoesNotOwnTransactions(): void
+    public function testPrimitiveReadPreservesCallerOwnedTransaction(): void
     {
-        $pdo = $this->pdo;
-        if ($pdo === null) {
-            $this->fail('PDO not initialized.');
-        }
+        $pdo = $this->requirePdo();
+        self::assertFalse($pdo->inTransaction());
 
         $pdo->beginTransaction();
-        $query = new AuthoritativeAuditQueryDTO(limit: 1);
-        $this->query->find($query);
+        $this->query->find(new AuthoritativeAuditQueryDTO(limit: 1));
+        self::assertTrue($pdo->inTransaction());
 
-        // The repository should not have committed or rolled back the caller's transaction
-        $this->assertTrue($pdo->inTransaction());
         $pdo->rollBack();
+        self::assertFalse($pdo->inTransaction());
     }
 
-    private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
+    private function requirePdo(): PDO
     {
-        if ($this->pdo === null) {
-            $this->fail('PDO not initialized.');
+        if (!$this->pdo instanceof PDO) {
+            self::fail('Strict AuthoritativeAudit integration requires a real MySQL PDO connection.');
         }
-        $stmt = $this->pdo->prepare("
-            INSERT INTO maa_event_logging_authoritative_audit_log
-            (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
 
-        $stmt->execute([
+        return $this->pdo;
+    }
+
+    private function prepareStatement(string $sql): PDOStatement
+    {
+        $statement = $this->requirePdo()->prepare($sql);
+        if (!$statement instanceof PDOStatement) {
+            self::fail('Failed to prepare AuthoritativeAudit integration SQL.');
+        }
+
+        return $statement;
+    }
+
+    /** @throws JsonException */
+    private function materializeLog(AuthoritativeAuditOutboxWriteDTO $dto): void
+    {
+        $statement = $this->prepareStatement(
+            'INSERT INTO maa_event_logging_authoritative_audit_log '
+            . '(event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $statement->execute([
             $dto->eventId,
             $dto->actorType,
             $dto->actorId,
             $dto->action,
             $dto->targetType,
             $dto->targetId,
-            json_encode($dto->payload),
+            json_encode($dto->payload, JSON_THROW_ON_ERROR),
             $dto->correlationId,
-            $dto->createdAt->format('Y-m-d H:i:s.u')
+            $dto->createdAt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s.u'),
         ]);
     }
 }
