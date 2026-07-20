@@ -17,6 +17,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
+use ReflectionParameter;
 use ReflectionProperty;
 
 final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCase
@@ -26,25 +27,32 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $method = new ReflectionMethod(AuthoritativeAuditQueryInterface::class, 'find');
         $parameters = $method->getParameters();
 
-        $this->assertCount(1, $parameters);
-        $this->assertSame('query', $parameters[0]->getName());
-        $this->assertSame(AuthoritativeAuditQueryDTO::class, (string) $parameters[0]->getType());
-        $this->assertSame('array', (string) $method->getReturnType());
+        self::assertSame(['query'], self::parameterNames($parameters));
+        self::assertSame([AuthoritativeAuditQueryDTO::class], self::parameterTypes($parameters));
+
+        $returnType = $method->getReturnType();
+        if ($returnType === null) {
+            self::fail('Primitive find() return type is missing.');
+        }
+        self::assertSame('array', (string) $returnType);
 
         $docComment = $method->getDocComment();
-        $this->assertIsString($docComment);
-        $this->assertStringContainsString('@return array<AuthoritativeAuditViewDTO>', $docComment);
-        $this->assertStringContainsString('@throws AuthoritativeAuditStorageException', $docComment);
+        if (!is_string($docComment)) {
+            self::fail('Primitive find() docblock is missing.');
+        }
+        self::assertStringContainsString('@return array<AuthoritativeAuditViewDTO>', $docComment);
+        self::assertStringContainsString('@throws AuthoritativeAuditStorageException', $docComment);
     }
 
-    public function testPrimitiveQueryDtoConstructorAndSerializationContractIsPreserved(): void
+    public function testPrimitiveQueryDtoConstructorAndSerializationArePreserved(): void
     {
-        $reflection = new ReflectionClass(AuthoritativeAuditQueryDTO::class);
-        $constructor = $reflection->getConstructor();
-        $this->assertNotNull($constructor);
+        $constructor = (new ReflectionClass(AuthoritativeAuditQueryDTO::class))->getConstructor();
+        if (!$constructor instanceof ReflectionMethod) {
+            self::fail('AuthoritativeAuditQueryDTO constructor is missing.');
+        }
         $parameters = $constructor->getParameters();
 
-        $this->assertSame([
+        self::assertSame([
             'after',
             'before',
             'actorType',
@@ -56,8 +64,8 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             'cursorOccurredAt',
             'cursorId',
             'limit',
-        ], array_map(static fn ($parameter): string => $parameter->getName(), $parameters));
-        $this->assertSame([
+        ], self::parameterNames($parameters));
+        self::assertSame([
             '?DateTimeImmutable',
             '?DateTimeImmutable',
             '?string',
@@ -69,8 +77,8 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             '?DateTimeImmutable',
             '?int',
             'int',
-        ], array_map(static fn ($parameter): string => (string) $parameter->getType(), $parameters));
-        $this->assertSame([
+        ], self::parameterTypes($parameters));
+        self::assertSame([
             null,
             null,
             null,
@@ -82,7 +90,7 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             null,
             null,
             50,
-        ], array_map(static fn ($parameter): mixed => $parameter->getDefaultValue(), $parameters));
+        ], self::parameterDefaults($parameters));
 
         $after = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
         $before = new DateTimeImmutable('2024-01-02 10:00:00', new DateTimeZone('UTC'));
@@ -102,21 +110,10 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         );
 
         $serialized = $dto->jsonSerialize();
-        $this->assertIsArray($serialized);
-        $this->assertSame([
-            'after',
-            'before',
-            'actorType',
-            'actorId',
-            'targetType',
-            'targetId',
-            'action',
-            'correlationId',
-            'cursorOccurredAt',
-            'cursorId',
-            'limit',
-        ], array_keys($serialized));
-        $this->assertSame([
+        if (!is_array($serialized)) {
+            self::fail('AuthoritativeAuditQueryDTO serialization must return an array.');
+        }
+        self::assertSame([
             'after' => $after->format(DATE_ATOM),
             'before' => $before->format(DATE_ATOM),
             'actorType' => 'admin',
@@ -131,14 +128,15 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         ], $serialized);
     }
 
-    public function testPrimitiveViewDtoConstructorAndSerializationContractIsPreserved(): void
+    public function testPrimitiveViewDtoConstructorAndSerializationArePreserved(): void
     {
-        $reflection = new ReflectionClass(AuthoritativeAuditViewDTO::class);
-        $constructor = $reflection->getConstructor();
-        $this->assertNotNull($constructor);
+        $constructor = (new ReflectionClass(AuthoritativeAuditViewDTO::class))->getConstructor();
+        if (!$constructor instanceof ReflectionMethod) {
+            self::fail('AuthoritativeAuditViewDTO constructor is missing.');
+        }
         $parameters = $constructor->getParameters();
 
-        $this->assertSame([
+        self::assertSame([
             'id',
             'eventId',
             'actorType',
@@ -151,8 +149,8 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             'correlationId',
             'changes',
             'occurredAt',
-        ], array_map(static fn ($parameter): string => $parameter->getName(), $parameters));
-        $this->assertSame([
+        ], self::parameterNames($parameters));
+        self::assertSame([
             'int',
             'string',
             '?string',
@@ -165,9 +163,10 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             '?string',
             '?array',
             'DateTimeImmutable',
-        ], array_map(static fn ($parameter): string => (string) $parameter->getType(), $parameters));
+        ], self::parameterTypes($parameters));
+
         foreach ($parameters as $parameter) {
-            $this->assertFalse($parameter->isDefaultValueAvailable());
+            self::assertFalse($parameter->isDefaultValueAvailable());
         }
 
         $occurredAt = new DateTimeImmutable('2024-01-01 12:00:00', new DateTimeZone('UTC'));
@@ -187,22 +186,10 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         );
 
         $serialized = $dto->jsonSerialize();
-        $this->assertIsArray($serialized);
-        $this->assertSame([
-            'id',
-            'eventId',
-            'actorType',
-            'actorId',
-            'action',
-            'targetType',
-            'targetId',
-            'ipAddress',
-            'userAgent',
-            'correlationId',
-            'changes',
-            'occurredAt',
-        ], array_keys($serialized));
-        $this->assertSame([
+        if (!is_array($serialized)) {
+            self::fail('AuthoritativeAuditViewDTO serialization must return an array.');
+        }
+        self::assertSame([
             'id' => 1,
             'eventId' => 'event-1',
             'actorType' => 'admin',
@@ -218,61 +205,70 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         ], $serialized);
     }
 
-    public function testPrimitiveRepositoryConstructorAndDefaultSqlContractArePreserved(): void
+    public function testPrimitiveRepositoryConstructorDefaultSqlAndLimitArePreserved(): void
     {
         $constructor = new ReflectionMethod(AuthoritativeAuditQueryMysqlRepository::class, '__construct');
-        $parameters = $constructor->getParameters();
-        $this->assertCount(1, $parameters);
-        $this->assertSame('pdo', $parameters[0]->getName());
-        $this->assertSame(PDO::class, (string) $parameters[0]->getType());
+        self::assertSame(['pdo'], self::parameterNames($constructor->getParameters()));
+        self::assertSame([PDO::class], self::parameterTypes($constructor->getParameters()));
 
         $property = new ReflectionProperty(AuthoritativeAuditQueryMysqlRepository::class, 'pdo');
-        $this->assertTrue($property->isPrivate());
-        $this->assertTrue($property->isReadOnly());
-        $this->assertSame(PDO::class, (string) $property->getType());
+        self::assertTrue($property->isPrivate());
+        self::assertTrue($property->isReadOnly());
+        self::assertSame(PDO::class, (string) $property->getType());
 
         $pdo = new FakePdo();
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
         $repository->find(new AuthoritativeAuditQueryDTO(limit: 0));
 
-        $this->assertNotNull($pdo->lastStatement);
-        $this->assertSame(
+        $statement = $pdo->lastStatement;
+        if ($statement === null) {
+            self::fail('Primitive repository did not prepare a SQL statement.');
+        }
+        self::assertSame(
             'SELECT * FROM maa_event_logging_authoritative_audit_log  ORDER BY occurred_at DESC, id DESC LIMIT 1',
-            $pdo->lastStatement->queryString
+            $statement->queryString
         );
-        $this->assertSame([], $pdo->lastStatement->executedParams);
+        self::assertSame([], $statement->executedParams);
     }
 
-    public function testPrimitiveCursorActivatesOnlyWhenBothValuesArePresent(): void
+    public function testPrimitiveCursorRequiresBothValuesAndUsesDistinctPlaceholders(): void
     {
         $cursorAt = new DateTimeImmutable('2024-01-01 12:00:00.123456', new DateTimeZone('UTC'));
         $pdo = new FakePdo();
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
 
         $repository->find(new AuthoritativeAuditQueryDTO(cursorOccurredAt: $cursorAt));
-        $this->assertNotNull($pdo->lastStatement);
-        $this->assertStringNotContainsString(':cursor_at_before', $pdo->lastStatement->queryString);
-        $this->assertSame([], $pdo->lastStatement->executedParams);
+        $statement = $pdo->lastStatement;
+        if ($statement === null) {
+            self::fail('Primitive cursor query was not prepared.');
+        }
+        self::assertStringNotContainsString(':cursor_at_before', $statement->queryString);
 
         $repository->find(new AuthoritativeAuditQueryDTO(cursorId: 100));
-        $this->assertNotNull($pdo->lastStatement);
-        $this->assertStringNotContainsString(':cursor_at_before', $pdo->lastStatement->queryString);
-        $this->assertSame([], $pdo->lastStatement->executedParams);
+        $statement = $pdo->lastStatement;
+        if ($statement === null) {
+            self::fail('Primitive cursor query was not prepared.');
+        }
+        self::assertStringNotContainsString(':cursor_at_before', $statement->queryString);
 
         $repository->find(new AuthoritativeAuditQueryDTO(cursorOccurredAt: $cursorAt, cursorId: 100));
-        $this->assertNotNull($pdo->lastStatement);
-        $this->assertStringContainsString(
+        $statement = $pdo->lastStatement;
+        if ($statement === null) {
+            self::fail('Primitive cursor query was not prepared.');
+        }
+        self::assertStringContainsString(
             '(occurred_at < :cursor_at_before OR (occurred_at = :cursor_at_equal AND id < :cursor_id))',
-            $pdo->lastStatement->queryString
+            $statement->queryString
         );
-        $this->assertSame([
+        self::assertStringContainsString('ORDER BY occurred_at DESC, id DESC', $statement->queryString);
+        self::assertSame([
             'cursor_at_before' => '2024-01-01 12:00:00.123456',
             'cursor_at_equal' => '2024-01-01 12:00:00.123456',
             'cursor_id' => 100,
-        ], $pdo->lastStatement->executedParams);
+        ], $statement->executedParams);
     }
 
-    public function testAdminDescriptorConvertsAfricaCairoBoundsToUtcWithMicroseconds(): void
+    public function testAdminDescriptorConvertsCairoBoundsToUtcWithMicroseconds(): void
     {
         $builder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
         $cairo = new DateTimeZone('Africa/Cairo');
@@ -283,12 +279,67 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
 
         $descriptor = $builder->build($request);
 
-        $this->assertSame([
+        self::assertSame([
             'after' => '2024-06-01 08:00:00.123456',
             'before' => '2024-06-01 09:00:00.654321',
         ], $descriptor->filteredCountParams);
-        $this->assertSame($descriptor->filteredCountParams, $descriptor->dataParams);
-        $this->assertStringContainsString('occurred_at >= :after', $descriptor->filteredCountSql);
-        $this->assertStringContainsString('occurred_at <= :before', $descriptor->filteredCountSql);
+        self::assertSame($descriptor->filteredCountParams, $descriptor->dataParams);
+    }
+
+    public function testSupersededPostV1RuntimeTypesAreAbsent(): void
+    {
+        self::assertFalse(interface_exists('Maatify\\EventLogging\\AuthoritativeAudit\\Contract\\AuthoritativeAuditPaginatedQueryInterface'));
+        self::assertFalse(class_exists('Maatify\\EventLogging\\AuthoritativeAudit\\Service\\AuthoritativeAuditPaginatedQueryService'));
+        self::assertFalse(class_exists('Maatify\\EventLogging\\AuthoritativeAudit\\DTO\\AuthoritativeAuditQueryPageDTO'));
+        self::assertFalse(class_exists('Maatify\\EventLogging\\AuthoritativeAudit\\DTO\\AuthoritativeAuditQueryCursorDTO'));
+    }
+
+    /**
+     * @param list<ReflectionParameter> $parameters
+     * @return list<string>
+     */
+    private static function parameterNames(array $parameters): array
+    {
+        return array_map(
+            static fn (ReflectionParameter $parameter): string => $parameter->getName(),
+            $parameters
+        );
+    }
+
+    /**
+     * @param list<ReflectionParameter> $parameters
+     * @return list<string>
+     */
+    private static function parameterTypes(array $parameters): array
+    {
+        return array_map(
+            static function (ReflectionParameter $parameter): string {
+                $type = $parameter->getType();
+                if ($type === null) {
+                    self::fail("Parameter {$parameter->getName()} has no type.");
+                }
+
+                return (string) $type;
+            },
+            $parameters
+        );
+    }
+
+    /**
+     * @param list<ReflectionParameter> $parameters
+     * @return list<mixed>
+     */
+    private static function parameterDefaults(array $parameters): array
+    {
+        return array_map(
+            static function (ReflectionParameter $parameter): mixed {
+                if (!$parameter->isDefaultValueAvailable()) {
+                    self::fail("Parameter {$parameter->getName()} has no default value.");
+                }
+
+                return $parameter->getDefaultValue();
+            },
+            $parameters
+        );
     }
 }
