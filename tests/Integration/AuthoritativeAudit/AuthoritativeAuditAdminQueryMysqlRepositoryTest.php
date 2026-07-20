@@ -7,9 +7,11 @@ namespace Maatify\EventLogging\Tests\Integration\AuthoritativeAudit;
 use DateTimeImmutable;
 use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository;
 use Maatify\EventLogging\Tests\Integration\AuthoritativeAudit\Support\StrictAuthoritativeAuditMysqlIntegrationTestCase;
 use PDO;
+use PDOStatement;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository
@@ -209,7 +211,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
 
     public function testAdminQueryReadsMaterializedLogOnly(): void
     {
-        $statement = $this->requirePdo()->prepare(
+        $statement = $this->prepareStatement(
             'INSERT INTO maa_event_logging_authoritative_audit_outbox '
             . '(event_id, actor_type, actor_id, action, target_type, target_id, risk_level, payload, correlation_id, created_at) '
             . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -233,14 +235,24 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
         return $this->pdo;
     }
 
+    private function prepareStatement(string $sql): PDOStatement
+    {
+        $statement = $this->requirePdo()->prepare($sql);
+        if (!$statement instanceof PDOStatement) {
+            self::fail('Failed to prepare AuthoritativeAudit integration SQL.');
+        }
+
+        return $statement;
+    }
+
     /**
-     * @param list<\Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO> $items
+     * @param list<AuthoritativeAuditViewDTO> $items
      * @return list<string>
      */
     private static function eventIds(array $items): array
     {
         return array_map(
-            static fn (\Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO $item): string => $item->eventId,
+            static fn (AuthoritativeAuditViewDTO $item): string => $item->eventId,
             $items
         );
     }
@@ -256,7 +268,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
         ?string $correlationId,
         string $occurredAt
     ): void {
-        $statement = $this->requirePdo()->prepare(
+        $statement = $this->prepareStatement(
             'INSERT INTO maa_event_logging_authoritative_audit_log '
             . '(event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at) '
             . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
