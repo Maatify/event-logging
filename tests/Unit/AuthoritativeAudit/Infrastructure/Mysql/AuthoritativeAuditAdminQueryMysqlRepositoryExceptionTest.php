@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Maatify\EventLogging\Tests\Unit\AuthoritativeAudit\Infrastructure\Mysql;
 
-use Closure;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditAdminQueryExecutionException;
@@ -45,14 +44,15 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
     {
         $originalException = new RuntimeException('Mapper exploded');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
+        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
 
-        self::setRowMapperCallable(
+        $reflection->getProperty('rowMapperCallable')->setValue(
             $repository,
             static function () use ($originalException): never {
                 throw $originalException;
             }
         );
-        self::setPaginateExecutionCallable($repository, self::invokeMapper(...));
+        $reflection->getProperty('paginateExecutionCallable')->setValue($repository, self::invokeMapper(...));
 
         try {
             $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
@@ -67,8 +67,9 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
     {
         $originalException = new InvalidPaginationQueryException('Injected configuration error');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
-
-        self::setPaginateExecutionCallable(
+        $property = (new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class))
+            ->getProperty('paginateExecutionCallable');
+        $property->setValue(
             $repository,
             static function () use ($originalException): never {
                 throw $originalException;
@@ -87,8 +88,9 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
     {
         $originalException = new PaginationExecutionException('Injected pagination execution error');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
-
-        self::setPaginateExecutionCallable(
+        $property = (new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class))
+            ->getProperty('paginateExecutionCallable');
+        $property->setValue(
             $repository,
             static function () use ($originalException): never {
                 throw $originalException;
@@ -111,14 +113,15 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
     {
         $originalException = new AuthoritativeAuditStorageException('Original storage exception');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
+        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
 
-        self::setRowMapperCallable(
+        $reflection->getProperty('rowMapperCallable')->setValue(
             $repository,
             static function () use ($originalException): never {
                 throw $originalException;
             }
         );
-        self::setPaginateExecutionCallable($repository, self::invokeMapper(...));
+        $reflection->getProperty('paginateExecutionCallable')->setValue($repository, self::invokeMapper(...));
 
         try {
             $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
@@ -147,23 +150,5 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         ]);
 
         throw new RuntimeException('Injected mapper did not throw.');
-    }
-
-    private static function setPaginateExecutionCallable(
-        AuthoritativeAuditAdminQueryMysqlRepository $repository,
-        Closure $callable
-    ): void {
-        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
-        $property = $reflection->getProperty('paginateExecutionCallable');
-        $property->setValue($repository, $callable);
-    }
-
-    private static function setRowMapperCallable(
-        AuthoritativeAuditAdminQueryMysqlRepository $repository,
-        Closure $callable
-    ): void {
-        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
-        $property = $reflection->getProperty('rowMapperCallable');
-        $property->setValue($repository, $callable);
     }
 }
