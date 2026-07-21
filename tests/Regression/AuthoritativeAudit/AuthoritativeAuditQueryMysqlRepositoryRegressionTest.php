@@ -9,8 +9,8 @@ use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditQueryInterface;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
-use ReflectionClass;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
+use ReflectionClass;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
 use Maatify\EventLogging\Tests\Support\FakePdo;
 use Maatify\EventLogging\Tests\Support\ThrowingPdo;
@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCase
 {
-        public function testProtectedPublicPrimitiveSurface(): void
+    public function testProtectedPublicPrimitiveSurface(): void
     {
         $interfaceReflector = new ReflectionClass(AuthoritativeAuditQueryInterface::class);
         $findMethod = $interfaceReflector->getMethod('find');
@@ -485,6 +485,10 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertNull($results[5]->changes);
         $this->assertNull($results[6]->changes);
         $this->assertNull($results[7]->changes);
+        $this->assertSame(8, $results[8]->id);
+        $this->assertNull($results[8]->changes);
+        $this->assertSame(9, $results[9]->id);
+        $this->assertNull($results[9]->changes);
     }
 
     public function testExceptionsRemainStableForPdoFailure(): void
