@@ -23,26 +23,55 @@ final class AuthoritativeAuditAdminQueryInvalidArgumentExceptionTest extends Tes
         $this->assertInstanceOf(EventLoggingExceptionInterface::class, $exception);
     }
 
-    public function testInvalidIdMessage(): void
+    /**
+     * @dataProvider fieldProvider
+     */
+    public function testInvalidIdMessage(string $field): void
     {
-        $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidId('actorId');
+        $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidId($field);
 
-        $this->assertSame('Invalid AuthoritativeAudit Admin Query ID: actorId', $exception->getMessage());
+        $this->assertSame("Invalid AuthoritativeAudit Admin Query ID: {$field}", $exception->getMessage());
         $this->assertSame(ErrorCodeEnum::INVALID_ARGUMENT, $exception->getErrorCode());
     }
 
-    public function testInvalidLengthMessage(): void
+    /**
+     * @dataProvider fieldProvider
+     */
+    public function testInvalidLengthMessage(string $field): void
     {
-        $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength('action');
+        $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidLength($field);
 
-        $this->assertSame('Invalid AuthoritativeAudit Admin Query length: action', $exception->getMessage());
+        $this->assertSame("Invalid AuthoritativeAudit Admin Query length: {$field}", $exception->getMessage());
+        $this->assertSame(ErrorCodeEnum::INVALID_ARGUMENT, $exception->getErrorCode());
     }
 
-    public function testInvalidEncodingMessage(): void
+    /**
+     * @dataProvider fieldProvider
+     */
+    public function testInvalidEncodingMessage(string $field): void
     {
-        $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding('targetType');
+        $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidEncoding($field);
 
-        $this->assertSame('Invalid AuthoritativeAudit Admin Query UTF-8 encoding: targetType', $exception->getMessage());
+        $this->assertSame("Invalid AuthoritativeAudit Admin Query UTF-8 encoding: {$field}", $exception->getMessage());
+        $this->assertSame(ErrorCodeEnum::INVALID_ARGUMENT, $exception->getErrorCode());
+    }
+
+    /**
+     * @return array<int, array{string}>
+     */
+    public static function fieldProvider(): array
+    {
+        return [
+            ['actorId'],
+            ['targetId'],
+            ['eventId'],
+            ['actorType'],
+            ['targetType'],
+            ['action'],
+            ['correlationId'],
+            ['sortBy'],
+            ['sortDirection'],
+        ];
     }
 
     public function testInvalidDateRangeMessage(): void
@@ -50,5 +79,6 @@ final class AuthoritativeAuditAdminQueryInvalidArgumentExceptionTest extends Tes
         $exception = AuthoritativeAuditAdminQueryInvalidArgumentException::invalidDateRange();
 
         $this->assertSame('Invalid AuthoritativeAudit Admin Query date range: after must be before or equal to before', $exception->getMessage());
+        $this->assertSame(ErrorCodeEnum::INVALID_ARGUMENT, $exception->getErrorCode());
     }
 }

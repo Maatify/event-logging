@@ -31,7 +31,22 @@ final class AuthoritativeAuditAdminPageResultDTOTest extends TestCase
             occurredAt: new DateTimeImmutable('2023-01-01T12:00:00Z')
         );
 
-        $items = [$item1];
+        $item2 = new AuthoritativeAuditViewDTO(
+            id: 11,
+            eventId: 'event-11',
+            actorType: 'system',
+            actorId: 1,
+            action: 'delete',
+            targetType: 'file',
+            targetId: 100,
+            ipAddress: '192.168.1.1',
+            userAgent: 'system-agent',
+            correlationId: 'req-2',
+            changes: null,
+            occurredAt: new DateTimeImmutable('2023-01-01T13:00:00Z')
+        );
+
+        $items = [$item1, $item2];
 
         $dto = new AuthoritativeAuditAdminPageResultDTO(
             items: $items,
@@ -60,6 +75,7 @@ final class AuthoritativeAuditAdminPageResultDTOTest extends TestCase
         $iteratorItems = iterator_to_array($dto);
         $this->assertSame($items, $iteratorItems);
         $this->assertSame($item1, $iteratorItems[0]);
+        $this->assertSame($item2, $iteratorItems[1]);
 
         $serialized = $dto->jsonSerialize();
         $expectedKeys = [
