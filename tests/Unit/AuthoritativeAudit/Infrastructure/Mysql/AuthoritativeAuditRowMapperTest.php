@@ -99,6 +99,9 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
         $this->assertNull($dto->changes);
     }
 
+    /**
+     * @return array<int, array{mixed}>
+     */
     public static function invalidChangesProvider(): array
     {
         return [

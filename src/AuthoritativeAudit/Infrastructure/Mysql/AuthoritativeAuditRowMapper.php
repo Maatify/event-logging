@@ -44,6 +44,7 @@ final class AuthoritativeAuditRowMapper
                         $isAssociative = true;
                     }
                     if ($isAssociative || empty($decoded)) {
+                        /** @var array<string, mixed> $decoded */
                         $changes = $decoded;
                     }
                 }
