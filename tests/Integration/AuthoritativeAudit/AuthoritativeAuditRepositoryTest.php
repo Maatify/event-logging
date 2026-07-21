@@ -29,12 +29,11 @@ final class AuthoritativeAuditRepositoryTest extends StrictAuthoritativeAuditMys
     {
         parent::setUp();
 
-        $pdo = $this->requirePdo();
-        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        self::assertFalse((bool) $pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
+        $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        self::assertFalse((bool) $this->pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
 
-        $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($pdo);
-        $this->query = new AuthoritativeAuditQueryMysqlRepository($pdo);
+        $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($this->pdo);
+        $this->query = new AuthoritativeAuditQueryMysqlRepository($this->pdo);
     }
 
     protected function getDomainSchemaFile(): string
@@ -183,29 +182,19 @@ final class AuthoritativeAuditRepositoryTest extends StrictAuthoritativeAuditMys
 
     public function testPrimitiveReadPreservesCallerOwnedTransaction(): void
     {
-        $pdo = $this->requirePdo();
-        self::assertFalse($pdo->inTransaction());
+        self::assertFalse($this->pdo->inTransaction());
 
-        $pdo->beginTransaction();
+        $this->pdo->beginTransaction();
         $this->query->find(new AuthoritativeAuditQueryDTO(limit: 1));
-        self::assertTrue($pdo->inTransaction());
+        self::assertTrue($this->pdo->inTransaction());
 
-        $pdo->rollBack();
-        self::assertFalse($pdo->inTransaction());
-    }
-
-    private function requirePdo(): PDO
-    {
-        if (!$this->pdo instanceof PDO) {
-            self::fail('Strict AuthoritativeAudit integration requires a real MySQL PDO connection.');
-        }
-
-        return $this->pdo;
+        $this->pdo->rollBack();
+        self::assertFalse($this->pdo->inTransaction());
     }
 
     private function prepareStatement(string $sql): PDOStatement
     {
-        $statement = $this->requirePdo()->prepare($sql);
+        $statement = $this->pdo->prepare($sql);
         if (!$statement instanceof PDOStatement) {
             self::fail('Failed to prepare AuthoritativeAudit integration SQL.');
         }
