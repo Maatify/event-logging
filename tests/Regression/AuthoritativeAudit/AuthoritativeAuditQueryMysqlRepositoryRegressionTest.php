@@ -25,7 +25,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCase
 {
-        public function testProtectedPublicPrimitiveSurface(): void
+    public function testProtectedPublicPrimitiveSurface(): void
     {
         $interfaceReflector = new ReflectionClass(AuthoritativeAuditQueryInterface::class);
         $findMethod = $interfaceReflector->getMethod('find');
@@ -254,7 +254,7 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame('2023-01-01 12:00:00.123456', $params['cursor_at_equal']);
         $this->assertSame(42, $params['cursor_id']);
 
-                // Zero limit clamped
+        // Zero limit clamped
         $pdo->lastStatement = null;
         $queryClamp = new AuthoritativeAuditQueryDTO(limit: 0);
         $repository->find($queryClamp);
