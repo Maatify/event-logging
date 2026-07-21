@@ -86,11 +86,10 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
         ]);
     }
 
-        public function testNativePreparedStatementsAreStrictlyActive(): void
+    public function testNativePreparedStatementsAreStrictlyActive(): void
     {
-        $this->assertSame(
-            0,
-            $this->pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES),
+        $this->assertFalse(
+            (bool) $this->pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES),
             'Native prepared statements must strictly be active for Admin Queries.'
         );
     }
