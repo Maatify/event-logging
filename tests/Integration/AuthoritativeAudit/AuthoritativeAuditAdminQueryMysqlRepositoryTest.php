@@ -236,6 +236,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertNull($item->targetId);
         $this->assertNull($item->correlationId);
         $this->assertNull($item->changes);
+        $this->assertNull($item->ipAddress);
+        $this->assertNull($item->userAgent);
         $this->assertSame('System', $item->actorType);
         $this->assertSame('Tgt', $item->targetType);
         $this->assertSame('act', $item->action);
@@ -245,36 +247,30 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testPaginateHydrationFallbacks(): void
     {
-        $this->insertLog('evt-1', changes: '{"key": "value"}', occurredAt: '2025-01-01 10:00:01.000000');
+        $this->pdo->exec('ALTER TABLE maa_event_logging_authoritative_audit_log MODIFY COLUMN changes LONGTEXT NULL');
 
-        $insertedCount = 1;
-        try {
-            $this->pdo->exec('ALTER TABLE maa_event_logging_authoritative_audit_log DROP CONSTRAINT IF EXISTS `changes`');
-            $this->insertLog('evt-2', changes: '', occurredAt: '2025-01-01 10:00:02.000000');
-            $insertedCount++;
-            $this->insertLog('evt-3', changes: null, occurredAt: '2025-01-01 10:00:03.000000');
-            $insertedCount++;
-            $this->insertLog('evt-4', changes: 'invalid-json', occurredAt: '2025-01-01 10:00:04.000000');
-            $insertedCount++;
-        } catch (\PDOException $e) {
-            $this->pdo->exec('DELETE FROM maa_event_logging_authoritative_audit_log WHERE event_id != "evt-1"');
-            $this->insertLog('evt-3', changes: null, occurredAt: '2025-01-01 10:00:03.000000');
-            $insertedCount = 2;
-        }
+        $stmt = $this->pdo->prepare("
+            INSERT INTO maa_event_logging_authoritative_audit_log
+            (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute(['evt-1', 'system', 1, 'act', 'tgt', 1, '{"key": "value"}', 'c', '2025-01-01 10:00:01.123456']);
+        $stmt->execute(['evt-2', 'system', 1, 'act', 'tgt', 1, '', 'c', '2025-01-01 10:00:02.000000']);
+        $stmt->execute(['evt-3', 'system', 1, 'act', 'tgt', 1, null, 'c', '2025-01-01 10:00:03.000000']);
+        $stmt->execute(['evt-4', 'system', 1, 'act', 'tgt', 1, 'invalid-json', 'c', '2025-01-01 10:00:04.000000']);
 
         $request = new AuthoritativeAuditAdminQueryRequestDTO(sortBy: 'occurred_at', sortDirection: 'ASC');
         $result = $this->repository->paginate($request);
 
-        $this->assertCount($insertedCount, $result->items);
+        $this->assertCount(4, $result->items);
         $this->assertSame(['key' => 'value'], $result->items[0]->changes);
+        $this->assertNull($result->items[1]->changes);
+        $this->assertNull($result->items[2]->changes);
+        $this->assertNull($result->items[3]->changes);
 
-        if ($insertedCount === 4) {
-            $this->assertNull($result->items[1]->changes);
-            $this->assertNull($result->items[2]->changes);
-            $this->assertNull($result->items[3]->changes);
-        } else {
-            $this->assertNull($result->items[1]->changes);
-        }
+        $this->assertSame('2025-01-01 10:00:01.123456', $result->items[0]->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $result->items[0]->occurredAt->getTimezone()->getName());
     }
 
     public function testCallerOwnedTransactionRemainsActiveAfterRead(): void
