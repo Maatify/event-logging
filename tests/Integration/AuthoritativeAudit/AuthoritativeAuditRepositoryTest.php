@@ -109,43 +109,25 @@ final class AuthoritativeAuditRepositoryTest extends TestCase
     {
         $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
 
-        // MySQL 5.7+ / MariaDB enforce JSON constraint on JSON columns.
-        // To test corrupt JSON handling *at the repository read layer*, we need to disable the check temporarily
-        // or bypass it. MariaDB uses CHECK(json_valid(`changes`)). We can temporarily drop this check constraint
-        // just for this test to prove the PHP code handles corrupt JSON.
+        // Change column type to permit invalid text insertion on real MySQL
+        $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log MODIFY COLUMN changes LONGTEXT NULL");
 
+        $stmt = $this->pdo->prepare("
+            INSERT INTO maa_event_logging_authoritative_audit_log
+            (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'invalid-json', ?, ?)
+        ");
 
-        $serverVersionAttr = $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-        $serverVersion = is_scalar($serverVersionAttr) ? (string) $serverVersionAttr : '';
-        $isMariaDb = str_contains($serverVersion, 'MariaDB');
-
-        if ($isMariaDb) {
-            $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log DROP CONSTRAINT IF EXISTS `changes`");
-        }
-
-        try {
-            // Insert corrupt JSON directly into log table
-            $stmt = $this->pdo->prepare("
-                INSERT INTO maa_event_logging_authoritative_audit_log
-                (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'invalid-json', ?, ?)
-            ");
-
-            $stmt->execute([
-                'event-corrupt',
-                'system',
-                1,
-                'test_action',
-                'target',
-                2,
-                'corr-1',
-                $now->format('Y-m-d H:i:s.u')
-            ]);
-        } catch (\PDOException $e) {
-            // If we still can't insert invalid JSON, the DB is strictly enforcing it (e.g. MySQL 8).
-            // This means corrupt JSON is practically impossible at the DB level, but we can skip if we can't test it.
-            $this->markTestSkipped("Database enforces strict JSON validity: " . $e->getMessage());
-        }
+        $stmt->execute([
+            'event-corrupt',
+            'system',
+            1,
+            'test_action',
+            'target',
+            2,
+            'corr-1',
+            $now->format('Y-m-d H:i:s.u')
+        ]);
 
         $queryDto = new AuthoritativeAuditQueryDTO(
             action: 'test_action'
@@ -156,7 +138,6 @@ final class AuthoritativeAuditRepositoryTest extends TestCase
 
         $viewDto = $results[0];
         $this->assertSame('event-corrupt', $viewDto->eventId);
-        // Assert corrupt JSON is safely ignored (mapped to null or empty depending on implementation, here usually null)
         $this->assertNull($viewDto->changes);
     }
 
