@@ -15,9 +15,12 @@ use PDOException;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use RuntimeException;
+use Throwable;
 
 final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends TestCase
 {
+    private ?Throwable $mapperException = null;
+
     public function testPdoExceptionIsWrappedInStorageException(): void
     {
         $originalException = new PDOException('DB Error');
@@ -80,12 +83,10 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         $originalException = new RuntimeException('Mapper exploded');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
         $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
+        $this->mapperException = $originalException;
         $reflection->getProperty('rowMapperCallable')->setValue(
             $repository,
-            static function (array $row) use ($originalException): never {
-                unset($row);
-                throw $originalException;
-            },
+            $this->throwMapperException(...),
         );
 
         try {
@@ -105,12 +106,10 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         $originalException = new AuthoritativeAuditStorageException('Original storage exception');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
         $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
+        $this->mapperException = $originalException;
         $reflection->getProperty('rowMapperCallable')->setValue(
             $repository,
-            static function (array $row) use ($originalException): never {
-                unset($row);
-                throw $originalException;
-            },
+            $this->throwMapperException(...),
         );
 
         try {
@@ -122,5 +121,18 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         } catch (AuthoritativeAuditStorageException $exception) {
             self::assertSame($originalException, $exception);
         }
+    }
+
+    /** @param array<string, mixed> $row */
+    private function throwMapperException(array $row): never
+    {
+        unset($row);
+
+        $exception = $this->mapperException;
+        if (!$exception instanceof Throwable) {
+            self::fail('Mapper exception test seam was not initialized.');
+        }
+
+        throw $exception;
     }
 }
