@@ -16,7 +16,6 @@ use Maatify\Persistence\Exception\InvalidPaginationConfigurationException;
 use Maatify\Persistence\Exception\InvalidPaginationQueryException;
 use Maatify\Persistence\Exception\PaginationExecutionException;
 use Maatify\Persistence\Pdo\Pagination\PageRequest;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
 use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
 use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
 use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
@@ -35,16 +34,8 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
     /** @var Closure(array<string, mixed>): AuthoritativeAuditViewDTO */
     private Closure $rowMapperCallable;
 
-    /**
-     * @var Closure(
-     *     PDO,
-     *     PdoPaginationQueryDescriptor,
-     *     PageRequest,
-     *     PaginationConfig,
-     *     callable(array<string, mixed>): AuthoritativeAuditViewDTO
-     * ): PageResult<AuthoritativeAuditViewDTO>
-     */
-    private Closure $paginateExecutionCallable;
+    /** @var Closure(AuthoritativeAuditAdminQueryRequestDTO): PdoPaginationQueryDescriptor */
+    private Closure $descriptorBuilderCallable;
 
     public function __construct(private PDO $pdo)
     {
@@ -52,7 +43,7 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
         $this->descriptorBuilder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
         $this->paginator = new PdoPaginator();
         $this->rowMapperCallable = $this->mapper->map(...);
-        $this->paginateExecutionCallable = $this->executePagination(...);
+        $this->descriptorBuilderCallable = $this->descriptorBuilder->build(...);
     }
 
     public function paginate(AuthoritativeAuditAdminQueryRequestDTO $request): AuthoritativeAuditAdminPageResultDTO
@@ -61,50 +52,39 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
             page: $request->page,
             perPage: $request->perPage,
             sortBy: $request->sortBy,
-            sortDirection: $request->sortDirection
+            sortDirection: $request->sortDirection,
         );
 
         try {
-            $callable = $this->paginateExecutionCallable;
-            $result = $callable(
+            $descriptorBuilder = $this->descriptorBuilderCallable;
+            $result = $this->paginator->paginate(
                 $this->pdo,
-                $this->descriptorBuilder->build($request),
+                $descriptorBuilder($request),
                 $pageRequest,
                 $this->createPaginationConfig(),
-                $this->mapRow(...)
+                fn (array $row): AuthoritativeAuditViewDTO => $this->mapRow($row),
             );
-
-            return new AuthoritativeAuditAdminPageResultDTO(
-                items: $result->data,
-                page: $result->page,
-                perPage: $result->perPage,
-                total: $result->total,
-                filtered: $result->filtered,
-                totalPages: $result->totalPages,
-                hasNext: $result->hasNext,
-                hasPrevious: $result->hasPrevious,
-                sortBy: $result->sortBy,
-                sortDirection: $result->sortDirection->value
+        } catch (PaginationExecutionException | PDOException $exception) {
+            throw new AuthoritativeAuditStorageException(
+                message: 'Failed to query AuthoritativeAudit records: ' . $exception->getMessage(),
+                previous: $exception,
             );
         } catch (InvalidPaginationConfigurationException | InvalidPaginationQueryException $exception) {
             throw AuthoritativeAuditAdminQueryExecutionException::executionFailed($exception);
-        } catch (PaginationExecutionException | PDOException $exception) {
-            throw new AuthoritativeAuditStorageException('Failed to query AuthoritativeAudit records: ' . $exception->getMessage(), 0, $exception);
         }
-    }
 
-    /**
-     * @param callable(array<string, mixed>): AuthoritativeAuditViewDTO $mapper
-     * @return PageResult<AuthoritativeAuditViewDTO>
-     */
-    private function executePagination(
-        PDO $pdo,
-        PdoPaginationQueryDescriptor $query,
-        PageRequest $pageRequest,
-        PaginationConfig $config,
-        callable $mapper
-    ): PageResult {
-        return $this->paginator->paginate($pdo, $query, $pageRequest, $config, $mapper);
+        return new AuthoritativeAuditAdminPageResultDTO(
+            items: $result->data,
+            page: $result->page,
+            perPage: $result->perPage,
+            total: $result->total,
+            filtered: $result->filtered,
+            totalPages: $result->totalPages,
+            hasNext: $result->hasNext,
+            hasPrevious: $result->hasPrevious,
+            sortBy: $result->sortBy,
+            sortDirection: $result->sortDirection->value,
+        );
     }
 
     private function createPaginationConfig(): PaginationConfig
@@ -136,7 +116,10 @@ final class AuthoritativeAuditAdminQueryMysqlRepository implements Authoritative
         } catch (AuthoritativeAuditStorageException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
-            throw new AuthoritativeAuditStorageException('Failed to map AuthoritativeAudit row: ' . $exception->getMessage(), 0, $exception);
+            throw new AuthoritativeAuditStorageException(
+                message: 'Failed to map AuthoritativeAudit row: ' . $exception->getMessage(),
+                previous: $exception,
+            );
         }
     }
 }
