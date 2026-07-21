@@ -7,6 +7,9 @@ namespace Maatify\EventLogging\Tests\Regression\AuthoritativeAudit;
 use DateTimeImmutable;
 use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
+use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditQueryInterface;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
+use ReflectionClass;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
 use Maatify\EventLogging\Tests\Support\FakePdo;
@@ -21,8 +24,32 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCase
 {
-    public function testProtectedPublicPrimitiveSurface(): void
+        public function testProtectedPublicPrimitiveSurface(): void
     {
+        $interfaceReflector = new ReflectionClass(AuthoritativeAuditQueryInterface::class);
+        $findMethod = $interfaceReflector->getMethod('find');
+        /** @var \ReflectionNamedType $paramType */
+        $paramType = $findMethod->getParameters()[0]->getType();
+        $this->assertSame(AuthoritativeAuditQueryDTO::class, $paramType->getName());
+        /** @var \ReflectionNamedType $returnType */
+        $returnType = $findMethod->getReturnType();
+        $this->assertSame('array', $returnType->getName());
+        $this->assertStringContainsString('@return array<AuthoritativeAuditViewDTO>', (string) $findMethod->getDocComment());
+        $this->assertStringContainsString('@throws AuthoritativeAuditStorageException', (string) $findMethod->getDocComment());
+
+        $repositoryReflector = new ReflectionClass(AuthoritativeAuditQueryMysqlRepository::class);
+        $constructor = $repositoryReflector->getMethod('__construct');
+        $this->assertSame(1, $constructor->getNumberOfParameters());
+        $pdoParam = $constructor->getParameters()[0];
+        $this->assertSame('pdo', $pdoParam->getName());
+        /** @var \ReflectionNamedType $pdoParamType */
+        $pdoParamType = $pdoParam->getType();
+        $this->assertSame(PDO::class, $pdoParamType->getName());
+
+        $pdoProp = $repositoryReflector->getProperty('pdo');
+        $this->assertTrue($pdoProp->isPrivate());
+        $this->assertTrue($pdoProp->isReadOnly());
+
         $pdo = new FakePdo();
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
 
@@ -32,6 +59,25 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame(50, $query->limit);
 
         $repository->find($query);
+
+        $dtoReflector = new ReflectionClass(AuthoritativeAuditQueryDTO::class);
+        $dtoConstructor = $dtoReflector->getMethod('__construct');
+        $expectedParams = [
+            'after',
+            'before',
+            'actorType',
+            'actorId',
+            'targetType',
+            'targetId',
+            'action',
+            'correlationId',
+            'cursorOccurredAt',
+            'cursorId',
+            'limit'
+        ];
+
+        $actualParams = array_map(fn($p) => $p->getName(), $dtoConstructor->getParameters());
+        $this->assertSame($expectedParams, $actualParams);
 
         $expectedSerialized = [
             'after' => null,
@@ -48,6 +94,88 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         ];
 
         $this->assertSame($expectedSerialized, $query->jsonSerialize());
+
+        $date = new DateTimeImmutable('2023-01-01T10:00:00.123456Z');
+        $queryFull = new AuthoritativeAuditQueryDTO(
+            actorType: 'sys',
+            actorId: 42,
+            targetType: 'file',
+            targetId: 100,
+            action: 'update',
+            correlationId: 'corr-1',
+            after: $date,
+            before: $date,
+            cursorOccurredAt: $date,
+            cursorId: 99,
+            limit: 10
+        );
+
+        $expectedFullSerialized = [
+            'after' => '2023-01-01T10:00:00+00:00',
+            'before' => '2023-01-01T10:00:00+00:00',
+            'actorType' => 'sys',
+            'actorId' => 42,
+            'targetType' => 'file',
+            'targetId' => 100,
+            'action' => 'update',
+            'correlationId' => 'corr-1',
+            'cursorOccurredAt' => '2023-01-01T10:00:00+00:00',
+            'cursorId' => 99,
+            'limit' => 10,
+        ];
+
+        $this->assertSame($expectedFullSerialized, $queryFull->jsonSerialize());
+
+        $viewDtoReflector = new ReflectionClass(AuthoritativeAuditViewDTO::class);
+        $viewConstructor = $viewDtoReflector->getMethod('__construct');
+        $expectedViewParams = [
+            'id',
+            'eventId',
+            'actorType',
+            'actorId',
+            'action',
+            'targetType',
+            'targetId',
+            'ipAddress',
+            'userAgent',
+            'correlationId',
+            'changes',
+            'occurredAt'
+        ];
+
+        $actualViewParams = array_map(fn($p) => $p->getName(), $viewConstructor->getParameters());
+        $this->assertSame($expectedViewParams, $actualViewParams);
+
+        $viewDto = new AuthoritativeAuditViewDTO(
+            id: 1,
+            eventId: 'uuid',
+            actorType: 'sys',
+            actorId: 42,
+            action: 'update',
+            targetType: 'file',
+            targetId: 100,
+            ipAddress: '127.0.0.1',
+            userAgent: 'agent',
+            correlationId: 'corr-1',
+            changes: ['foo' => 'bar'],
+            occurredAt: $date
+        );
+
+        $expectedViewSerialized = [
+            'id' => 1,
+            'eventId' => 'uuid',
+            'actorType' => 'sys',
+            'actorId' => 42,
+            'action' => 'update',
+            'targetType' => 'file',
+            'targetId' => 100,
+            'ipAddress' => '127.0.0.1',
+            'userAgent' => 'agent',
+            'correlationId' => 'corr-1',
+            'changes' => ['foo' => 'bar'],
+            'occurredAt' => '2023-01-01T10:00:00+00:00',
+        ];
+        $this->assertSame($expectedViewSerialized, $viewDto->jsonSerialize());
     }
 
     public function testCursorCorrectionWithoutBehaviorDrift(): void
@@ -84,9 +212,9 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame('2023-01-01 12:00:00.123456', $params['cursor_at_equal']);
         $this->assertSame(42, $params['cursor_id']);
 
-        // Zero/negative limit clamped
+                // Zero limit clamped
         $pdo->lastStatement = null;
-        $queryClamp = new AuthoritativeAuditQueryDTO(limit: -5);
+        $queryClamp = new AuthoritativeAuditQueryDTO(limit: 0);
         $repository->find($queryClamp);
 
         /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtClampRaw */
@@ -96,26 +224,102 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $stmtClamp = $stmtClampRaw;
         $this->assertStringContainsString('LIMIT 1', $stmtClamp->queryString);
 
-        // Missing component means no cursor predicate
+        // Negative limit clamped
         $pdo->lastStatement = null;
-        $queryMissing = new AuthoritativeAuditQueryDTO(cursorOccurredAt: $cursorTime);
-        $repository->find($queryMissing);
+        $queryClampNegative = new AuthoritativeAuditQueryDTO(limit: -5);
+        $repository->find($queryClampNegative);
 
-        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtMissingRaw */
-        $stmtMissingRaw = $pdo->lastStatement;
-        $this->assertNotNull($stmtMissingRaw);
-        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtMissing */
-        $stmtMissing = $stmtMissingRaw;
-        $this->assertStringNotContainsString('cursor_at_before', $stmtMissing->queryString);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtClampNegativeRaw */
+        $stmtClampNegativeRaw = $pdo->lastStatement;
+        $this->assertNotNull($stmtClampNegativeRaw);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtClampNegative */
+        $stmtClampNegative = $stmtClampNegativeRaw;
+        $this->assertStringContainsString('LIMIT 1', $stmtClampNegative->queryString);
+
+        // Missing component means no cursor predicate - ID only
+        $pdo->lastStatement = null;
+        $queryMissingDate = new AuthoritativeAuditQueryDTO(cursorId: 42);
+        $repository->find($queryMissingDate);
+
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtMissingDateRaw */
+        $stmtMissingDateRaw = $pdo->lastStatement;
+        $this->assertNotNull($stmtMissingDateRaw);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtMissingDate */
+        $stmtMissingDate = $stmtMissingDateRaw;
+        $this->assertStringNotContainsString('cursor_at_before', $stmtMissingDate->queryString);
+
+        // Missing component means no cursor predicate - Date only
+        $pdo->lastStatement = null;
+        $queryMissingId = new AuthoritativeAuditQueryDTO(cursorOccurredAt: $cursorTime);
+        $repository->find($queryMissingId);
+
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtMissingIdRaw */
+        $stmtMissingIdRaw = $pdo->lastStatement;
+        $this->assertNotNull($stmtMissingIdRaw);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtMissingId */
+        $stmtMissingId = $stmtMissingIdRaw;
+        $this->assertStringNotContainsString('cursor_at_before', $stmtMissingId->queryString);
     }
 
-    public function testPrimitiveFiltersRemainStable(): void
+        public function testPrimitiveFiltersRemainStable(): void
     {
         $pdo = new FakePdo();
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
 
         $after = new DateTimeImmutable('2023-01-01T10:00:00Z');
         $before = new DateTimeImmutable('2023-01-02T10:00:00Z');
+
+        $filters = [
+            ['actorType', 'sys', 'actor_type = :actor_type', ['actor_type' => 'sys']],
+            ['actorId', 1, 'actor_id = :actor_id', ['actor_id' => 1]],
+            ['targetType', 'file', 'target_type = :target_type', ['target_type' => 'file']],
+            ['targetId', 2, 'target_id = :target_id', ['target_id' => 2]],
+            ['action', 'delete', 'action = :action', ['action' => 'delete']],
+            ['correlationId', 'corr-1', 'correlation_id = :correlation_id', ['correlation_id' => 'corr-1']],
+        ];
+
+        foreach ($filters as [$field, $value, $expectedCondition, $expectedParams]) {
+            $pdo->lastStatement = null;
+            $query = new AuthoritativeAuditQueryDTO(
+                actorType: $field === 'actorType' ? $value : null,
+                actorId: $field === 'actorId' ? $value : null,
+                targetType: $field === 'targetType' ? $value : null,
+                targetId: $field === 'targetId' ? $value : null,
+                action: $field === 'action' ? $value : null,
+                correlationId: $field === 'correlationId' ? $value : null
+            );
+            $repository->find($query);
+
+            /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtRaw */
+            $stmtRaw = $pdo->lastStatement;
+            $this->assertNotNull($stmtRaw);
+            /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmt */
+            $stmt = $stmtRaw;
+
+            $this->assertStringContainsString('WHERE ' . $expectedCondition . ' ORDER BY', $stmt->queryString);
+            $this->assertSame($expectedParams, $stmt->executedParams);
+        }
+
+        // Date filters
+        $pdo->lastStatement = null;
+        $repository->find(new AuthoritativeAuditQueryDTO(after: $after));
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtAfterRaw */
+        $stmtAfterRaw = $pdo->lastStatement;
+        $this->assertNotNull($stmtAfterRaw);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtAfter */
+        $stmtAfter = $stmtAfterRaw;
+        $this->assertStringContainsString('WHERE occurred_at >= :after ORDER BY', $stmtAfter->queryString);
+        $this->assertSame(['after' => '2023-01-01 10:00:00.000000'], $stmtAfter->executedParams);
+
+        $pdo->lastStatement = null;
+        $repository->find(new AuthoritativeAuditQueryDTO(before: $before));
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtBeforeRaw */
+        $stmtBeforeRaw = $pdo->lastStatement;
+        $this->assertNotNull($stmtBeforeRaw);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtBefore */
+        $stmtBefore = $stmtBeforeRaw;
+        $this->assertStringContainsString('WHERE occurred_at <= :before ORDER BY', $stmtBefore->queryString);
+        $this->assertSame(['before' => '2023-01-02 10:00:00.000000'], $stmtBefore->executedParams);
 
         $query = new AuthoritativeAuditQueryDTO(
             actorType: 'sys',
@@ -130,14 +334,14 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
 
         $repository->find($query);
 
-        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtRaw */
-        $stmtRaw = $pdo->lastStatement;
-        $this->assertNotNull($stmtRaw);
-        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmt */
-        $stmt = $stmtRaw;
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement|null $stmtRawAll */
+        $stmtRawAll = $pdo->lastStatement;
+        $this->assertNotNull($stmtRawAll);
+        /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmtAll */
+        $stmtAll = $stmtRawAll;
 
-        $sql = $stmt->queryString;
-        $params = $stmt->executedParams;
+        $sql = $stmtAll->queryString;
+        $params = $stmtAll->executedParams;
 
         $expectedWhere = 'WHERE actor_type = :actor_type AND actor_id = :actor_id AND target_type = :target_type AND target_id = :target_id AND action = :action AND correlation_id = :correlation_id AND occurred_at >= :after AND occurred_at <= :before';
 
@@ -164,10 +368,10 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertStringContainsString('WHERE actor_id = :actor_id AND target_id = :target_id', $stmtIndependent->queryString);
     }
 
-    public function testHydrationRemainsStable(): void
+        public function testHydrationRemainsStable(): void
     {
         $pdo = new class extends FakePdo {
-            /** @var array<int, array<string, mixed>> */
+            /** @var array<int, mixed> */
             public array $results = [];
             public function prepare(string $query, array $options = []): \PDOStatement {
                 /** @var \Maatify\EventLogging\Tests\Support\FakeStatement $stmt */
@@ -191,6 +395,8 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
                 'changes' => '{"foo": "bar"}', // valid associative JSON
                 'occurred_at' => '2023-01-01 10:00:00.123456',
             ],
+            false, // Non-array row is skipped
+            'not-an-array', // Non-array row is skipped
             [
                 'id' => 'not-numeric',
                 'event_id' => 123, // wrong type
@@ -220,13 +426,21 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             [
                 'id' => '5',
                 'changes' => '[1, 2, 3]', // numeric key
+            ],
+            [
+                'id' => '6',
+                'changes' => '{"0": "a", "foo": "bar"}', // mixed key
+            ],
+            [
+                'id' => '7',
+                'changes' => 123, // not string
             ]
         ];
 
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
         $results = $repository->find(new AuthoritativeAuditQueryDTO());
 
-        $this->assertCount(6, $results);
+        $this->assertCount(8, $results); // 10 rows returned, 2 skipped
 
         $validDto = $results[0];
         $this->assertSame(123, $validDto->id);
@@ -236,6 +450,9 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame('update', $validDto->action);
         $this->assertSame('file', $validDto->targetType);
         $this->assertSame(100, $validDto->targetId);
+        $this->assertSame('127.0.0.1', $validDto->ipAddress);
+        $this->assertSame('test-agent', $validDto->userAgent);
+        $this->assertSame('corr-1', $validDto->correlationId);
         $this->assertSame(['foo' => 'bar'], $validDto->changes);
         $this->assertSame('2023-01-01 10:00:00.123456', $validDto->occurredAt->format('Y-m-d H:i:s.u'));
         $this->assertSame('UTC', $validDto->occurredAt->getTimezone()->getName());
@@ -244,14 +461,23 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame(0, $fallbackDto->id);
         $this->assertSame('', $fallbackDto->eventId);
         $this->assertNull($fallbackDto->actorType);
+        $this->assertNull($fallbackDto->actorId);
         $this->assertSame('', $fallbackDto->action);
+        $this->assertNull($fallbackDto->targetType);
+        $this->assertNull($fallbackDto->targetId);
+        $this->assertNull($fallbackDto->ipAddress);
+        $this->assertNull($fallbackDto->userAgent);
+        $this->assertNull($fallbackDto->correlationId);
         $this->assertNull($fallbackDto->changes);
         $this->assertSame('1970-01-01 00:00:00.000000', $fallbackDto->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $fallbackDto->occurredAt->getTimezone()->getName());
 
         $this->assertSame([], $results[2]->changes);
         $this->assertNull($results[3]->changes);
         $this->assertNull($results[4]->changes);
         $this->assertNull($results[5]->changes);
+        $this->assertNull($results[6]->changes);
+        $this->assertNull($results[7]->changes);
     }
 
     public function testExceptionsRemainStableForPdoFailure(): void
