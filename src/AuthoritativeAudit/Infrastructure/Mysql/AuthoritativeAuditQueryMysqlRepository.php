@@ -60,8 +60,10 @@ final class AuthoritativeAuditQueryMysqlRepository implements AuthoritativeAudit
         if ($query->after !== null) { $conditions[] = 'occurred_at >= :after'; $params['after'] = $query->after->format('Y-m-d H:i:s.u'); }
         if ($query->before !== null) { $conditions[] = 'occurred_at <= :before'; $params['before'] = $query->before->format('Y-m-d H:i:s.u'); }
         if ($query->cursorOccurredAt !== null && $query->cursorId !== null) {
-            $conditions[] = '(occurred_at < :cursor_at OR (occurred_at = :cursor_at AND id < :cursor_id))';
-            $params['cursor_at'] = $query->cursorOccurredAt->format('Y-m-d H:i:s.u');
+            $conditions[] = '(occurred_at < :cursor_at_before OR (occurred_at = :cursor_at_equal AND id < :cursor_id))';
+            $formattedCursorDate = $query->cursorOccurredAt->format('Y-m-d H:i:s.u');
+            $params['cursor_at_before'] = $formattedCursorDate;
+            $params['cursor_at_equal'] = $formattedCursorDate;
             $params['cursor_id'] = $query->cursorId;
         }
 
