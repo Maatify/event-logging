@@ -137,45 +137,94 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testDateBoundariesAndPageNormalization(): void
     {
-        $this->insertLog('evt-old', occurredAt: '2025-01-01 14:59:59.999999');
-        $this->insertLog('evt-exact-start', occurredAt: '2025-01-01 15:00:00.000000');
-        $this->insertLog('evt-exact-end', occurredAt: '2025-01-01 16:00:00.000000');
-        $this->insertLog('evt-future', occurredAt: '2025-01-01 16:00:00.000001');
+        $this->insertLog('evt-old', occurredAt: '2025-01-01 14:59:59.999998');
+        $this->insertLog('evt-exact-start', occurredAt: '2025-01-01 14:59:59.999999');
+        $this->insertLog('evt-exact-end', occurredAt: '2025-01-01 16:00:00.123456');
+        $this->insertLog('evt-future', occurredAt: '2025-01-01 16:00:00.123457');
 
-        $req = new AuthoritativeAuditAdminQueryRequestDTO(
-            after: new DateTimeImmutable('2025-01-01 10:00:00.000000', new DateTimeZone('America/New_York')),
-            before: new DateTimeImmutable('2025-01-01 11:00:00.000000', new DateTimeZone('America/New_York')),
+        // Independent after
+        $reqAfter = new AuthoritativeAuditAdminQueryRequestDTO(
+            after: new DateTimeImmutable('2025-01-01 09:59:59.999999', new DateTimeZone('America/New_York')),
             sortBy: 'occurred_at',
             sortDirection: 'ASC'
         );
+        $resAfter = $this->repository->paginate($reqAfter);
+        $this->assertCount(3, $resAfter->items);
+        $this->assertSame('evt-exact-start', $resAfter->items[0]->eventId);
+        $this->assertSame('evt-exact-end', $resAfter->items[1]->eventId);
+        $this->assertSame('evt-future', $resAfter->items[2]->eventId);
 
-        $res = $this->repository->paginate($req);
-        $this->assertCount(2, $res->items);
-        $this->assertSame('evt-exact-start', $res->items[0]->eventId);
-        $this->assertSame('evt-exact-end', $res->items[1]->eventId);
+        // Independent before
+        $reqBefore = new AuthoritativeAuditAdminQueryRequestDTO(
+            before: new DateTimeImmutable('2025-01-01 11:00:00.123456', new DateTimeZone('America/New_York')),
+            sortBy: 'occurred_at',
+            sortDirection: 'ASC'
+        );
+        $resBefore = $this->repository->paginate($reqBefore);
+        $this->assertCount(3, $resBefore->items);
+        $this->assertSame('evt-old', $resBefore->items[0]->eventId);
+        $this->assertSame('evt-exact-start', $resBefore->items[1]->eventId);
+        $this->assertSame('evt-exact-end', $resBefore->items[2]->eventId);
 
+        // Combined
+        $reqCombined = new AuthoritativeAuditAdminQueryRequestDTO(
+            after: new DateTimeImmutable('2025-01-01 09:59:59.999999', new DateTimeZone('America/New_York')),
+            before: new DateTimeImmutable('2025-01-01 11:00:00.123456', new DateTimeZone('America/New_York')),
+            sortBy: 'occurred_at',
+            sortDirection: 'ASC'
+        );
+        $resCombined = $this->repository->paginate($reqCombined);
+        $this->assertCount(2, $resCombined->items);
+        $this->assertSame('evt-exact-start', $resCombined->items[0]->eventId);
+        $this->assertSame('evt-exact-end', $resCombined->items[1]->eventId);
+
+        // Page Normalization & clamping
         $this->pdo->exec('TRUNCATE TABLE maa_event_logging_authoritative_audit_log');
         for ($i = 1; $i <= 205; $i++) {
             $this->insertLog('evt-'.$i, occurredAt: '2025-01-01 15:00:00.000000');
         }
 
-        $reqClamp = new AuthoritativeAuditAdminQueryRequestDTO(page: 0, perPage: 500, sortDirection: 'ASC');
-        $resClamp = $this->repository->paginate($reqClamp);
+        $reqClampMin = new AuthoritativeAuditAdminQueryRequestDTO(page: 0, perPage: 0, sortDirection: 'ASC');
+        $resClampMin = $this->repository->paginate($reqClampMin);
 
-        $this->assertSame(1, $resClamp->page);
-        $this->assertSame(200, $resClamp->perPage);
-        $this->assertSame(205, $resClamp->total);
-        $this->assertSame(2, $resClamp->totalPages);
-        $this->assertCount(200, $resClamp->items);
-        $this->assertTrue($resClamp->hasNext);
-        $this->assertFalse($resClamp->hasPrevious);
-        $this->assertSame('evt-205', $resClamp->items[0]->eventId);
+        $this->assertSame(1, $resClampMin->page);
+        $this->assertSame(1, $resClampMin->perPage); // clamped to 1
+        $this->assertSame(205, $resClampMin->total);
+        $this->assertSame(205, $resClampMin->filtered);
+        $this->assertSame(205, $resClampMin->totalPages);
+        $this->assertSame('occurred_at', $resClampMin->sortBy);
+        $this->assertSame('ASC', $resClampMin->sortDirection);
+        $this->assertCount(1, $resClampMin->items);
+        $this->assertTrue($resClampMin->hasNext);
+        $this->assertFalse($resClampMin->hasPrevious);
 
+        // Page 1 Max Clamp
+        $reqClampMax = new AuthoritativeAuditAdminQueryRequestDTO(page: 1, perPage: 500, sortDirection: 'ASC');
+        $resClampMax = $this->repository->paginate($reqClampMax);
+
+        $this->assertSame(1, $resClampMax->page);
+        $this->assertSame(200, $resClampMax->perPage);
+        $this->assertSame(205, $resClampMax->total);
+        $this->assertSame(205, $resClampMax->filtered);
+        $this->assertSame(2, $resClampMax->totalPages);
+        $this->assertSame('occurred_at', $resClampMax->sortBy);
+        $this->assertSame('ASC', $resClampMax->sortDirection);
+        $this->assertCount(200, $resClampMax->items);
+        $this->assertTrue($resClampMax->hasNext);
+        $this->assertFalse($resClampMax->hasPrevious);
+        $this->assertSame('evt-205', $resClampMax->items[0]->eventId);
+
+        // Page 2 Max Clamp
         $reqPage2 = new AuthoritativeAuditAdminQueryRequestDTO(page: 2, perPage: 500, sortDirection: 'ASC');
         $resPage2 = $this->repository->paginate($reqPage2);
 
         $this->assertSame(2, $resPage2->page);
         $this->assertSame(200, $resPage2->perPage);
+        $this->assertSame(205, $resPage2->total);
+        $this->assertSame(205, $resPage2->filtered);
+        $this->assertSame(2, $resPage2->totalPages);
+        $this->assertSame('occurred_at', $resPage2->sortBy);
+        $this->assertSame('ASC', $resPage2->sortDirection);
         $this->assertCount(5, $resPage2->items);
         $this->assertFalse($resPage2->hasNext);
         $this->assertTrue($resPage2->hasPrevious);
