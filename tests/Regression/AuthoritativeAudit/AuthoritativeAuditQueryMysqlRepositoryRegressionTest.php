@@ -261,7 +261,7 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertStringNotContainsString('cursor_at_before', $stmtMissingId->queryString);
     }
 
-        public function testPrimitiveFiltersRemainStable(): void
+    public function testPrimitiveFiltersRemainStable(): void
     {
         $pdo = new FakePdo();
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
@@ -368,7 +368,7 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertStringContainsString('WHERE actor_id = :actor_id AND target_id = :target_id', $stmtIndependent->queryString);
     }
 
-        public function testHydrationRemainsStable(): void
+    public function testHydrationRemainsStable(): void
     {
         $pdo = new class extends FakePdo {
             /** @var array<int, mixed> */
