@@ -81,13 +81,25 @@ abstract class StrictAuthoritativeAuditMysqlIntegrationTestCase extends TestCase
         }
         $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 
-        $statements = preg_split('/;\s*(?:\r?\n|$)/', $schema);
-        if (!is_array($statements)) {
-            throw new RuntimeException('Could not parse AuthoritativeAudit schema statements.');
+        $statements = [];
+        $current = '';
+        foreach (explode("\n", $schema) as $line) {
+            if (str_starts_with(trim($line), '--')) {
+                continue;
+            }
+
+            $current .= $line . "\n";
+            if (str_ends_with(trim($line), ';')) {
+                $statements[] = trim($current);
+                $current = '';
+            }
+        }
+
+        if (trim($current) !== '') {
+            throw new RuntimeException('AuthoritativeAudit schema contains an unterminated SQL statement.');
         }
 
         foreach ($statements as $statement) {
-            $statement = trim($statement);
             if ($statement !== '') {
                 $this->pdo->exec($statement);
             }
