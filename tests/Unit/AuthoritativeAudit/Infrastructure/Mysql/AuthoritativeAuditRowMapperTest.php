@@ -77,6 +77,16 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
         $this->assertSame(123, $dto->id);
         $this->assertSame(42, $dto->actorId);
         $this->assertSame(100, $dto->targetId);
+
+        $row2 = [
+            'id' => '123',
+            'actor_id' => 42,
+            'target_id' => '100',
+        ];
+        $dto2 = $this->mapper->map($row2);
+        $this->assertSame(123, $dto2->id);
+        $this->assertSame(42, $dto2->actorId);
+        $this->assertSame(100, $dto2->targetId);
     }
 
     public function testItHandlesEmptyRowWithMissingFieldsAndReturnsFallbacks(): void
