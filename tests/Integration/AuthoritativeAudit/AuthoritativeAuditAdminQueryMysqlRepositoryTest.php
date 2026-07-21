@@ -94,96 +94,72 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
         );
     }
 
-    public function testFiltersTotalAndFilteredAlignmentAndSortTieBreaker(): void
+    public function testFiltersIndependentlyAndCombinedAndSortTieBreaker(): void
     {
-        // eventId independently
-        $this->insertLog('evt-specific', occurredAt: '2025-01-01 10:00:00.000000');
-        $reqEvent = new AuthoritativeAuditAdminQueryRequestDTO(eventId: 'evt-specific');
-        $resEvent = $this->repository->paginate($reqEvent);
-        $this->assertSame(1, $resEvent->total);
-        $this->assertSame(1, $resEvent->filtered);
-        $this->assertCount(1, $resEvent->items);
+        $this->insertLog('evt-filter', 'ActT', 10, 'ActionA', 'TgtT', 20, null, 'Corr-A', '2025-01-01 10:00:00.000000');
+        $this->insertLog('evt-2', 'ActT2', 10, 'ActionB', 'TgtT2', 20, null, 'Corr-B', '2025-01-01 10:00:00.000000');
+
+        $this->assertCount(1, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(eventId: 'evt-filter'))->items);
+        $this->assertCount(1, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(actorType: 'ActT'))->items);
+        $this->assertCount(2, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(actorId: 10))->items);
+        $this->assertCount(1, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(targetType: 'TgtT'))->items);
+        $this->assertCount(2, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(targetId: 20))->items);
+        $this->assertCount(1, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(action: 'ActionA'))->items);
+        $this->assertCount(1, $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(correlationId: 'Corr-A'))->items);
 
         $this->pdo->exec('TRUNCATE TABLE maa_event_logging_authoritative_audit_log');
 
-        // Multiple same timestamp to test sort tie breaker id DESC
         $this->insertLog('evt-1', actorType: 'A', actorId: 1, action: 'act1', targetType: 'T1', targetId: 1, correlationId: 'C1', occurredAt: '2025-01-01 10:00:00.000000');
-        $this->insertLog('evt-2', actorType: 'A', actorId: 2, action: 'act2', targetType: 'T1', targetId: 2, correlationId: 'C2', occurredAt: '2025-01-01 10:00:00.000000');
-        $this->insertLog('evt-3', actorType: 'B', actorId: 3, action: 'act1', targetType: 'T2', targetId: 3, correlationId: 'C1', occurredAt: '2025-01-01 10:00:00.000000');
-        $this->insertLog('evt-4', actorType: 'B', actorId: 3, action: 'act2', targetType: 'T2', targetId: 3, correlationId: 'C3', occurredAt: '2025-01-01 10:00:01.000000');
+        $this->insertLog('evt-2', actorType: 'A', actorId: 1, action: 'act1', targetType: 'T1', targetId: 1, correlationId: 'C1', occurredAt: '2025-01-01 10:00:00.000000');
+        $this->insertLog('evt-3', actorType: 'B', actorId: 2, action: 'act2', targetType: 'T2', targetId: 2, correlationId: 'C2', occurredAt: '2025-01-01 10:00:00.000000');
 
-        // Test explicit descending sort on occurred_at (default is DESC).
-        // evt-4 will be first. evt-3, evt-2, evt-1 share timestamp.
-        // Tie breaker is id DESC, so evt-3 (inserted 3rd), then evt-2, then evt-1.
+        $reqCombined = new AuthoritativeAuditAdminQueryRequestDTO(
+            eventId: 'evt-1',
+            actorType: 'A',
+            actorId: 1,
+            action: 'act1',
+            targetType: 'T1',
+            targetId: 1,
+            correlationId: 'C1',
+        );
+        $resCombined = $this->repository->paginate($reqCombined);
+        $this->assertSame(3, $resCombined->total);
+        $this->assertSame(1, $resCombined->filtered);
+        $this->assertSame('evt-1', $resCombined->items[0]->eventId);
+
         $reqDesc = new AuthoritativeAuditAdminQueryRequestDTO(sortDirection: 'DESC');
         $resDesc = $this->repository->paginate($reqDesc);
-
-        $this->assertCount(4, $resDesc->items);
-        $this->assertSame('evt-4', $resDesc->items[0]->eventId);
-        $this->assertSame('evt-3', $resDesc->items[1]->eventId);
-        $this->assertSame('evt-2', $resDesc->items[2]->eventId);
-        $this->assertSame('evt-1', $resDesc->items[3]->eventId);
-
-        // Test independent actorType
-        $reqActor = new AuthoritativeAuditAdminQueryRequestDTO(actorType: 'A');
-        $resActor = $this->repository->paginate($reqActor);
-        $this->assertSame(4, $resActor->total);
-        $this->assertSame(2, $resActor->filtered);
-        $this->assertCount(2, $resActor->items);
-
-        // Test independent targetType
-        $reqTarget = new AuthoritativeAuditAdminQueryRequestDTO(targetType: 'T2');
-        $resTarget = $this->repository->paginate($reqTarget);
-        $this->assertSame(2, $resTarget->filtered);
-
-        // Test multiple combined filters
-        $reqCombined = new AuthoritativeAuditAdminQueryRequestDTO(actorType: 'B', action: 'act1', correlationId: 'C1');
-        $resCombined = $this->repository->paginate($reqCombined);
-        $this->assertSame(1, $resCombined->filtered);
-        $this->assertSame('evt-3', $resCombined->items[0]->eventId);
+        $this->assertCount(3, $resDesc->items);
+        $this->assertSame('evt-3', $resDesc->items[0]->eventId);
+        $this->assertSame('evt-2', $resDesc->items[1]->eventId);
+        $this->assertSame('evt-1', $resDesc->items[2]->eventId);
     }
 
     public function testDateBoundariesAndPageNormalization(): void
     {
-        $this->insertLog('evt-old', occurredAt: '2025-01-01 09:59:59.999999');
-        $this->insertLog('evt-exact-start', occurredAt: '2025-01-01 10:00:00.000000');
-        $this->insertLog('evt-exact-end', occurredAt: '2025-01-01 11:00:00.000000');
-        $this->insertLog('evt-future', occurredAt: '2025-01-01 11:00:00.000001');
+        $this->insertLog('evt-old', occurredAt: '2025-01-01 14:59:59.999999');
+        $this->insertLog('evt-exact-start', occurredAt: '2025-01-01 15:00:00.000000');
+        $this->insertLog('evt-exact-end', occurredAt: '2025-01-01 16:00:00.000000');
+        $this->insertLog('evt-future', occurredAt: '2025-01-01 16:00:00.000001');
 
         $req = new AuthoritativeAuditAdminQueryRequestDTO(
-            after: new DateTimeImmutable('2025-01-01 10:00:00', new DateTimeZone('America/New_York')),
-            before: new DateTimeImmutable('2025-01-01 11:00:00', new DateTimeZone('America/New_York')),
-        );
-        // Note: DTO doesn't convert to UTC in constructor, it preserves input. The descriptor converts it.
-        // Assuming the input is correctly handled. Wait, let's just use UTC for safety to match the database expectation if it expects UTC.
-        // The instructions say "non-UTC input normalization, and exact six-digit microseconds".
-        // The builder should convert to UTC.
-        // If DB is in UTC, and we pass America/New_York (UTC-5), 10am NY is 3pm UTC.
-        // Let's just insert logs at UTC 15:00:00 to match NY 10:00:00.
-        $this->pdo->exec('TRUNCATE TABLE maa_event_logging_authoritative_audit_log');
-        $this->insertLog('evt-old', occurredAt: '2025-01-01 14:59:59.999999'); // 09:59:59.999999 NY
-        $this->insertLog('evt-exact-start', occurredAt: '2025-01-01 15:00:00.000000'); // 10:00 NY
-        $this->insertLog('evt-exact-end', occurredAt: '2025-01-01 16:00:00.000000'); // 11:00 NY
-        $this->insertLog('evt-future', occurredAt: '2025-01-01 16:00:00.000001'); // 11:00:00.000001 NY
-
-        $req = new AuthoritativeAuditAdminQueryRequestDTO(
-            after: new DateTimeImmutable('2025-01-01 10:00:00', new DateTimeZone('America/New_York')),
-            before: new DateTimeImmutable('2025-01-01 11:00:00', new DateTimeZone('America/New_York')),
+            after: new DateTimeImmutable('2025-01-01 10:00:00.000000', new DateTimeZone('America/New_York')),
+            before: new DateTimeImmutable('2025-01-01 11:00:00.000000', new DateTimeZone('America/New_York')),
+            sortBy: 'occurred_at',
+            sortDirection: 'ASC'
         );
 
         $res = $this->repository->paginate($req);
         $this->assertCount(2, $res->items);
-        // Order by occurred_at DESC by default
-        $this->assertSame('evt-exact-end', $res->items[0]->eventId);
-        $this->assertSame('evt-exact-start', $res->items[1]->eventId);
+        $this->assertSame('evt-exact-start', $res->items[0]->eventId);
+        $this->assertSame('evt-exact-end', $res->items[1]->eventId);
 
-        // Page Normalization & clamping: page 0 becomes 1, perPage 500 becomes 200
         $this->pdo->exec('TRUNCATE TABLE maa_event_logging_authoritative_audit_log');
         for ($i = 1; $i <= 205; $i++) {
             $this->insertLog('evt-'.$i, occurredAt: '2025-01-01 15:00:00.000000');
         }
 
-        $reqClamp = new AuthoritativeAuditAdminQueryRequestDTO(page: 0, perPage: 500);
+        $reqClamp = new AuthoritativeAuditAdminQueryRequestDTO(page: 0, perPage: 500, sortDirection: 'ASC');
         $resClamp = $this->repository->paginate($reqClamp);
 
         $this->assertSame(1, $resClamp->page);
@@ -193,6 +169,17 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertCount(200, $resClamp->items);
         $this->assertTrue($resClamp->hasNext);
         $this->assertFalse($resClamp->hasPrevious);
+        $this->assertSame('evt-205', $resClamp->items[0]->eventId);
+
+        $reqPage2 = new AuthoritativeAuditAdminQueryRequestDTO(page: 2, perPage: 500, sortDirection: 'ASC');
+        $resPage2 = $this->repository->paginate($reqPage2);
+
+        $this->assertSame(2, $resPage2->page);
+        $this->assertSame(200, $resPage2->perPage);
+        $this->assertCount(5, $resPage2->items);
+        $this->assertFalse($resPage2->hasNext);
+        $this->assertTrue($resPage2->hasPrevious);
+        $this->assertSame('evt-5', $resPage2->items[0]->eventId);
     }
 
     public function testMaterializedLogOnlyBehavior(): void
@@ -220,29 +207,40 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertCount(0, $result->items);
     }
 
-    public function testPaginateWithAllFilters(): void
+    public function testNullableHydrationAndExactOccurredAt(): void
     {
-        $this->insertLog('evt-1', 'User', 1, 'update', 'Page', 1, null, 'cor-1', '2025-01-01 10:00:00.000000');
-        $this->insertLog('evt-2', 'System', 2, 'create', 'Page', 1, null, 'cor-2', '2025-01-01 11:00:00.000000');
-        $this->insertLog('evt-3', 'User', 1, 'update', 'Post', 2, null, 'cor-1', '2025-01-01 12:00:00.000000');
+        $stmt = $this->pdo->prepare("
+            INSERT INTO maa_event_logging_authoritative_audit_log
+            (event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, changes, correlation_id, occurred_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([
+            'evt-nulls',
+            'System',
+            null,
+            'act',
+            'Tgt',
+            null,
+            null,
+            null,
+            null,
+            null,
+            '2025-01-01 10:00:00.123456'
+        ]);
 
-        $request = new AuthoritativeAuditAdminQueryRequestDTO(
-            actorType: 'User',
-            actorId: 1,
-            action: 'update',
-            targetType: 'Page',
-            targetId: 1,
-            correlationId: 'cor-1',
-            after: new DateTimeImmutable('2025-01-01 09:00:00', new DateTimeZone('UTC')),
-            before: new DateTimeImmutable('2025-01-01 11:00:00', new DateTimeZone('UTC')),
-        );
+        $res = $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
+        $this->assertCount(1, $res->items);
+        $item = $res->items[0];
 
-        $result = $this->repository->paginate($request);
-
-        $this->assertSame(3, $result->total);
-        $this->assertSame(1, $result->filtered);
-        $this->assertCount(1, $result->items);
-        $this->assertSame('evt-1', $result->items[0]->eventId);
+        $this->assertNull($item->actorId);
+        $this->assertNull($item->targetId);
+        $this->assertNull($item->correlationId);
+        $this->assertNull($item->changes);
+        $this->assertSame('System', $item->actorType);
+        $this->assertSame('Tgt', $item->targetType);
+        $this->assertSame('act', $item->action);
+        $this->assertSame('2025-01-01 10:00:00.123456', $item->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $item->occurredAt->getTimezone()->getName());
     }
 
     public function testPaginateHydrationFallbacks(): void
@@ -294,14 +292,23 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends TestCase
         $this->pdo->commit();
     }
 
-    public function testRealStorageFailureMapsToStorageExceptionWithPreviousThrowable(): void
+    public function testRealStorageFailureMapsToStorageExceptionWithPreviousThrowableAndPreservesTransaction(): void
     {
         $this->pdo->exec('DROP TABLE maa_event_logging_authoritative_audit_log');
+        $this->pdo->beginTransaction();
 
-        $this->expectException(AuthoritativeAuditStorageException::class);
-        $this->expectExceptionMessage('Failed to query AuthoritativeAudit records');
+        $exceptionThrown = false;
+        try {
+            $request = new AuthoritativeAuditAdminQueryRequestDTO();
+            $this->repository->paginate($request);
+        } catch (AuthoritativeAuditStorageException $e) {
+            $exceptionThrown = true;
+            $this->assertStringStartsWith('Failed to query AuthoritativeAudit records:', $e->getMessage());
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+        }
 
-        $request = new AuthoritativeAuditAdminQueryRequestDTO();
-        $this->repository->paginate($request);
+        $this->assertTrue($exceptionThrown, 'Storage exception must be thrown');
+        $this->assertTrue($this->pdo->inTransaction(), 'Caller transaction must be preserved after storage failure');
+        $this->pdo->rollBack();
     }
 }

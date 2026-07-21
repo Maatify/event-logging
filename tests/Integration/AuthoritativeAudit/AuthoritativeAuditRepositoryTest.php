@@ -181,6 +181,20 @@ final class AuthoritativeAuditRepositoryTest extends TestCase
         $this->assertSame('evt-1', $res3[0]->eventId);
     }
 
+    public function testPrimitiveRepositoryDoesNotOwnTransactions(): void
+    {
+        $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
+        $dto1 = new AuthoritativeAuditOutboxWriteDTO('evt-1', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now);
+        $this->simulateOutboxConsumer($dto1);
+
+        $this->pdo->beginTransaction();
+        $queryDto = new AuthoritativeAuditQueryDTO(limit: 1);
+        $res = $this->query->find($queryDto);
+        $this->assertCount(1, $res);
+        $this->assertTrue($this->pdo->inTransaction());
+        $this->pdo->commit();
+    }
+
     private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
     {
         $stmt = $this->pdo->prepare("
