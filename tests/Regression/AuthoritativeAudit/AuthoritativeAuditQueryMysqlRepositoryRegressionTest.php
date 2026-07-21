@@ -434,13 +434,20 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
             [
                 'id' => '7',
                 'changes' => 123, // not string
+            ],
+            [
+                'id' => '8',
+                'changes' => '', // empty string
+            ],
+            [
+                'id' => '9', // missing
             ]
         ];
 
         $repository = new AuthoritativeAuditQueryMysqlRepository($pdo);
         $results = $repository->find(new AuthoritativeAuditQueryDTO());
 
-        $this->assertCount(8, $results); // 10 rows returned, 2 skipped
+        $this->assertCount(10, $results); // 12 rows returned, 2 skipped
 
         $validDto = $results[0];
         $this->assertSame(123, $validDto->id);
