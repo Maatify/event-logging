@@ -28,6 +28,17 @@ Consumers should strictly use the defined Public API:
 - **Write:** `AuthoritativeAuditRecorder::record(...)`
 - **Configure:** `AuthoritativeAuditPolicyInterface`
 
+### Primitive Query API
+
+The domain provides a primitive, protected query contract for retrieving logged events:
+- **Query:** `AuthoritativeAuditQueryInterface::find(AuthoritativeAuditQueryDTO $query)`
+- **Behavior:** Primitive cursor-based pagination (`cursorOccurredAt`, `cursorId`, `limit`).
+- **Data Source:** Admin and primitive listings strictly read from the non-authoritative materialized log (`maa_event_logging_authoritative_audit_log`).
+
+**Future Admin Query API:**
+A separate offset-based Admin Query API has been documented and Owner Approved (see `docs/architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md`). Runtime implementation for this API is currently pending.
+
+
 ### Data Flow
 
 ```
@@ -66,7 +77,7 @@ Commit Transaction
 
 The module requires the `maa_event_logging_authoritative_audit_outbox` (and `maa_event_logging_authoritative_audit_log` for consumers) table. A canonical schema definition is provided within the module:
 
-`src/AuthoritativeAudit/Database/schema.authoritative_audit.sql`
+`src/AuthoritativeAudit/Database/schema.maa_event_logging_authoritative_audit.sql`
 
 This file should be used to initialize the database table.
 
