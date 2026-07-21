@@ -5,16 +5,11 @@ declare(strict_types=1);
 namespace Maatify\EventLogging\Tests\Unit\AuthoritativeAudit\Infrastructure\Mysql;
 
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
-use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditAdminQueryExecutionException;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository;
 use Maatify\Persistence\Exception\InvalidPaginationQueryException;
 use Maatify\Persistence\Exception\PaginationExecutionException;
-use Maatify\Persistence\Pdo\Pagination\PageRequest;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
-use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
 use PDO;
 use PDOException;
 use PHPUnit\Framework\TestCase;
@@ -40,40 +35,36 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         }
     }
 
-    public function testMapperThrowableIsWrappedInStorageException(): void
+    public function testPaginationExecutionExceptionIsWrappedInStorageException(): void
     {
-        $originalException = new RuntimeException('Mapper exploded');
-        $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
-        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
+        $pdo = $this->createMock(PDO::class);
+        $pdo->method('prepare')->willReturn(false);
 
-        $reflection->getProperty('rowMapperCallable')->setValue(
-            $repository,
-            static function () use ($originalException): never {
-                throw $originalException;
-            }
-        );
-        $reflection->getProperty('paginateExecutionCallable')->setValue($repository, self::invokeMapper(...));
+        $repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
 
         try {
             $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
             self::fail('Expected AuthoritativeAuditStorageException was not thrown.');
         } catch (AuthoritativeAuditStorageException $exception) {
-            self::assertSame('Failed to map AuthoritativeAudit row: Mapper exploded', $exception->getMessage());
-            self::assertSame($originalException, $exception->getPrevious());
+            self::assertSame(
+                'Failed to query AuthoritativeAudit records: Failed to prepare pagination query.',
+                $exception->getMessage(),
+            );
+            self::assertInstanceOf(PaginationExecutionException::class, $exception->getPrevious());
         }
     }
 
     public function testInvalidPaginationQueryExceptionIsWrapped(): void
     {
-        $originalException = new InvalidPaginationQueryException('Injected configuration error');
+        $originalException = new InvalidPaginationQueryException('Injected descriptor error');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
-        $property = (new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class))
-            ->getProperty('paginateExecutionCallable');
-        $property->setValue(
+        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
+        $reflection->getProperty('descriptorBuilderCallable')->setValue(
             $repository,
-            static function () use ($originalException): never {
+            static function (AuthoritativeAuditAdminQueryRequestDTO $request) use ($originalException): never {
+                unset($request);
                 throw $originalException;
-            }
+            },
         );
 
         try {
@@ -84,27 +75,27 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         }
     }
 
-    public function testPaginationExecutionExceptionIsWrappedInStorageException(): void
+    public function testMapperThrowableIsWrappedInStorageException(): void
     {
-        $originalException = new PaginationExecutionException('Injected pagination execution error');
+        $originalException = new RuntimeException('Mapper exploded');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
-        $property = (new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class))
-            ->getProperty('paginateExecutionCallable');
-        $property->setValue(
+        $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
+        $reflection->getProperty('rowMapperCallable')->setValue(
             $repository,
-            static function () use ($originalException): never {
+            static function (array $row) use ($originalException): never {
+                unset($row);
                 throw $originalException;
-            }
+            },
         );
 
         try {
-            $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
+            $reflection->getMethod('mapRow')->invoke($repository, [
+                'event_id' => 'event-1',
+                'occurred_at' => '2024-01-01 00:00:00.000000',
+            ]);
             self::fail('Expected AuthoritativeAuditStorageException was not thrown.');
         } catch (AuthoritativeAuditStorageException $exception) {
-            self::assertSame(
-                'Failed to query AuthoritativeAudit records: Injected pagination execution error',
-                $exception->getMessage()
-            );
+            self::assertSame('Failed to map AuthoritativeAudit row: Mapper exploded', $exception->getMessage());
             self::assertSame($originalException, $exception->getPrevious());
         }
     }
@@ -114,41 +105,22 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryExceptionTest extends Tes
         $originalException = new AuthoritativeAuditStorageException('Original storage exception');
         $repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->createMock(PDO::class));
         $reflection = new ReflectionClass(AuthoritativeAuditAdminQueryMysqlRepository::class);
-
         $reflection->getProperty('rowMapperCallable')->setValue(
             $repository,
-            static function () use ($originalException): never {
+            static function (array $row) use ($originalException): never {
+                unset($row);
                 throw $originalException;
-            }
+            },
         );
-        $reflection->getProperty('paginateExecutionCallable')->setValue($repository, self::invokeMapper(...));
 
         try {
-            $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO());
+            $reflection->getMethod('mapRow')->invoke($repository, [
+                'event_id' => 'event-1',
+                'occurred_at' => '2024-01-01 00:00:00.000000',
+            ]);
             self::fail('Expected AuthoritativeAuditStorageException was not thrown.');
         } catch (AuthoritativeAuditStorageException $exception) {
             self::assertSame($originalException, $exception);
         }
-    }
-
-    /**
-     * @param callable(array<string, mixed>): AuthoritativeAuditViewDTO $mapper
-     * @return PageResult<AuthoritativeAuditViewDTO>
-     */
-    private static function invokeMapper(
-        PDO $pdo,
-        PdoPaginationQueryDescriptor $query,
-        PageRequest $pageRequest,
-        PaginationConfig $config,
-        callable $mapper
-    ): PageResult {
-        unset($pdo, $query, $pageRequest, $config);
-
-        $mapper([
-            'event_id' => 'event-1',
-            'occurred_at' => '2024-01-01 00:00:00.000000',
-        ]);
-
-        throw new RuntimeException('Injected mapper did not throw.');
     }
 }
