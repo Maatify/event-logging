@@ -1,5 +1,7 @@
 # Authoritative Audit: Admin Query API Remediation Audit
 
+**Status:** Historical / Resolved
+**Superseded By:** `docs/architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md`
 **Target:** `AuthoritativeAudit` domain
 **Audited SHA:** `c8a121768ddfcec01793b63f46f7e7af37d951a9`
 **Audit Date:** 2026-07-15
@@ -66,18 +68,11 @@ The implementation must address the following coverage and implementation gaps:
   - `Maatify/ep4n-2020`: searched; no references found.
   - *Note:* The search included `AuthoritativeAuditPaginatedQueryInterface`, `AuthoritativeAuditPaginatedQueryService`, `AuthoritativeAuditQueryPageDTO`, and `AuthoritativeAuditQueryCursorDTO`.
 
-## 6. Open Decisions Required Before Blueprint
+## 6. Resolved Decisions
 
-The following decisions must be made before drafting the Admin Query API blueprint:
+The open decisions regarding sort rules, actor/target type-ID semantics, mapper/result DTO, validation bounds, exception mappings, and the exact seven-file retirement set are now formally resolved.
 
-1. **Sort Whitelist:** Which specific columns are allowed for Admin Query API sorting?
-2. **Actor/Target Type-ID Semantics:** Is querying `actorId` or `targetId` without their corresponding `Type` permitted?
-3. **Mapper & Result DTO:** Will the Admin API reuse `AuthoritativeAuditViewDTO` or map to a distinct Admin DTO?
-4. **Validation Bounds:** What are the exact maximum limits for `per_page` in the Admin Query API?
-5. **Exception Boundaries:**
-   - Invalid Admin request → `AuthoritativeAuditAdminQueryInvalidArgumentException`
-   - `InvalidPaginationConfigurationException` or `InvalidPaginationQueryException` → `AuthoritativeAuditAdminQueryExecutionException`
-   - `PaginationExecutionException` or `PDOException` → `AuthoritativeAuditStorageException`
-   - mapper/hydration `Throwable` → `AuthoritativeAuditStorageException`
-   - *Constraint:* Must preserve exact message prefixes and the previous throwable (`$e`). Any `AuthoritativeAuditStorageException` originating from the mapper must be passed through without re-wrapping.
-6. **Retirement Set Confirmation:** Explicit sign-off on the exact list of 7 files to be deleted.
+They are governed by the approved blueprint:
+`docs/architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md`
+
+This audit document is retained for historical evidence and the audited SHA only. It is not the active design authority for the rebuild.

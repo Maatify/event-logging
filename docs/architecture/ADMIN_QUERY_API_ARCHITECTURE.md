@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
-**Status:** Approved Architecture / Implementation Deferred
-**Phase:** Phase 0 and Phase 1 Complete / Post-v1.0 Pagination Remediation Planned / Runtime Implementation Blocked
+**Status:** Approved Architecture / Active Post-v1.0 Pagination Remediation
+**Phase:** AuditTrail, BehaviorTrace, and SecuritySignals Runtime Implemented / AuthoritativeAudit Owner Approved and Runtime Pending / DiagnosticsTelemetry and DeliveryOperations Blocked
 
 ## 1. Purpose
 
@@ -82,7 +82,7 @@ These domains already contain incorrect post-v1.0 pagination work and must be re
 1. `AuditTrail` — rebuild POC.
 2. `BehaviorTrace` — rebuild.
 3. `SecuritySignals` — rebuild.
-4. `AuthoritativeAudit` — rebuild last among remediation domains because of its fail-closed behavior and outbox/materialized-log boundary.
+4. `AuthoritativeAudit` — rebuild last among remediation domains because of its fail-closed behavior and outbox/materialized-log boundary. (Owner Approved / Runtime Pending)
 
 ### 4.2 New implementation domains
 
@@ -226,7 +226,7 @@ The approved implementation sequence is:
 
 Runtime implementation remains blocked until the Owner explicitly approves the relevant phase blueprint.
 
-The current next phase is `SecuritySignals`.
+The current next phase is `AuthoritativeAudit`.
 
 Approval must cover at minimum:
 
@@ -244,7 +244,7 @@ Note that `maatify/persistence ^1.1.0` is already installed. No Composer depende
 
 - `AuditTrail`: Runtime implemented.
 - `BehaviorTrace`: Runtime implemented.
-- `SecuritySignals`: Proposed rebuild blueprint. Runtime implementation remains blocked.
-- `AuthoritativeAudit`: Blocked.
+- `SecuritySignals`: Runtime implemented.
+- `AuthoritativeAudit`: Owner Approved / Runtime Pending. Next authorized rebuild.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.
