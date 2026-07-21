@@ -9,6 +9,7 @@ use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination\AuthoritativeAuditAdminQueryDescriptorBuilder;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination\AuthoritativeAuditAdminQueryDescriptorBuilder
@@ -22,10 +23,22 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
         $this->builder = new AuthoritativeAuditAdminQueryDescriptorBuilder();
     }
 
+    public function testItIsInternalAndFinal(): void
+    {
+        $reflector = new ReflectionClass(AuthoritativeAuditAdminQueryDescriptorBuilder::class);
+
+        $this->assertTrue($reflector->isFinal());
+        $this->assertStringContainsString('@internal', (string) $reflector->getDocComment());
+    }
+
     public function testItBuildsNoFilterDescriptor(): void
     {
         $request = new AuthoritativeAuditAdminQueryRequestDTO();
         $descriptor = $this->builder->build($request);
+
+        $this->assertStringNotContainsString('outbox', $descriptor->totalSql);
+        $this->assertStringNotContainsString('outbox', $descriptor->filteredCountSql);
+        $this->assertStringNotContainsString('outbox', $descriptor->dataSql);
 
         $this->assertSame('SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log', $descriptor->totalSql);
         $this->assertSame([], $descriptor->totalParams);
@@ -39,8 +52,8 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
 
     public function testItBuildsDescriptorWithAllFilters(): void
     {
-        $after = new DateTimeImmutable('2023-01-01T10:00:00+02:00'); // Non-UTC
-        $before = new DateTimeImmutable('2023-01-02T10:00:00+02:00'); // Non-UTC
+        $after = new DateTimeImmutable('2023-01-01T10:00:00.123456+02:00'); // Non-UTC with microseconds
+        $before = new DateTimeImmutable('2023-01-02T10:00:00.654321+02:00'); // Non-UTC with microseconds
 
         $request = new AuthoritativeAuditAdminQueryRequestDTO(
             eventId: 'event-1',
@@ -72,8 +85,8 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
             'target_id' => 2,
             'action' => 'delete',
             'correlation_id' => 'corr-1',
-            'after' => '2023-01-01 08:00:00.000000',
-            'before' => '2023-01-02 08:00:00.000000',
+            'after' => '2023-01-01 08:00:00.123456',
+            'before' => '2023-01-02 08:00:00.654321',
         ];
 
         $this->assertSame($expectedParams, $descriptor->filteredCountParams);
@@ -90,6 +103,7 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
         $expectedWhereSql = ' WHERE occurred_at >= :after AND occurred_at <= :before';
 
         $this->assertSame('SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSql, $descriptor->filteredCountSql);
+        $this->assertSame('SELECT id, event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, correlation_id, changes, occurred_at FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSql, $descriptor->dataSql);
 
         $expectedParams = [
             'after' => '2023-01-01 10:00:00.000000',
@@ -97,6 +111,7 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
         ];
 
         $this->assertSame($expectedParams, $descriptor->filteredCountParams);
+        $this->assertSame($expectedParams, $descriptor->dataParams);
     }
 
     public function testItBuildsDescriptorWithEveryFilterIndependently(): void
@@ -127,6 +142,8 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
             $expectedWhereSql = ' WHERE ' . $expectedCondition;
             $this->assertSame('SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSql, $descriptor->filteredCountSql, "Failed on field: $field");
             $this->assertSame($expectedParams, $descriptor->filteredCountParams, "Failed on field: $field");
+            $this->assertSame('SELECT id, event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, correlation_id, changes, occurred_at FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSql, $descriptor->dataSql, "Failed on field: $field");
+            $this->assertSame($expectedParams, $descriptor->dataParams, "Failed on field: $field");
         }
 
         // Independent dates
@@ -136,12 +153,16 @@ final class AuthoritativeAuditAdminQueryDescriptorBuilderTest extends TestCase
         $descriptorAfter = $this->builder->build($requestAfter);
         $expectedWhereSqlAfter = ' WHERE occurred_at >= :after';
         $this->assertSame('SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSqlAfter, $descriptorAfter->filteredCountSql);
+        $this->assertSame('SELECT id, event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, correlation_id, changes, occurred_at FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSqlAfter, $descriptorAfter->dataSql);
         $this->assertSame(['after' => '2023-01-01 10:00:00.000000'], $descriptorAfter->filteredCountParams);
+        $this->assertSame(['after' => '2023-01-01 10:00:00.000000'], $descriptorAfter->dataParams);
 
         $requestBefore = new AuthoritativeAuditAdminQueryRequestDTO(before: $date);
         $descriptorBefore = $this->builder->build($requestBefore);
         $expectedWhereSqlBefore = ' WHERE occurred_at <= :before';
         $this->assertSame('SELECT COUNT(*) FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSqlBefore, $descriptorBefore->filteredCountSql);
+        $this->assertSame('SELECT id, event_id, actor_type, actor_id, action, target_type, target_id, ip_address, user_agent, correlation_id, changes, occurred_at FROM maa_event_logging_authoritative_audit_log' . $expectedWhereSqlBefore, $descriptorBefore->dataSql);
         $this->assertSame(['before' => '2023-01-01 10:00:00.000000'], $descriptorBefore->filteredCountParams);
+        $this->assertSame(['before' => '2023-01-01 10:00:00.000000'], $descriptorBefore->dataParams);
     }
 }

@@ -7,6 +7,7 @@ namespace Maatify\EventLogging\Tests\Unit\AuthoritativeAudit\Infrastructure\Mysq
 use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditRowMapper;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditRowMapper
@@ -18,6 +19,14 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
     protected function setUp(): void
     {
         $this->mapper = new AuthoritativeAuditRowMapper();
+    }
+
+    public function testItIsInternalAndFinal(): void
+    {
+        $reflector = new ReflectionClass(AuthoritativeAuditRowMapper::class);
+
+        $this->assertTrue($reflector->isFinal());
+        $this->assertStringContainsString('@internal', (string) $reflector->getDocComment());
     }
 
     public function testItMapsFullValidRow(): void
@@ -52,6 +61,40 @@ final class AuthoritativeAuditRowMapperTest extends TestCase
         $this->assertSame(['foo' => 'bar'], $dto->changes);
 
         $this->assertSame('2023-01-01 10:00:00.123456', $dto->occurredAt->format('Y-m-d H:i:s.u'));
+        $this->assertSame('UTC', $dto->occurredAt->getTimezone()->getName());
+    }
+
+    public function testItHandlesNumericConversionsFromBothIntegersAndStrings(): void
+    {
+        $row = [
+            'id' => 123,
+            'actor_id' => '42',
+            'target_id' => 100,
+        ];
+
+        $dto = $this->mapper->map($row);
+
+        $this->assertSame(123, $dto->id);
+        $this->assertSame(42, $dto->actorId);
+        $this->assertSame(100, $dto->targetId);
+    }
+
+    public function testItHandlesEmptyRowWithMissingFieldsAndReturnsFallbacks(): void
+    {
+        $dto = $this->mapper->map([]);
+
+        $this->assertSame(0, $dto->id);
+        $this->assertSame('', $dto->eventId);
+        $this->assertNull($dto->actorType);
+        $this->assertNull($dto->actorId);
+        $this->assertSame('', $dto->action);
+        $this->assertNull($dto->targetType);
+        $this->assertNull($dto->targetId);
+        $this->assertNull($dto->ipAddress);
+        $this->assertNull($dto->userAgent);
+        $this->assertNull($dto->correlationId);
+        $this->assertNull($dto->changes);
+        $this->assertSame('1970-01-01 00:00:00.000000', $dto->occurredAt->format('Y-m-d H:i:s.u'));
         $this->assertSame('UTC', $dto->occurredAt->getTimezone()->getName());
     }
 
