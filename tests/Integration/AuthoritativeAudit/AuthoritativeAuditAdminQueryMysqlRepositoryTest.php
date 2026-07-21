@@ -24,11 +24,10 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
     {
         parent::setUp();
 
-        $pdo = $this->requirePdo();
-        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        self::assertFalse((bool) $pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
+        $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+        self::assertFalse((bool) $this->pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
 
-        $this->repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+        $this->repository = new AuthoritativeAuditAdminQueryMysqlRepository($this->pdo);
     }
 
     protected function getDomainSchemaFile(): string
@@ -192,18 +191,17 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
 
     public function testCallerOwnedTransactionIsPreserved(): void
     {
-        $pdo = $this->requirePdo();
-        self::assertFalse($pdo->inTransaction());
+        self::assertFalse($this->pdo->inTransaction());
 
-        $pdo->beginTransaction();
+        $this->pdo->beginTransaction();
         $this->insertLog('evt-txn', 'sys', 1, 'act', 'tgt', 1, null, 'corr', '2024-01-01 10:00:00.000000');
 
         $inside = $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(eventId: 'evt-txn'));
         self::assertSame(['evt-txn'], self::eventIds($inside->items));
-        self::assertTrue($pdo->inTransaction());
+        self::assertTrue($this->pdo->inTransaction());
 
-        $pdo->rollBack();
-        self::assertFalse($pdo->inTransaction());
+        $this->pdo->rollBack();
+        self::assertFalse($this->pdo->inTransaction());
 
         $afterRollback = $this->repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(eventId: 'evt-txn'));
         self::assertSame([], $afterRollback->items);
@@ -226,18 +224,9 @@ final class AuthoritativeAuditAdminQueryMysqlRepositoryTest extends StrictAuthor
         self::assertSame([], $result->items);
     }
 
-    private function requirePdo(): PDO
-    {
-        if (!$this->pdo instanceof PDO) {
-            self::fail('Integration tests require a real MySQL PDO connection.');
-        }
-
-        return $this->pdo;
-    }
-
     private function prepareStatement(string $sql): PDOStatement
     {
-        $statement = $this->requirePdo()->prepare($sql);
+        $statement = $this->pdo->prepare($sql);
         if (!$statement instanceof PDOStatement) {
             self::fail('Failed to prepare AuthoritativeAudit integration SQL.');
         }
