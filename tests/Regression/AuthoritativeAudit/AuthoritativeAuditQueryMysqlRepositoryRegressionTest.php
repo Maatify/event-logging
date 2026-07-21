@@ -9,9 +9,10 @@ use DateTimeZone;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditQueryInterface;
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditViewDTO;
+use ReflectionNamedType;
 use Maatify\EventLogging\AuthoritativeAudit\Exception\AuthoritativeAuditStorageException;
-use ReflectionClass;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
+use ReflectionClass;
 use Maatify\EventLogging\Tests\Support\FakePdo;
 use Maatify\EventLogging\Tests\Support\ThrowingPdo;
 use Maatify\EventLogging\Tests\Support\ThrowingStatementPdo;
@@ -24,16 +25,26 @@ use PHPUnit\Framework\TestCase;
  */
 final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCase
 {
-    public function testProtectedPublicPrimitiveSurface(): void
+        public function testProtectedPublicPrimitiveSurface(): void
     {
         $interfaceReflector = new ReflectionClass(AuthoritativeAuditQueryInterface::class);
         $findMethod = $interfaceReflector->getMethod('find');
+        $param = $findMethod->getParameters()[0];
+
+        $this->assertFalse($param->allowsNull());
+        $this->assertFalse($param->isDefaultValueAvailable());
+
         /** @var \ReflectionNamedType $paramType */
-        $paramType = $findMethod->getParameters()[0]->getType();
+        $paramType = $param->getType();
+        $this->assertInstanceOf(ReflectionNamedType::class, $paramType);
         $this->assertSame(AuthoritativeAuditQueryDTO::class, $paramType->getName());
+
         /** @var \ReflectionNamedType $returnType */
         $returnType = $findMethod->getReturnType();
+        $this->assertFalse($returnType->allowsNull());
+        $this->assertInstanceOf(ReflectionNamedType::class, $returnType);
         $this->assertSame('array', $returnType->getName());
+
         $this->assertStringContainsString('@return array<AuthoritativeAuditViewDTO>', (string) $findMethod->getDocComment());
         $this->assertStringContainsString('@throws AuthoritativeAuditStorageException', (string) $findMethod->getDocComment());
 
@@ -42,8 +53,10 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame(1, $constructor->getNumberOfParameters());
         $pdoParam = $constructor->getParameters()[0];
         $this->assertSame('pdo', $pdoParam->getName());
+
         /** @var \ReflectionNamedType $pdoParamType */
         $pdoParamType = $pdoParam->getType();
+        $this->assertInstanceOf(ReflectionNamedType::class, $pdoParamType);
         $this->assertSame(PDO::class, $pdoParamType->getName());
 
         $pdoProp = $repositoryReflector->getProperty('pdo');
@@ -61,22 +74,37 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $repository->find($query);
 
         $dtoReflector = new ReflectionClass(AuthoritativeAuditQueryDTO::class);
+        $this->assertTrue($dtoReflector->isFinal());
+        $this->assertTrue($dtoReflector->isReadOnly());
+
         $dtoConstructor = $dtoReflector->getMethod('__construct');
         $expectedParams = [
-            'after',
-            'before',
-            'actorType',
-            'actorId',
-            'targetType',
-            'targetId',
-            'action',
-            'correlationId',
-            'cursorOccurredAt',
-            'cursorId',
-            'limit'
+            'after' => ['DateTimeImmutable', true, true, null],
+            'before' => ['DateTimeImmutable', true, true, null],
+            'actorType' => ['string', true, true, null],
+            'actorId' => ['int', true, true, null],
+            'targetType' => ['string', true, true, null],
+            'targetId' => ['int', true, true, null],
+            'action' => ['string', true, true, null],
+            'correlationId' => ['string', true, true, null],
+            'cursorOccurredAt' => ['DateTimeImmutable', true, true, null],
+            'cursorId' => ['int', true, true, null],
+            'limit' => ['int', false, true, 50]
         ];
 
-        $actualParams = array_map(fn($p) => $p->getName(), $dtoConstructor->getParameters());
+        $actualParams = [];
+        foreach ($dtoConstructor->getParameters() as $p) {
+            $t = $p->getType();
+            $this->assertInstanceOf(ReflectionNamedType::class, $t);
+            /** @var \ReflectionNamedType $t */
+            $actualParams[$p->getName()] = [
+                $t->getName(),
+                $p->allowsNull(),
+                $p->isDefaultValueAvailable(),
+                $p->isDefaultValueAvailable() ? $p->getDefaultValue() : null
+            ];
+        }
+        $this->assertSame(array_keys($expectedParams), array_keys($actualParams));
         $this->assertSame($expectedParams, $actualParams);
 
         $expectedSerialized = [
@@ -127,23 +155,37 @@ final class AuthoritativeAuditQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertSame($expectedFullSerialized, $queryFull->jsonSerialize());
 
         $viewDtoReflector = new ReflectionClass(AuthoritativeAuditViewDTO::class);
+        $this->assertTrue($viewDtoReflector->isFinal());
+        $this->assertTrue($viewDtoReflector->isReadOnly());
+
         $viewConstructor = $viewDtoReflector->getMethod('__construct');
         $expectedViewParams = [
-            'id',
-            'eventId',
-            'actorType',
-            'actorId',
-            'action',
-            'targetType',
-            'targetId',
-            'ipAddress',
-            'userAgent',
-            'correlationId',
-            'changes',
-            'occurredAt'
+            'id' => ['int', false, false],
+            'eventId' => ['string', false, false],
+            'actorType' => ['string', true, false],
+            'actorId' => ['int', true, false],
+            'action' => ['string', false, false],
+            'targetType' => ['string', true, false],
+            'targetId' => ['int', true, false],
+            'ipAddress' => ['string', true, false],
+            'userAgent' => ['string', true, false],
+            'correlationId' => ['string', true, false],
+            'changes' => ['array', true, false],
+            'occurredAt' => ['DateTimeImmutable', false, false]
         ];
 
-        $actualViewParams = array_map(fn($p) => $p->getName(), $viewConstructor->getParameters());
+        $actualViewParams = [];
+        foreach ($viewConstructor->getParameters() as $p) {
+            $t = $p->getType();
+            $this->assertInstanceOf(ReflectionNamedType::class, $t);
+            /** @var \ReflectionNamedType $t */
+            $actualViewParams[$p->getName()] = [
+                $t->getName(),
+                $p->allowsNull(),
+                $p->isDefaultValueAvailable()
+            ];
+        }
+        $this->assertSame(array_keys($expectedViewParams), array_keys($actualViewParams));
         $this->assertSame($expectedViewParams, $actualViewParams);
 
         $viewDto = new AuthoritativeAuditViewDTO(
