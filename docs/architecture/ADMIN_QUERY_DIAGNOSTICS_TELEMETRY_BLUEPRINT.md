@@ -38,17 +38,17 @@ The exact current primitive contract must be perfectly preserved:
   - Constructor signature, types/defaults, and exact serialization order:
     ```php
     public function __construct(
-        public readonly ?\DateTimeImmutable $after = null,
-        public readonly ?\DateTimeImmutable $before = null,
-        public readonly ?string $actorType = null,
-        public readonly ?int $actorId = null,
-        public readonly ?string $eventKey = null,
-        public readonly ?string $severity = null,
-        public readonly ?string $requestId = null,
-        public readonly ?string $correlationId = null,
-        public readonly ?\DateTimeImmutable $cursorOccurredAt = null,
-        public readonly ?int $cursorId = null,
-        public readonly int $limit = 50,
+        public ?\DateTimeImmutable $after = null,
+        public ?\DateTimeImmutable $before = null,
+        public ?string $actorType = null,
+        public ?int $actorId = null,
+        public ?string $eventKey = null,
+        public ?string $severity = null,
+        public ?string $requestId = null,
+        public ?string $correlationId = null,
+        public ?\DateTimeImmutable $cursorOccurredAt = null,
+        public ?int $cursorId = null,
+        public int $limit = 50
     )
     ```
   - `DATE_ATOM` behavior: `after`, `before`, and `cursorOccurredAt` serialize using `DATE_ATOM`.
@@ -56,8 +56,8 @@ The exact current primitive contract must be perfectly preserved:
   - Constructor signature:
     ```php
     public function __construct(
-        public readonly \DateTimeImmutable $lastOccurredAt,
-        public readonly int $lastId,
+        public DateTimeImmutable $lastOccurredAt,
+        public int $lastId
     )
     ```
   - Serialized exactly as `lastOccurredAt`, then `lastId`, with `lastOccurredAt` using `DATE_ATOM`.
@@ -65,27 +65,27 @@ The exact current primitive contract must be perfectly preserved:
   - Constructor signature, types, and exact serialization order:
     ```php
     public function __construct(
-        public readonly int $id,
-        public readonly string $eventId,
-        public readonly string $eventKey,
-        public readonly DiagnosticsTelemetrySeverityInterface $severity,
-        public readonly DiagnosticsTelemetryContextDTO $context,
-        public readonly ?int $durationMs,
-        public readonly ?array $metadata,
+        public int $id,
+        public string $eventId,
+        public string $eventKey,
+        public DiagnosticsTelemetrySeverityInterface $severity,
+        public DiagnosticsTelemetryContextDTO $context,
+        public ?int $durationMs,
+        public ?array $metadata
     )
     ```
 - Exact `DiagnosticsTelemetryContextDTO` contract:
   - Constructor signature, types, and exact serialization order:
     ```php
     public function __construct(
-        public readonly DiagnosticsTelemetryActorTypeInterface $actorType,
-        public readonly ?int $actorId,
-        public readonly ?string $correlationId,
-        public readonly ?string $requestId,
-        public readonly ?string $routeName,
-        public readonly ?string $ipAddress,
-        public readonly ?string $userAgent,
-        public readonly \DateTimeImmutable $occurredAt,
+        public DiagnosticsTelemetryActorTypeInterface $actorType,
+        public ?int $actorId,
+        public ?string $correlationId,
+        public ?string $requestId,
+        public ?string $routeName,
+        public ?string $ipAddress,
+        public ?string $userAgent,
+        public DateTimeImmutable $occurredAt
     )
     ```
   - `actorType` and `severity` (in `DiagnosticsTelemetryEventDTO`) serialize using nested enum `value()`.
@@ -150,24 +150,45 @@ The distinct-placeholder correction (see Section 8) applies only to primitive `f
       public function paginate(DiagnosticsTelemetryAdminQueryRequestDTO $request): DiagnosticsTelemetryAdminPageResultDTO;
   }
   ```
-- Exact `DiagnosticsTelemetryAdminQueryRequestDTO` constructor:
+- Exact `DiagnosticsTelemetryAdminQueryRequestDTO` contract:
   ```php
-  public function __construct(
-      public readonly ?string $actorType = null,
-      public readonly ?int $actorId = null,
-      public readonly ?string $eventKey = null,
-      public readonly ?string $severity = null,
-      public readonly ?string $requestId = null,
-      public readonly ?string $correlationId = null,
-      public readonly ?DateTimeImmutable $after = null,
-      public readonly ?DateTimeImmutable $before = null,
-      public readonly int|string|null $page = null,
-      public readonly int|string|null $perPage = null,
-      public readonly ?string $sortBy = null,
-      public readonly ?string $sortDirection = null,
-  )
+  final readonly class DiagnosticsTelemetryAdminQueryRequestDTO implements JsonSerializable
+  {
+      public ?string $actorType;
+      public ?int $actorId;
+      public ?string $eventKey;
+      public ?string $severity;
+      public ?string $requestId;
+      public ?string $correlationId;
+      public ?DateTimeImmutable $after;
+      public ?DateTimeImmutable $before;
+      public int|string|null $page;
+      public int|string|null $perPage;
+      public ?string $sortBy;
+      public ?string $sortDirection;
+
+      public function __construct(
+          ?string $actorType = null,
+          ?int $actorId = null,
+          ?string $eventKey = null,
+          ?string $severity = null,
+          ?string $requestId = null,
+          ?string $correlationId = null,
+          ?DateTimeImmutable $after = null,
+          ?DateTimeImmutable $before = null,
+          int|string|null $page = null,
+          int|string|null $perPage = null,
+          ?string $sortBy = null,
+          ?string $sortDirection = null,
+      ) {
+          // Exact normalization/validation rules defined by the blueprint.
+      }
+  }
   ```
-- Exact request serialization keys/order match constructor exactly.
+  - Constructor assigns the normalized/validated values exactly once to the declared readonly properties.
+  - Exact request serialization keys/order match the declared property order exactly. Dates serialize using `DATE_ATOM`.
+- The only Admin filters are: `actorType`, `actorId`, `eventKey`, `severity`, `requestId`, `correlationId`, `after`, `before`.
+- Explicitly prohibit in this phase: `eventId`, `routeName`, `durationMs`, metadata search, free-text search, arbitrary SQL, and generic filtering. These excluded values may still appear in returned `DiagnosticsTelemetryEventDTO` items where applicable.
 - Explicit string maximums (calculated by native `preg_match_all('/./us', $value)` without `ext-mbstring`):
   - `actorType`: 32
   - `eventKey`: 255
@@ -181,6 +202,7 @@ The distinct-placeholder correction (see Section 8) applies only to primitive `f
   - Trimming of string inputs.
   - Empty strings normalize to `null`.
   - Positive-ID rule for `actorId` (must be > 0).
+  - `actorType` and `actorId` are independent: type-only, ID-only, both, and neither are valid. `actorId` does not require `actorType`.
   - `after` must be less than or equal to `before` (inclusive/equal date rule).
   - `DATE_ATOM` serialization behavior for dates.
   - Exact invalid sort fallback behavior:
@@ -193,24 +215,47 @@ The distinct-placeholder correction (see Section 8) applies only to primitive `f
     overlong/invalid UTF-8 -> validation exception
     ```
 - Exact `DiagnosticsTelemetryAdminPageResultDTO` contract:
-  - Constructor types and defaults:
-    ```php
-    /** @param list<DiagnosticsTelemetryEventDTO> $items */
-    public function __construct(
-        public array $items,
-        public int $page,
-        public int $perPage,
-        public int $total,
-        public int $filtered,
-        public int $totalPages,
-        public bool $hasNext,
-        public bool $hasPrevious,
-        public string $sortBy,
-        public string $sortDirection,
-    )
-    ```
-  - Implements `IteratorAggregate`, `JsonSerializable`, providing `getIterator()` and `jsonSerialize()`.
-  - Serialized properties in exact order: `items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection`.
+  ```php
+  /** @implements \IteratorAggregate<int, DiagnosticsTelemetryEventDTO> */
+  final readonly class DiagnosticsTelemetryAdminPageResultDTO implements \IteratorAggregate, \JsonSerializable
+  {
+      /** @param list<DiagnosticsTelemetryEventDTO> $items */
+      public function __construct(
+          public array $items,
+          public int $page,
+          public int $perPage,
+          public int $total,
+          public int $filtered,
+          public int $totalPages,
+          public bool $hasNext,
+          public bool $hasPrevious,
+          public string $sortBy,
+          public string $sortDirection,
+      ) {
+      }
+
+      public function getIterator(): \ArrayIterator
+      {
+          return new \ArrayIterator($this->items);
+      }
+
+      public function jsonSerialize(): array
+      {
+          return [
+              'items' => $this->items,
+              'page' => $this->page,
+              'perPage' => $this->perPage,
+              'total' => $this->total,
+              'filtered' => $this->filtered,
+              'totalPages' => $this->totalPages,
+              'hasNext' => $this->hasNext,
+              'hasPrevious' => $this->hasPrevious,
+              'sortBy' => $this->sortBy,
+              'sortDirection' => $this->sortDirection,
+          ];
+      }
+  }
+  ```
   - State explicitly: there is no root-level `id` field in the page result DTO itself.
 
 ## 5. Policy-Aware Mapper and Repository Architecture
