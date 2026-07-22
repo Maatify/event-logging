@@ -28,29 +28,61 @@ The exact current primitive contract must be perfectly preserved:
   - `public function find(DiagnosticsTelemetryQueryDTO $query): array;` (throws `DiagnosticsTelemetryStorageException`, returns `array<DiagnosticsTelemetryEventDTO>`)
   - `public function read(?DiagnosticsTelemetryCursorDTO $cursor, int $limit = 100): iterable;` (returns `iterable<DiagnosticsTelemetryEventDTO>`)
 - Exact `DiagnosticsTelemetryQueryDTO` contract:
-  - Constructor and serialized order:
-    ```text
-    after
-    before
-    actorType
-    actorId
-    eventKey
-    severity
-    requestId
-    correlationId
-    cursorOccurredAt
-    cursorId
-    limit
+  - Constructor signature, types/defaults, and exact serialization order:
+    ```php
+    public function __construct(
+        public readonly ?\DateTimeImmutable $after = null,
+        public readonly ?\DateTimeImmutable $before = null,
+        public readonly ?string $actorType = null,
+        public readonly ?int $actorId = null,
+        public readonly ?string $eventKey = null,
+        public readonly ?string $severity = null,
+        public readonly ?string $requestId = null,
+        public readonly ?string $correlationId = null,
+        public readonly ?\DateTimeImmutable $cursorOccurredAt = null,
+        public readonly ?int $cursorId = null,
+        public readonly int $limit = 50,
+    )
     ```
   - `DATE_ATOM` behavior: `after`, `before`, and `cursorOccurredAt` serialize using `DATE_ATOM`.
-- Exact `DiagnosticsTelemetryEventDTO` and `DiagnosticsTelemetryContextDTO` constructor and serialization contracts:
-  ```text
-  DiagnosticsTelemetryEventDTO:
-  id, eventId, eventKey, severity, context, durationMs, metadata
-
-  DiagnosticsTelemetryContextDTO:
-  actorType, actorId, correlationId, requestId, routeName, ipAddress, userAgent, occurredAt
-  ```
+- Exact `DiagnosticsTelemetryCursorDTO` contract:
+  - Constructor signature:
+    ```php
+    public function __construct(
+        public readonly \DateTimeImmutable $lastOccurredAt,
+        public readonly int $lastId,
+    )
+    ```
+  - Serialized exactly as `lastOccurredAt`, then `lastId`, with `lastOccurredAt` using `DATE_ATOM`.
+- Exact `DiagnosticsTelemetryEventDTO` contract:
+  - Constructor signature, types, and exact serialization order:
+    ```php
+    public function __construct(
+        public readonly int $id,
+        public readonly string $eventId,
+        public readonly string $eventKey,
+        public readonly DiagnosticsTelemetrySeverityInterface $severity,
+        public readonly DiagnosticsTelemetryContextDTO $context,
+        public readonly ?int $durationMs,
+        public readonly ?array $metadata,
+    )
+    ```
+- Exact `DiagnosticsTelemetryContextDTO` contract:
+  - Constructor signature, types, and exact serialization order:
+    ```php
+    public function __construct(
+        public readonly DiagnosticsTelemetryActorTypeInterface $actorType,
+        public readonly ?int $actorId,
+        public readonly ?string $correlationId,
+        public readonly ?string $requestId,
+        public readonly ?string $routeName,
+        public readonly ?string $ipAddress,
+        public readonly ?string $userAgent,
+        public readonly \DateTimeImmutable $occurredAt,
+    )
+    ```
+  - `actorType` and `severity` (in `DiagnosticsTelemetryEventDTO`) serialize using nested enum `value()`.
+  - `occurredAt` serializes using `DATE_ATOM`.
 - Exact primitive repository constructor: `public function __construct(private readonly PDO $pdo, ?DiagnosticsTelemetryPolicyInterface $policy = null)`. Default policy behavior is preserved.
 - Every primitive filter-to-SQL mapping:
   - `actor_type = :actor_type`
@@ -63,7 +95,21 @@ The exact current primitive contract must be perfectly preserved:
   - `occurred_at <= :before`
 - Cursor activation: The primitive `find()` cursor is activated only when both `cursorOccurredAt` and `cursorId` are non-null.
 - Protected `find()` query behaviors: `SELECT *`, `max(1, limit)`, descending order (`ORDER BY occurred_at DESC, id DESC`), row iteration via `PDO::FETCH_ASSOC`, and all exact hydration fallbacks.
-- Exact legacy `read()` cursor behavior: SQL direction (`occurred_at > :cursor_at_after` or `occurred_at = :cursor_at_equal AND id > :cursor_id`), ascending order (`ORDER BY occurred_at ASC, id ASC`), limit behavior (`LIMIT :limit` placeholder), and exception boundaries.
+- Exact legacy `read()` cursor behavior:
+  - Base query: `SELECT * FROM maa_event_logging_diagnostics_telemetry WHERE 1=1`
+  - When cursor exists:
+    ```sql
+    AND (
+        occurred_at > :last_occurred_at
+        OR (
+            occurred_at = :last_occurred_at_eq
+            AND id > :last_id
+        )
+    )
+    ```
+  - Order and limit: `ORDER BY occurred_at ASC, id ASC LIMIT :limit`
+  - Parameters: `:last_occurred_at`, `:last_occurred_at_eq`, `:last_id`, `:limit`
+  - Do not apply the primitive `find()` placeholder correction to `read()`.
 - Exact query/read/mapping exception prefixes and preservation of original throwable as `previous`:
   ```text
   find PDO:    Failed to query DiagnosticsTelemetry records:
@@ -139,8 +185,24 @@ The distinct-placeholder correction (see Section 7) applies only to primitive `f
     other short value -> null
     overlong/invalid UTF-8 -> validation exception
     ```
-- Exact `DiagnosticsTelemetryAdminPageResultDTO` constructor/serialization:
-  - Implements `IteratorAggregate`, `JsonSerializable`.
+- Exact `DiagnosticsTelemetryAdminPageResultDTO` contract:
+  - Constructor types and defaults:
+    ```php
+    /** @param list<DiagnosticsTelemetryEventDTO> $items */
+    public function __construct(
+        public array $items,
+        public int $page,
+        public int $perPage,
+        public int $total,
+        public int $filtered,
+        public int $totalPages,
+        public bool $hasNext,
+        public bool $hasPrevious,
+        public string $sortBy,
+        public string $sortDirection,
+    )
+    ```
+  - Implements `IteratorAggregate`, `JsonSerializable`, providing `getIterator()` and `jsonSerialize()`.
   - Serialized properties in exact order: `items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection`.
   - State explicitly: there is no root-level `id` field in the page result DTO itself.
 
@@ -174,7 +236,13 @@ The primitive repository is policy-aware. To resolve this for the Admin Query AP
   ```
   - valid decoded JSON is accepted whenever `is_array($decoded)` is true; numeric-key arrays are currently accepted and must not be changed to `null`;
   - `duration_ms` uses `is_numeric()` and casts to `int`; numeric strings are accepted and must not be reclassified as `null`.
-- Exact translation of mapper failures: Mapper failures throwing `DiagnosticsTelemetryStorageException` must pass through the repository exactly as thrown, without double wrapping.
+- Exact translation of mapper failures:
+  - `DiagnosticsTelemetryRowMapper::map()` throws raw mapping/policy exceptions; it does not create package storage exceptions itself.
+  - primitive `find()` translates mapper exceptions using `Failed to map DiagnosticsTelemetry row: {message}`;
+  - legacy `read()` translates mapper exceptions using `Failed to map telemetry row: {message}`;
+  - Admin repository translates mapper/policy exceptions using `Failed to map DiagnosticsTelemetry row: {message}`;
+  - every translation preserves `previous`;
+  - a `DiagnosticsTelemetryStorageException` already produced by the dedicated Admin mapping callback propagates unchanged and is not double-wrapped as a paginator or execution failure.
 
 ## 5. SQL, Pagination, and Exceptions
 
@@ -185,17 +253,21 @@ The primitive repository is policy-aware. To resolve this for the Admin Query AP
 - **Exact explicit 14-column data selection**:
   `SELECT id, event_id, event_key, severity, actor_type, actor_id, correlation_id, request_id, route_name, ip_address, user_agent, duration_ms, metadata, occurred_at FROM maa_event_logging_diagnostics_telemetry WHERE <conditions>`
 - **Exact filter-to-column mapping**:
-  - `actorType` -> `actor_type = :actorType`
-  - `actorId` -> `actor_id = :actorId`
-  - `eventKey` -> `event_key = :eventKey`
-  - `severity` -> `severity = :severity`
-  - `requestId` -> `request_id = :requestId`
-  - `correlationId` -> `correlation_id = :correlationId`
-  - `after` -> `occurred_at >= :after`
-  - `before` -> `occurred_at <= :before`
+  ```text
+  actorType      -> actor_type = :actor_type      / actor_type
+  actorId        -> actor_id = :actor_id          / actor_id
+  eventKey       -> event_key = :event_key        / event_key
+  severity       -> severity = :severity          / severity
+  requestId      -> request_id = :request_id      / request_id
+  correlationId  -> correlation_id = :correlation_id / correlation_id
+  after          -> occurred_at >= :after         / after
+  before         -> occurred_at <= :before        / before
+  ```
 - **Parameter handling**:
   - UTC conversion and `Y-m-d H:i:s.u` database formatting are performed exclusively in the descriptor builder.
-  - Parameter keys in the descriptor array must not have leading colons (e.g., `['actorType' => $val]`).
+  - Parameter keys in the descriptor array must not have leading colons (e.g., `['actor_type' => $val]`).
+  - An empty filter set produces no `WHERE` clause.
+  - Filtered-count and data SQL append the exact same generated `whereSql` (prefix exactly one ` WHERE ` and join conditions with ` AND `) and use the exact same params.
 - **Pagination constraints**:
   - No `ORDER BY`, `LIMIT`, or `OFFSET` clauses inside the descriptor data SQL.
   - Canonical pagination values: default per-page 20, minimum 1, maximum 200.
