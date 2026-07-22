@@ -21,7 +21,8 @@ The module follows the Canonical Logger Design Standard:
 
 Consumers should strictly use the defined Public API:
 - **Write:** `DiagnosticsTelemetryRecorder::record(...)`
-- **Read:** `DiagnosticsTelemetryQueryInterface::read(...)`
+- **Read (Primitive Archive/Cursor):** `DiagnosticsTelemetryQueryInterface::read(...)` and `DiagnosticsTelemetryQueryInterface::find(...)`
+- **Read (Admin Pagination):** `DiagnosticsTelemetryAdminQueryInterface::paginate(...)`
 - **Configure:** `DiagnosticsTelemetryPolicyInterface` (optional implementation)
 
 See `EVENT_LOGGING_PACKAGE_REFERENCE.md` for full contract details.
@@ -123,9 +124,9 @@ The module is designed to support future archiving via the `DiagnosticsTelemetry
 
 > **Reader Scope Clarification**
 >
-> The read-side provided by this module is a **primitive, cursor-based reader**
-> intended strictly for archiving and sequential processing.
-> Statements saying the reader is not designed for UI pagination, searching, or analytics apply only to this protected primitive `v1.0.0` reader. It does not imply that the entire domain can never contain the future separate Admin Query API.
+> The protected primitive `v1.0.0` read-side provided by this module (`DiagnosticsTelemetryQueryInterface`) is a **primitive, cursor-based reader** intended strictly for archiving and sequential processing.
+>
+> For administrative UI dashboards, the package provides a separate offset-based Admin Query API (`DiagnosticsTelemetryAdminQueryInterface`). The Admin Query API supports filtering by actor, event key, severity, request ID, correlation ID, and date range. The Admin Query API uses strict deterministic sorting by `occurred_at DESC` and `id DESC`. Note that generic search, free-text search, event ID lookup, and complex reporting aggregations remain explicitly out of scope for the package.
 
 
 ### Constraints & Guards

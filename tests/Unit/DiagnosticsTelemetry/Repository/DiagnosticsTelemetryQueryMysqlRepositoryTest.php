@@ -77,7 +77,7 @@ class DiagnosticsTelemetryQueryMysqlRepositoryTest extends TestCase
         $repository->find($query);
 
         $this->assertNotNull($pdo->lastStatement);
-        $this->assertStringContainsString('WHERE (occurred_at < :cursor_at OR (occurred_at = :cursor_at AND id < :cursor_id))', $pdo->lastStatement->queryString);
+        $this->assertStringContainsString('WHERE (occurred_at < :cursor_at_before OR (occurred_at = :cursor_at_equal AND id < :cursor_id))', $pdo->lastStatement->queryString);
     }
 
     public function testFindMapsRowsToDtoCorrectly(): void

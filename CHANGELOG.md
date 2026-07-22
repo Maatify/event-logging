@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the separate DiagnosticsTelemetry Admin Query public API with package-owned request/result DTOs and MySQL repository.
+- Added Unit, Regression, and strict real-MySQL Integration coverage for DiagnosticsTelemetry Admin Query pagination and primitive find()/read() compatibility.
 - Added the separate AuthoritativeAudit Admin Query public API with package-owned request/result DTOs and MySQL repository.
 - Added Unit, Regression, and strict real-MySQL Integration coverage for AuthoritativeAudit Admin Query pagination and primitive cursor compatibility.
 - Added the separate AuditTrail Admin Query public API with package-owned request/result DTOs and MySQL repository.
@@ -19,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Unit, Regression, and strict MySQL Integration coverage for SecuritySignals Admin Query pagination and primitive cursor compatibility.
 
 ### Changed
+- Extracted DiagnosticsTelemetry policy-aware row hydration into a shared internal mapper while preserving primitive find() and legacy read() behavior.
+- Corrected DiagnosticsTelemetry primitive find() cursor placeholders for native PDO prepared statements without changing cursor semantics.
+- Updated DiagnosticsTelemetry Admin Query blueprint, roadmap, package reference, domain README, integration guide, and documentation inventory to implementation status.
 - Corrected AuthoritativeAudit primitive `find()` cursor placeholders for native PDO prepared statements without changing v1 semantics.
 - Updated internal mapper, descriptor, repository, and documentation states for AuthoritativeAudit Admin Query.
 - Extracted AuditTrail row hydration into a shared internal mapper while preserving primitive query behavior.

@@ -180,7 +180,7 @@ The primitive read side is designed for archiving, sequential processing, export
 
 ## 12. Admin Query APIs
 
-AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DiagnosticsTelemetry additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
 
 ### AuthoritativeAudit
 
@@ -328,6 +328,47 @@ SecuritySignals Admin Query exception boundaries:
 
 The package does not provide HTTP controllers, routes, authorization, middleware, UI, exports, localization, dashboards, free-text search, metadata search, joins, caching, or approximate counts for Admin Query. Hosts own those concerns.
 
+### DiagnosticsTelemetry
+
+Public contract:
+
+```php
+use Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryAdminQueryInterface;
+use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryAdminQueryRequestDTO;
+use Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryAdminQueryMysqlRepository;
+
+$query = new DiagnosticsTelemetryAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO(
+    actorType: 'sys',
+    actorId: 42,
+    eventKey: 'http.request',
+    severity: 'INFO',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `eventKey`, `severity`, `requestId`, `correlationId`, `after`, and `before`. `actorType` and `actorId` are independent filters: type-only, ID-only, both, and neither are all valid. Empty strings are normalized to `null`, IDs must be positive, equal date boundaries are valid, and date filters are inclusive.
+
+The result DTO serializes as:
+
+```text
+items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection
+```
+
+Caller-selectable sorting is limited to `occurred_at`; `id` is used only as the internal deterministic tie-breaker. Pagination normalization, clamping, offset calculation, count execution, and ordering mechanics are delegated to `maatify/persistence`. The public EventLogging API does not expose persistence package classes.
+
+DiagnosticsTelemetry Admin Query exception boundaries:
+
+- `DiagnosticsTelemetryAdminQueryInvalidArgumentException` for invalid request filters and ranges.
+- `DiagnosticsTelemetryAdminQueryExecutionException` for invalid pagination configuration or descriptor construction.
+- `DiagnosticsTelemetryStorageException` for PDO and pagination execution failures, using the existing `Failed to query DiagnosticsTelemetry records: ...` message pattern.
+
+The package does not provide HTTP controllers, routes, authorization, middleware, UI, exports, localization, dashboards, free-text search, metadata search, arbitrary SQL, joins, caching, or approximate counts for Admin Query. Event ID, route name, duration, and metadata filtering are explicitly unsupported. Hosts own those concerns.
+
 ### Superseded Post-v1 Pagination Artifacts
 
 The following pagination artifacts were added after the `v1.0.0` release and are considered superseded experiments pending replacement by the approved Admin Query API:
@@ -346,7 +387,7 @@ Advanced querying (UI-driven generic search, arbitrary filtering, complex host a
 
 Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring when they are repository or writer adapters. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
 
-Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, `SecuritySignalsAdminQueryMysqlRepository`, and `AuthoritativeAuditAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, `SecuritySignalsAdminQueryMysqlRepository`, `AuthoritativeAuditAdminQueryMysqlRepository`, and `DiagnosticsTelemetryAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
 
 Classes marked `@internal` under infrastructure namespaces are package implementation details, not stable public API. Hosts must not construct, type against, extend, or depend on them, and their signatures are not part of the stable compatibility contract. The Admin Query implementations explicitly exclude these internal classes from the stable public API:
 
@@ -356,6 +397,8 @@ Classes marked `@internal` under infrastructure namespaces are package implement
 - `Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination\AuthoritativeAuditAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceRowMapper`
 - `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\Pagination\BehaviorTraceAdminQueryDescriptorBuilder`
+- `Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryRowMapper`
+- `Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\Pagination\DiagnosticsTelemetryAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsRowMapper`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\Pagination\SecuritySignalsAdminQueryDescriptorBuilder`
 

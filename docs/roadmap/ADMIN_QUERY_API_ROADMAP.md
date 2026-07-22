@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 3 Complete / DiagnosticsTelemetry Blueprint Approved / Runtime Implementation Next
+**Status:** Phase 3 Complete / DiagnosticsTelemetry Runtime Implemented / DeliveryOperations Next
 
 ## 1. Scope Boundary
 
@@ -93,8 +93,8 @@ Implement the Admin Query API for domains that never received the incorrect post
 
 These are new post-v1.0 features, not corrections to the first-release Runtime.
 
-- **Status:** Phase 3 rebuilds are complete. Phase 4 is now pending the first new-domain implementation.
-  - `DiagnosticsTelemetry`: [Owner Approved / Runtime Authorized / Implementation Pending](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
+- **Status:** Phase 4 is active. DiagnosticsTelemetry Runtime is implemented. DeliveryOperations is next.
+  - `DiagnosticsTelemetry`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
   - `DeliveryOperations`: Pending
 
 ### Phase 5 — Reporting and Dashboard Summary Contracts
