@@ -21,7 +21,7 @@ The package intentionally uses explicit runtime dependencies rather than hiding 
 - PHP `^8.2`.
 - PHP extensions: `ext-json`, `ext-pdo`.
 - `maatify/exceptions`.
-- `maatify/persistence` for AuditTrail, BehaviorTrace, and SecuritySignals Admin Query offset pagination mechanics.
+- `maatify/persistence` for AuditTrail, BehaviorTrace, SecuritySignals, and AuthoritativeAudit Admin Query offset pagination mechanics.
 - `maatify/shared-common` for shared contracts such as `ClockInterface`.
 - `psr/log` for optional fail-open fallback logging.
 - `ramsey/uuid` for UUID generation; the package does not provide an internal UUID fallback generator.
@@ -337,7 +337,7 @@ The following pagination artifacts were added after the `v1.0.0` release and are
 - `*QueryPageDTO`
 - `*PaginatedQueryService`
 
-The AuditTrail, BehaviorTrace, and SecuritySignals versions of these artifacts have been removed by their Admin Query implementations because they were unreleased post-v1 experiments, not protected `v1.0.0` contracts. Remaining domains must not use these artifacts as the architecture for new integrations or extend them to additional domains. Advanced domain-scoped Admin Query and reporting contracts remain governed by the approved architecture and roadmap.
+The AuditTrail, BehaviorTrace, SecuritySignals, and AuthoritativeAudit versions of these artifacts have been removed by their Admin Query implementations because they were unreleased post-v1 experiments, not protected `v1.0.0` contracts. Remaining domains must not use these artifacts as the architecture for new integrations or extend them to additional domains. Advanced domain-scoped Admin Query and reporting contracts remain governed by the approved architecture and roadmap.
 
 Advanced querying (UI-driven generic search, arbitrary filtering, complex host analytics) remains the responsibility of the host application outside this package.
 
@@ -346,12 +346,14 @@ Advanced querying (UI-driven generic search, arbitrary filtering, complex host a
 
 Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring when they are repository or writer adapters. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
 
-Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, and `SecuritySignalsAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, `SecuritySignalsAdminQueryMysqlRepository`, and `AuthoritativeAuditAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
 
 Classes marked `@internal` under infrastructure namespaces are package implementation details, not stable public API. Hosts must not construct, type against, extend, or depend on them, and their signatures are not part of the stable compatibility contract. The Admin Query implementations explicitly exclude these internal classes from the stable public API:
 
 - `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\AuditTrailRowMapper`
 - `Maatify\EventLogging\AuditTrail\Infrastructure\Mysql\Pagination\AuditTrailAdminQueryDescriptorBuilder`
+- `Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditRowMapper`
+- `Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\Pagination\AuthoritativeAuditAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\BehaviorTraceRowMapper`
 - `Maatify\EventLogging\BehaviorTrace\Infrastructure\Mysql\Pagination\BehaviorTraceAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsRowMapper`

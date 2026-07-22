@@ -93,7 +93,9 @@ Implement the Admin Query API for domains that never received the incorrect post
 
 These are new post-v1.0 features, not corrections to the first-release Runtime.
 
-- **Status:** Phase 3 rebuilds are complete. Phase 4 is now pending the first new-domain implementation (`DiagnosticsTelemetry`, followed by `DeliveryOperations`).
+- **Status:** Phase 3 rebuilds are complete. Phase 4 is now pending the first new-domain implementation.
+  - `DiagnosticsTelemetry`: [Proposed / Owner Review Required](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
+  - `DeliveryOperations`: Pending
 
 ### Phase 5 — Reporting and Dashboard Summary Contracts
 
@@ -148,7 +150,7 @@ The `SecuritySignals` Admin Query Runtime is implemented and complete, pending o
 
 `AuthoritativeAudit` replacement Runtime, primitive preservation, strict MySQL coverage, and seven-artifact retirement are complete.
 
-`DiagnosticsTelemetry` is pending implementation.
+`DiagnosticsTelemetry` blueprint is pending Owner review; Runtime is not authorized.
 
 `DeliveryOperations` is pending implementation.
 

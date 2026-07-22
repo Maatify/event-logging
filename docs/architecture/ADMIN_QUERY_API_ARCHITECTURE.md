@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture / Active Post-v1.0 Pagination Remediation
-**Phase:** AuditTrail, BehaviorTrace, and SecuritySignals Runtime Implemented / AuthoritativeAudit Owner Approved and Runtime Pending / DiagnosticsTelemetry and DeliveryOperations Blocked
+**Phase:** Phase 3 Rebuilds Complete (AuditTrail, BehaviorTrace, SecuritySignals, AuthoritativeAudit Runtime Implemented) / Phase 4 DiagnosticsTelemetry Blueprint Owner Review Pending / DiagnosticsTelemetry and DeliveryOperations Runtime Blocked
 
 ## 1. Purpose
 
@@ -82,7 +82,7 @@ These domains already contain incorrect post-v1.0 pagination work and must be re
 1. `AuditTrail` — rebuild POC.
 2. `BehaviorTrace` — rebuild.
 3. `SecuritySignals` — rebuild.
-4. `AuthoritativeAudit` — rebuild last among remediation domains because of its fail-closed behavior and outbox/materialized-log boundary. (Owner Approved / Runtime Pending)
+4. `AuthoritativeAudit` — rebuild last among remediation domains because of its fail-closed behavior and outbox/materialized-log boundary. (Runtime Implemented)
 
 ### 4.2 New implementation domains
 
@@ -226,11 +226,11 @@ The approved implementation sequence is:
 
 Runtime implementation remains blocked until the Owner explicitly approves the relevant phase blueprint.
 
-The current next phase is `AuthoritativeAudit`.
+The current next phase is `DiagnosticsTelemetry`.
 
 Approval must cover at minimum:
 
-- The domain replacement strategy.
+- The domain replacement strategy (or new implementation strategy).
 - Public request and result contracts.
 - Filter and sort contracts.
 - Count/data semantic alignment.
@@ -245,6 +245,7 @@ Note that `maatify/persistence ^1.1.0` is already installed. No Composer depende
 - `AuditTrail`: Runtime implemented.
 - `BehaviorTrace`: Runtime implemented.
 - `SecuritySignals`: Runtime implemented.
-- `AuthoritativeAudit`: Owner Approved / Runtime Pending. Next authorized rebuild.
+- `AuthoritativeAudit`: Runtime implemented.
+- `DiagnosticsTelemetry`: Blueprint Owner Review Pending. Next authorized implementation.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.
