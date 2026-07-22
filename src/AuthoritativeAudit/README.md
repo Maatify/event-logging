@@ -28,15 +28,40 @@ Consumers should strictly use the defined Public API:
 - **Write:** `AuthoritativeAuditRecorder::record(...)`
 - **Configure:** `AuthoritativeAuditPolicyInterface`
 
-### Primitive Query API
+### Reading Data
 
+There are two supported read paths: the new Admin Query API and the protected primitive v1 API.
+
+Reads target **exclusively** the materialized log table (`maa_event_logging_authoritative_audit_log`), and never the outbox.
+
+#### Admin Query API
+Use `AuthoritativeAuditAdminQueryInterface` (implemented by `AuthoritativeAuditAdminQueryMysqlRepository`) for fully-featured offset pagination supporting explicit filters and strict boundaries.
+
+```php
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminPageResultDTO;
+
+$request = new AuthoritativeAuditAdminQueryRequestDTO(
+    actorType: 'admin',
+    action: 'role.assign',
+    page: 1,
+    perPage: 50
+);
+
+/** @var AuthoritativeAuditAdminPageResultDTO $result */
+$result = $adminQueryRepository->paginate($request);
+
+// Access mapped items (AuthoritativeAuditViewDTO)
+foreach ($result->items as $event) {
+    echo $event->eventId;
+}
+```
+Supported filters include `eventId`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, and `before`. Validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`, invalid pagination constraints throw `AuthoritativeAuditAdminQueryExecutionException`, and database failures throw `AuthoritativeAuditStorageException`.
+
+#### Primitive Query API (v1 Legacy)
 The domain provides a primitive, protected query contract for retrieving logged events:
 - **Query:** `AuthoritativeAuditQueryInterface::find(AuthoritativeAuditQueryDTO $query)`
 - **Behavior:** Primitive cursor-based pagination (`cursorOccurredAt`, `cursorId`, `limit`).
-- **Data Source:** Admin and primitive listings strictly read from the non-authoritative materialized log (`maa_event_logging_authoritative_audit_log`).
-
-**Future Admin Query API:**
-A separate offset-based Admin Query API has been documented and Owner Approved (see `docs/architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md`). Runtime implementation for this API is currently pending.
 
 
 ### Data Flow

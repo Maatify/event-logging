@@ -138,6 +138,33 @@ The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `t
 
 Admin Query validation errors throw `SecuritySignalsAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `SecuritySignalsAdminQueryExecutionException`. PDO and pagination execution failures throw `SecuritySignalsStorageException` using the existing `Failed to query SecuritySignals records: ...` message pattern.
 
+## AuthoritativeAudit Admin Query Offset Pagination
+
+AuthoritativeAudit also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository;
+
+$repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    action: 'role.assign',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `eventId`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, and `before`. Date boundaries are inclusive and equal boundaries are valid. Independent actor/target filters are supported.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuthoritativeAuditAdminQueryExecutionException`. PDO and pagination execution failures throw `AuthoritativeAuditStorageException` using the existing `Failed to query AuthoritativeAudit records: ...` message pattern.
+
 ## Supported Filters per Domain
 
 Each domain's query DTO exposes specific filter properties aligned with its context. Common filters include `actorType`, `actorId`, `after`, `before`, `requestId`, and `correlationId`.
