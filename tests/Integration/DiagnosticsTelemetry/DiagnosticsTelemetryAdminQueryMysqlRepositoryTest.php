@@ -101,7 +101,7 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame([], $result->items);
         $this->assertSame(0, $result->total);
         $this->assertSame(0, $result->filtered);
-        $this->assertSame(1, $result->totalPages);
+        $this->assertSame(0, $result->totalPages);
     }
 
     public function testItPaginatesWithoutFilters(): void
