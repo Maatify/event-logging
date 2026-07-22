@@ -1,8 +1,18 @@
 # DiagnosticsTelemetry Admin Query Blueprint
 
-**Status:** Proposed / Owner Review Required / Runtime Not Authorized
 
-This document defines the complete proposed architecture for adding the new Admin Query API path for `DiagnosticsTelemetry`.
+**Status:** Owner Approved / Runtime Authorized / Implementation Pending
+
+## Approval Record
+
+- Owner approval was completed on July 22, 2026.
+- The approved blueprint was merged through PR #119.
+- Merge commit: `201d3369c78c6f88e6bb7cba1ae0a442befb0ee2`.
+- Runtime must be implemented in a separate PR from current `main`.
+- No schema, Composer, CI, host, reporting, dashboard, tag, or release work is authorized.
+
+
+This document defines the complete approved architecture for adding the new Admin Query API path for `DiagnosticsTelemetry`.
 
 ## 1. Classification and Strict Non-Scope Boundaries
 
@@ -25,7 +35,7 @@ This document defines the complete proposed architecture for adding the new Admi
   - Architecture (`ADMIN_QUERY_API_ARCHITECTURE.md`)
   - Roadmap (`ADMIN_QUERY_API_ROADMAP.md`)
   - Inventory (`DOCUMENTATION_INVENTORY.md`)
-- Explicit separation: The protected `v1.0.0` primitive Runtime and the proposed new Admin Query API are explicitly separated. The Admin Query API does not replace or alter the protected primitive paths.
+- Explicit separation: The protected `v1.0.0` primitive Runtime and the approved new Admin Query API are explicitly separated. The Admin Query API does not replace or alter the protected primitive paths.
 
 ## 3. Protected Primitive Contract
 
@@ -128,7 +138,7 @@ The exact current primitive contract must be perfectly preserved:
 
 The distinct-placeholder correction (see Section 8) applies only to primitive `find()`; all other observable primitive behavior must remain unchanged.
 
-## 4. Proposed Admin Public Contracts
+## 4. Approved Admin Public Contracts
 
 - Full interface:
   ```php
@@ -351,7 +361,7 @@ The primitive repository is policy-aware. To resolve this for the Admin Query AP
     DiagnosticsTelemetry Admin Query execution failed: {previous message}
     ```
 
-## 7. Proposed File and Test Inventory
+## 7. Approved File and Test Inventory
 
 The exact expected list of files for the later Runtime implementation:
 

@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 3 Complete / DiagnosticsTelemetry Blueprint Owner Review Pending
+**Status:** Phase 3 Complete / DiagnosticsTelemetry Blueprint Approved / Runtime Implementation Next
 
 ## 1. Scope Boundary
 
@@ -94,7 +94,7 @@ Implement the Admin Query API for domains that never received the incorrect post
 These are new post-v1.0 features, not corrections to the first-release Runtime.
 
 - **Status:** Phase 3 rebuilds are complete. Phase 4 is now pending the first new-domain implementation.
-  - `DiagnosticsTelemetry`: [Proposed / Owner Review Required](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
+  - `DiagnosticsTelemetry`: [Owner Approved / Runtime Authorized / Implementation Pending](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
   - `DeliveryOperations`: Pending
 
 ### Phase 5 — Reporting and Dashboard Summary Contracts
@@ -140,7 +140,13 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-**Phase 3 (Rebuild Domains) is complete.** Both new domains are pending, reporting/dashboard work remains blocked, and no tag or release is authorized.
+DiagnosticsTelemetry blueprint approval is complete. DiagnosticsTelemetry Runtime is the next authorized implementation.
+
+DeliveryOperations remains pending after DiagnosticsTelemetry.
+
+Reporting and dashboard work remain blocked.
+
+No tag or release is authorized.
 
 The `AuditTrail` Admin Query Runtime is implemented and merged, pending the future `v1.1.0` release.
 
@@ -149,11 +155,3 @@ The `BehaviorTrace` Admin Query Runtime is implemented and complete.
 The `SecuritySignals` Admin Query Runtime is implemented and complete, pending only the future package release where applicable. The replacement API is present, the protected primitive behavior is preserved, the required distinct-placeholder correction is applied, the exact superseded Runtime/test artifacts are deleted, and strict real-MySQL Integration coverage is present.
 
 `AuthoritativeAudit` replacement Runtime, primitive preservation, strict MySQL coverage, and seven-artifact retirement are complete.
-
-`DiagnosticsTelemetry` blueprint is pending Owner review; Runtime is not authorized.
-
-`DeliveryOperations` is pending implementation.
-
-Reporting and dashboard work remain blocked.
-
-No tag or release is authorized.

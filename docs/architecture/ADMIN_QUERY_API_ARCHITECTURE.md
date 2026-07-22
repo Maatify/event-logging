@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 3 Remediation Complete / Phase 4 New Implementations Active / DiagnosticsTelemetry Runtime Blocked (Pending Owner Blueprint Approval)
+**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Blueprint Approved / Runtime Next
 
 ## 1. Purpose
 
@@ -224,28 +224,15 @@ The approved implementation sequence is:
 
 ## 12. Implementation Gate
 
-Runtime implementation remains blocked until the Owner explicitly approves the relevant phase blueprint.
+The DiagnosticsTelemetry Owner-approval gate is satisfied. DiagnosticsTelemetry Runtime is the next authorized implementation. Implementation must follow the merged blueprint exactly.
 
-The current next phase is `DiagnosticsTelemetry`.
-
-Approval must cover at minimum:
-
-- The domain replacement strategy (or new implementation strategy).
-- Public request and result contracts.
-- Filter and sort contracts.
-- Count/data semantic alignment.
-- Mapper extraction strategy.
-- Exception translation.
-- Exact proposed file inventory.
-- Complete unit, integration, static-analysis, and compatibility test matrix.
-- The explicit primitive placeholder correction (`cursor_at_before` and `cursor_at_equal`) to support native prepared statements.
-
-Note that `maatify/persistence ^1.1.0` is already installed. No Composer dependency addition is required.
+DeliveryOperations remains pending. Reporting/dashboard remains blocked. No release or tag is authorized.
 
 - `AuditTrail`: Runtime implemented.
 - `BehaviorTrace`: Runtime implemented.
 - `SecuritySignals`: Runtime implemented.
 - `AuthoritativeAudit`: Runtime implemented.
-- `DiagnosticsTelemetry`: Blueprint Owner Review Pending. Next authorized implementation.
+- `DiagnosticsTelemetry`: Blueprint Approved. Runtime Next.
+- `DeliveryOperations`: Pending.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.
