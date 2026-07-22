@@ -104,11 +104,19 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $result->totalPages);
     }
 
-    public function testItPaginatesWithoutFilters(): void
+    public function testItPaginatesWithoutFiltersAndAppliesNormalization(): void
     {
         for ($i = 1; $i <= 25; $i++) {
             $this->insertLog(eventId: "evt-{$i}", occurredAt: "2025-01-01 10:00:{$i}.000000");
         }
+
+        $requestDefault = new DiagnosticsTelemetryAdminQueryRequestDTO(); // perPage defaults to null
+        $resultDefault = $this->repository->paginate($requestDefault);
+        $this->assertSame(20, $resultDefault->perPage); // Validates default per-page normalization
+
+        $requestMin = new DiagnosticsTelemetryAdminQueryRequestDTO(page: 1, perPage: 0); // <= 0 defaults to min limit 1
+        $resultMin = $this->repository->paginate($requestMin);
+        $this->assertSame(1, $resultMin->perPage); // Validates min clamp
 
         $request = new DiagnosticsTelemetryAdminQueryRequestDTO(page: 2, perPage: 10);
         $result = $this->repository->paginate($request);
@@ -143,11 +151,13 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
         $this->insertLog(eventId: 'evt-3', actorType: 'USER', actorId: 1);
 
         $resultTypeOnly = $this->repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO(actorType: 'SYS'));
+        $this->assertSame(3, $resultTypeOnly->total); // Verify total reflects all rows
         $this->assertSame(2, $resultTypeOnly->filtered);
         $this->assertSame('evt-2', $resultTypeOnly->items[0]->eventId);
         $this->assertSame('evt-1', $resultTypeOnly->items[1]->eventId);
 
         $resultIdOnly = $this->repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO(actorId: 1));
+        $this->assertSame(3, $resultIdOnly->total);
         $this->assertSame(2, $resultIdOnly->filtered);
         $this->assertSame('evt-3', $resultIdOnly->items[0]->eventId);
         $this->assertSame('evt-1', $resultIdOnly->items[1]->eventId);
@@ -212,20 +222,38 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             metadata: '"scalar"', // Invalid, becomes null
         );
 
+        $this->insertLog(
+            eventId: 'evt-4',
+            metadata: '{malformed_json_here}', // Corrupt, becomes null
+        );
+
         $result = $this->repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO());
 
-        $this->assertCount(3, $result->items);
+        $this->assertCount(4, $result->items);
 
-        // DESC sort means evt-3, evt-2, evt-1
-        $this->assertSame('evt-3', $result->items[0]->eventId);
+        // DESC sort means evt-4, evt-3, evt-2, evt-1
+        $this->assertSame('evt-4', $result->items[0]->eventId);
         $this->assertNull($result->items[0]->metadata);
 
-        $this->assertSame('evt-2', $result->items[1]->eventId);
-        $this->assertSame([1, 2, 3], $result->items[1]->metadata);
+        $this->assertSame('evt-3', $result->items[1]->eventId);
+        $this->assertNull($result->items[1]->metadata);
 
-        $this->assertSame('evt-1', $result->items[2]->eventId);
-        $this->assertSame(450, $result->items[2]->durationMs);
-        $this->assertSame(['key' => 'value'], $result->items[2]->metadata);
+        $this->assertSame('evt-2', $result->items[2]->eventId);
+        $this->assertSame([1, 2, 3], $result->items[2]->metadata);
+
+        $this->assertSame('evt-1', $result->items[3]->eventId);
+        $this->assertSame(450, $result->items[3]->durationMs);
+        $this->assertSame(['key' => 'value'], $result->items[3]->metadata);
+    }
+
+    public function testItPreservesExactSixDigitMicroseconds(): void
+    {
+        $this->insertLog(eventId: 'evt-1', occurredAt: '2025-01-01 10:00:00.123456');
+
+        $result = $this->repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO());
+
+        $this->assertCount(1, $result->items);
+        $this->assertSame('2025-01-01 10:00:00.123456', $result->items[0]->context->occurredAt->format('Y-m-d H:i:s.u'));
     }
 
     public function testItAppliesTieBreakerSort(): void
@@ -300,5 +328,39 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             $this->assertInstanceOf(\Exception::class, $e->getPrevious());
             $this->assertSame('Simulated policy exception', $e->getPrevious()->getMessage());
         }
+    }
+
+    public function testItUsesCustomPolicyForAdminHydration(): void
+    {
+        $customPolicy = new class implements \Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryPolicyInterface {
+            public function normalizeSeverity(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface $severity): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface
+            {
+                return new class implements \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface {
+                    public function value(): string { return 'CUSTOM_SEVERITY'; }
+                };
+            }
+
+            public function normalizeActorType(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface $actorType): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface
+            {
+                return new class implements \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface {
+                    public function value(): string { return 'CUSTOM_ACTOR'; }
+                };
+            }
+
+            public function validateMetadataSize(string $json): bool
+            {
+                return true;
+            }
+        };
+
+        $repo = new DiagnosticsTelemetryAdminQueryMysqlRepository($this->pdo, $customPolicy);
+
+        $this->insertLog(eventId: 'evt-custom', actorType: 'SYS', severity: 'INFO');
+
+        $result = $repo->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO());
+
+        $this->assertCount(1, $result->items);
+        $this->assertSame('CUSTOM_SEVERITY', $result->items[0]->severity->value());
+        $this->assertSame('CUSTOM_ACTOR', $result->items[0]->context->actorType->value());
     }
 }
