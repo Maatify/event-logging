@@ -10,41 +10,56 @@ use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditOutboxWriteDTO
 use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditQueryDTO;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository;
 use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository;
-use Maatify\EventLogging\Tests\Integration\Support\MysqlIntegrationTestCase;
 use PDO;
+use PDOException;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditOutboxWriterMysqlRepository
  * @covers \Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditQueryMysqlRepository
  */
-final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
+final class AuthoritativeAuditRepositoryTest extends TestCase
 {
+    private PDO $pdo;
     private AuthoritativeAuditOutboxWriterMysqlRepository $writer;
     private AuthoritativeAuditQueryMysqlRepository $query;
 
     protected function setUp(): void
     {
         parent::setUp();
-        if ($this->pdo !== null) {
-            $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($this->pdo);
-            $this->query = new AuthoritativeAuditQueryMysqlRepository($this->pdo);
+
+        $dsn = getenv('EVENT_LOGGING_TEST_MYSQL_DSN');
+        if (! is_string($dsn) || $dsn === '') {
+            throw new RuntimeException('EVENT_LOGGING_TEST_MYSQL_DSN is required for AuthoritativeAudit integration tests.');
         }
+
+        $this->pdo = new PDO(
+            $dsn,
+            getenv('EVENT_LOGGING_TEST_MYSQL_USER') ?: 'root',
+            getenv('EVENT_LOGGING_TEST_MYSQL_PASSWORD') ?: '',
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ],
+        );
+
+        $this->resetSchema();
+        $this->writer = new AuthoritativeAuditOutboxWriterMysqlRepository($this->pdo);
+        $this->query = new AuthoritativeAuditQueryMysqlRepository($this->pdo);
     }
 
-    protected function getDomainSchemaFile(): string
+    private function resetSchema(): void
     {
-        return 'src/AuthoritativeAudit/Database/schema.maa_event_logging_authoritative_audit.sql';
-    }
+        $schema = file_get_contents(__DIR__ . '/../../../src/AuthoritativeAudit/Database/schema.maa_event_logging_authoritative_audit.sql');
+        if (! is_string($schema) || $schema === '') {
+            throw new RuntimeException('Failed to read AuthoritativeAudit schema.');
+        }
 
-    /**
-     * @return array<int, string>
-     */
-    protected function getTableNames(): array
-    {
-        return [
-            'maa_event_logging_authoritative_audit_outbox',
-            'maa_event_logging_authoritative_audit_log'
-        ];
+        $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_authoritative_audit_log;');
+        $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_authoritative_audit_outbox;');
+        $this->pdo->exec($schema);
     }
 
     public function testWriteAndQueryRoundtrip(): void
@@ -94,46 +109,25 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
     {
         $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
 
-        // MySQL 5.7+ / MariaDB enforce JSON constraint on JSON columns.
-        // To test corrupt JSON handling *at the repository read layer*, we need to disable the check temporarily
-        // or bypass it. MariaDB uses CHECK(json_valid(`changes`)). We can temporarily drop this check constraint
-        // just for this test to prove the PHP code handles corrupt JSON.
+        // Change column type to permit invalid text insertion on real MySQL
+        $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log MODIFY COLUMN changes LONGTEXT NULL");
 
-        if ($this->pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
+        $stmt = $this->pdo->prepare("
+            INSERT INTO maa_event_logging_authoritative_audit_log
+            (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'invalid-json', ?, ?)
+        ");
 
-        $serverVersionAttr = $this->pdo->getAttribute(PDO::ATTR_SERVER_VERSION);
-        $serverVersion = is_scalar($serverVersionAttr) ? (string) $serverVersionAttr : '';
-        $isMariaDb = str_contains($serverVersion, 'MariaDB');
-
-        if ($isMariaDb) {
-            $this->pdo->exec("ALTER TABLE maa_event_logging_authoritative_audit_log DROP CONSTRAINT IF EXISTS `changes`");
-        }
-
-        try {
-            // Insert corrupt JSON directly into log table
-            $stmt = $this->pdo->prepare("
-                INSERT INTO maa_event_logging_authoritative_audit_log
-                (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'invalid-json', ?, ?)
-            ");
-
-            $stmt->execute([
-                'event-corrupt',
-                'system',
-                1,
-                'test_action',
-                'target',
-                2,
-                'corr-1',
-                $now->format('Y-m-d H:i:s.u')
-            ]);
-        } catch (\PDOException $e) {
-            // If we still can't insert invalid JSON, the DB is strictly enforcing it (e.g. MySQL 8).
-            // This means corrupt JSON is practically impossible at the DB level, but we can skip if we can't test it.
-            $this->markTestSkipped("Database enforces strict JSON validity: " . $e->getMessage());
-        }
+        $stmt->execute([
+            'event-corrupt',
+            'system',
+            1,
+            'test_action',
+            'target',
+            2,
+            'corr-1',
+            $now->format('Y-m-d H:i:s.u')
+        ]);
 
         $queryDto = new AuthoritativeAuditQueryDTO(
             action: 'test_action'
@@ -144,7 +138,6 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
 
         $viewDto = $results[0];
         $this->assertSame('event-corrupt', $viewDto->eventId);
-        // Assert corrupt JSON is safely ignored (mapped to null or empty depending on implementation, here usually null)
         $this->assertNull($viewDto->changes);
     }
 
@@ -188,11 +181,22 @@ final class AuthoritativeAuditRepositoryTest extends MysqlIntegrationTestCase
         $this->assertSame('evt-1', $res3[0]->eventId);
     }
 
+    public function testPrimitiveRepositoryDoesNotOwnTransactions(): void
+    {
+        $now = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
+        $dto1 = new AuthoritativeAuditOutboxWriteDTO('evt-1', 'admin', 1, 'action', 'tgt', 1, 'LOW', [], 'corr', $now);
+        $this->simulateOutboxConsumer($dto1);
+
+        $this->pdo->beginTransaction();
+        $queryDto = new AuthoritativeAuditQueryDTO(limit: 1);
+        $res = $this->query->find($queryDto);
+        $this->assertCount(1, $res);
+        $this->assertTrue($this->pdo->inTransaction());
+        $this->pdo->commit();
+    }
+
     private function simulateOutboxConsumer(AuthoritativeAuditOutboxWriteDTO $dto): void
     {
-        if ($this->pdo === null) {
-            $this->fail('PDO not initialized.');
-        }
         $stmt = $this->pdo->prepare("
             INSERT INTO maa_event_logging_authoritative_audit_log
             (event_id, actor_type, actor_id, action, target_type, target_id, changes, correlation_id, occurred_at)

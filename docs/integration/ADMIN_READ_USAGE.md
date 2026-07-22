@@ -1,16 +1,16 @@
 # Admin Read Usage
 
-> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuditTrail, BehaviorTrace, and SecuritySignals Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
 > - `*PaginatedQueryInterface`
 > - `*QueryCursorDTO`
 > - `*QueryPageDTO`
 > - `*PaginatedQueryService`
 >
-> AuditTrail, BehaviorTrace, and SecuritySignals now use the approved replacement path. Other domains remain future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals now use the approved replacement path. Remaining domains (`DiagnosticsTelemetry` and `DeliveryOperations`) are future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
-The `maatify/event-logging` library provides primitive read/query contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
+The `maatify/event-logging` library provides both protected primitive read/query contracts and separate Admin Query offset pagination contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
-**Note: The package does not provide generic readers, admin controllers, routes, middleware, permissions, UI dashboards, exports, complex analytics, labels/localization, or actor resolution.** The host application retains complete responsibility for building out those features on top of these primitive query interfaces.
+**Note: The package does not provide generic readers, admin controllers, routes, middleware, permissions, UI dashboards, exports, complex analytics, labels/localization, or actor resolution.** The host application retains complete responsibility for building out those features on top of these query interfaces.
 
 ## Domain-Specific Query Contracts
 
@@ -137,6 +137,33 @@ Supported filters are `actorType`, `actorId`, `signalType`, `severity`, `request
 The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
 
 Admin Query validation errors throw `SecuritySignalsAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `SecuritySignalsAdminQueryExecutionException`. PDO and pagination execution failures throw `SecuritySignalsStorageException` using the existing `Failed to query SecuritySignals records: ...` message pattern.
+
+## AuthoritativeAudit Admin Query Offset Pagination
+
+AuthoritativeAudit also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository;
+
+$repository = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new AuthoritativeAuditAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    action: 'role.assign',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `eventId`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, and `before`. Date boundaries are inclusive and equal boundaries are valid. Independent actor/target filters are supported.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuthoritativeAuditAdminQueryExecutionException`. PDO and pagination execution failures throw `AuthoritativeAuditStorageException` using the existing `Failed to query AuthoritativeAudit records: ...` message pattern.
 
 ## Supported Filters per Domain
 

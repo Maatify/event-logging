@@ -180,7 +180,34 @@ The primitive read side is designed for archiving, sequential processing, export
 
 ## 12. Admin Query APIs
 
-AuditTrail, BehaviorTrace, and SecuritySignals additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+
+### AuthoritativeAudit
+
+Public contract:
+
+```php
+use Maatify\EventLogging\AuthoritativeAudit\Contract\AuthoritativeAuditAdminQueryInterface;
+use Maatify\EventLogging\AuthoritativeAudit\DTO\AuthoritativeAuditAdminQueryRequestDTO;
+use Maatify\EventLogging\AuthoritativeAudit\Infrastructure\Mysql\AuthoritativeAuditAdminQueryMysqlRepository;
+
+$query = new AuthoritativeAuditAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new AuthoritativeAuditAdminQueryRequestDTO(
+    actorType: 'admin',
+    actorId: 123,
+    action: 'role.assign',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+- **Filters:** `eventId`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, `before`.
+- **Validation Exceptions:** `AuthoritativeAuditAdminQueryInvalidArgumentException`
+- **Execution Exceptions:** `AuthoritativeAuditAdminQueryExecutionException`
+- **Storage Exceptions:** `AuthoritativeAuditStorageException`
 
 ### AuditTrail
 

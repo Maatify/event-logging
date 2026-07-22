@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Implemented / Pending v1.1.0 Release
+**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Implemented / AuthoritativeAudit Runtime Implemented / Pending v1.1.0 Release
 
 ## 1. Scope Boundary
 
@@ -82,7 +82,7 @@ For each rebuild domain:
 - **Status:**
   - `BehaviorTrace`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_BEHAVIOR_TRACE_REBUILD_BLUEPRINT.md)
   - `SecuritySignals`: [Owner Approved / Runtime Implemented](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_REBUILD_BLUEPRINT.md); [post-v1 retirement decision recorded](../architecture/ADMIN_QUERY_SECURITY_SIGNALS_POST_V1_RETIREMENT_DECISION.md)
-  - `AuthoritativeAudit`: [Owner Approved / Runtime Pending](../architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md)
+  - `AuthoritativeAudit`: [Implemented / Complete](../architecture/ADMIN_QUERY_AUTHORITATIVE_AUDIT_REBUILD_BLUEPRINT.md)
 
 ### Phase 4 — New Pagination Implementations for Missing Domains
 
@@ -93,7 +93,7 @@ Implement the Admin Query API for domains that never received the incorrect post
 
 These are new post-v1.0 features, not corrections to the first-release Runtime.
 
-- **Status:** Pending completion of all rebuild domains.
+- **Status:** Phase 3 rebuilds are complete. Phase 4 is now pending the first new-domain implementation (`DiagnosticsTelemetry`, followed by `DeliveryOperations`).
 
 ### Phase 5 — Reporting and Dashboard Summary Contracts
 
@@ -138,17 +138,19 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
+**Phase 3 (Rebuild Domains) is complete.** Both new domains are pending, reporting/dashboard work remains blocked, and no tag or release is authorized.
+
 The `AuditTrail` Admin Query Runtime is implemented and merged, pending the future `v1.1.0` release.
 
 The `BehaviorTrace` Admin Query Runtime is implemented and complete.
 
 The `SecuritySignals` Admin Query Runtime is implemented and complete, pending only the future package release where applicable. The replacement API is present, the protected primitive behavior is preserved, the required distinct-placeholder correction is applied, the exact superseded Runtime/test artifacts are deleted, and strict real-MySQL Integration coverage is present.
 
-`AuthoritativeAudit` blueprint is Owner Approved / Runtime Pending. Runtime implementation is authorized in a separate PR, but has not yet been implemented.
+`AuthoritativeAudit` replacement Runtime, primitive preservation, strict MySQL coverage, and seven-artifact retirement are complete.
 
-`DiagnosticsTelemetry` remains blocked.
+`DiagnosticsTelemetry` is pending implementation.
 
-`DeliveryOperations` remains blocked.
+`DeliveryOperations` is pending implementation.
 
 Reporting and dashboard work remain blocked.
 
