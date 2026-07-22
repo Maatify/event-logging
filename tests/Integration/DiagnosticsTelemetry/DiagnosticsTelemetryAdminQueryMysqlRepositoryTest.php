@@ -205,6 +205,16 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testItHydratesDTOsAndMetadataCorrectlyIncludingNumericArrays(): void
     {
+        // Recreate the table with metadata as TEXT to bypass MySQL JSON validation for this specific test
+        $schema = file_get_contents(__DIR__ . '/../../../src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql');
+        if (! is_string($schema)) {
+            $this->fail('Failed to load schema.');
+        }
+        $schema = str_replace('metadata JSON', 'metadata TEXT', $schema);
+        $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_diagnostics_telemetry;');
+        $this->pdo->exec($schema);
+
+
         $this->insertLog(
             eventId: 'evt-1',
             durationMs: 450,
@@ -221,6 +231,7 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             eventId: 'evt-3',
             metadata: '"scalar"', // Invalid, becomes null
         );
+
 
         $this->insertLog(
             eventId: 'evt-4',
