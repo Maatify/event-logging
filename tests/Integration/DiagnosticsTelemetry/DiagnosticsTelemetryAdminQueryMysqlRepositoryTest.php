@@ -281,6 +281,11 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             {
                 throw new \Exception('Simulated policy exception');
             }
+
+            public function validateMetadataSize(string $json): bool
+            {
+                return true;
+            }
         };
 
         $repo = new DiagnosticsTelemetryAdminQueryMysqlRepository($this->pdo, $throwingPolicy);

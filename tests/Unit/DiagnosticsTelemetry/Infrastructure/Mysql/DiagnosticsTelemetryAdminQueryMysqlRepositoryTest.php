@@ -90,6 +90,10 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             {
                 throw new \Exception('Simulated policy failure');
             }
+            public function validateMetadataSize(string $json): bool
+            {
+                return true;
+            }
         };
 
         $repository = new DiagnosticsTelemetryAdminQueryMysqlRepository($pdo, $policy);
@@ -118,6 +122,10 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             public function normalizeActorType(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface $actorType): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface
             {
                 throw new DiagnosticsTelemetryStorageException('Already a storage exception');
+            }
+            public function validateMetadataSize(string $json): bool
+            {
+                return true;
             }
         };
 
