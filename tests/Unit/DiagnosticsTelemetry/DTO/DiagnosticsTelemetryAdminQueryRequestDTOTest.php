@@ -185,14 +185,14 @@ final class DiagnosticsTelemetryAdminQueryRequestDTOTest extends TestCase
     public static function lengthValidationDataProvider(): array
     {
         return [
-            ['actorType', 64, false],
-            ['actorType', 64, true],
-            ['eventKey', 128, false],
-            ['eventKey', 128, true],
-            ['severity', 32, false],
-            ['severity', 32, true],
-            ['requestId', 36, false],
-            ['requestId', 36, true],
+            ['actorType', 32, false],
+            ['actorType', 32, true],
+            ['eventKey', 255, false],
+            ['eventKey', 255, true],
+            ['severity', 16, false],
+            ['severity', 16, true],
+            ['requestId', 64, false],
+            ['requestId', 64, true],
             ['correlationId', 36, false],
             ['correlationId', 36, true],
             ['sortBy', 64, true],
@@ -210,7 +210,11 @@ final class DiagnosticsTelemetryAdminQueryRequestDTOTest extends TestCase
 
         $invalidUtf8 = "\x80\x81";
         new DiagnosticsTelemetryAdminQueryRequestDTO(
+            actorType: $field === 'actorType' ? $invalidUtf8 : null,
             eventKey: $field === 'eventKey' ? $invalidUtf8 : null,
+            severity: $field === 'severity' ? $invalidUtf8 : null,
+            requestId: $field === 'requestId' ? $invalidUtf8 : null,
+            correlationId: $field === 'correlationId' ? $invalidUtf8 : null,
             sortBy: $field === 'sortBy' ? $invalidUtf8 : null,
             sortDirection: $field === 'sortDirection' ? $invalidUtf8 : null
         );
@@ -222,7 +226,11 @@ final class DiagnosticsTelemetryAdminQueryRequestDTOTest extends TestCase
     public static function invalidUtf8DataProvider(): array
     {
         return [
+            ['actorType'],
             ['eventKey'],
+            ['severity'],
+            ['requestId'],
+            ['correlationId'],
             ['sortBy'],
             ['sortDirection'],
         ];

@@ -37,10 +37,10 @@ final readonly class DiagnosticsTelemetryAdminQueryRequestDTO implements JsonSer
         ?string $sortBy = null,
         ?string $sortDirection = null
     ) {
-        $this->actorType = self::normalizeString($actorType, 64, 'actorType');
-        $this->eventKey = self::normalizeString($eventKey, 128, 'eventKey');
-        $this->severity = self::normalizeString($severity, 32, 'severity');
-        $this->requestId = self::normalizeString($requestId, 36, 'requestId');
+        $this->actorType = self::normalizeString($actorType, 32, 'actorType');
+        $this->eventKey = self::normalizeString($eventKey, 255, 'eventKey');
+        $this->severity = self::normalizeString($severity, 16, 'severity');
+        $this->requestId = self::normalizeString($requestId, 64, 'requestId');
         $this->correlationId = self::normalizeString($correlationId, 36, 'correlationId');
 
         $this->sortBy = self::normalizeSortBy($sortBy);

@@ -13,39 +13,52 @@ use Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorType
 use Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface;
 use Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryLoggerMysqlRepository;
 use Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryQueryMysqlRepository;
-use Maatify\EventLogging\Tests\Integration\Support\MysqlIntegrationTestCase;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @covers \Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryLoggerMysqlRepository
  * @covers \Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryQueryMysqlRepository
  */
-final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
+final class DiagnosticsTelemetryRepositoryTest extends TestCase
 {
+    private \PDO $pdo;
     private DiagnosticsTelemetryLoggerMysqlRepository $logger;
     private DiagnosticsTelemetryQueryMysqlRepository $query;
 
     protected function setUp(): void
     {
         parent::setUp();
-        if ($this->pdo !== null) {
-            $this->logger = new DiagnosticsTelemetryLoggerMysqlRepository($this->pdo);
-            $this->query = new DiagnosticsTelemetryQueryMysqlRepository($this->pdo);
+
+        $dsn = getenv('EVENT_LOGGING_TEST_MYSQL_DSN');
+        if (! is_string($dsn) || $dsn === '') {
+            throw new \RuntimeException('EVENT_LOGGING_TEST_MYSQL_DSN is required for DiagnosticsTelemetry primitive integration tests.');
         }
+
+        $this->pdo = new \PDO(
+            $dsn,
+            getenv('EVENT_LOGGING_TEST_MYSQL_USER') ?: 'root',
+            getenv('EVENT_LOGGING_TEST_MYSQL_PASSWORD') ?: '',
+            [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_EMULATE_PREPARES => false,
+            ],
+        );
+
+        $this->resetSchema();
+        $this->logger = new DiagnosticsTelemetryLoggerMysqlRepository($this->pdo);
+        $this->query = new DiagnosticsTelemetryQueryMysqlRepository($this->pdo);
     }
 
-    protected function getDomainSchemaFile(): string
+    private function resetSchema(): void
     {
-        return 'src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql';
-    }
+        $schema = file_get_contents(__DIR__ . '/../../../src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql');
+        if (! is_string($schema) || $schema === '') {
+            throw new \RuntimeException('Failed to read DiagnosticsTelemetry schema.');
+        }
 
-    /**
-     * @return array<int, string>
-     */
-    protected function getTableNames(): array
-    {
-        return [
-            'maa_event_logging_diagnostics_telemetry',
-        ];
+        $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_diagnostics_telemetry;');
+        $this->pdo->exec($schema);
     }
 
     public function testWriteAndQueryRoundtrip(): void
@@ -134,10 +147,6 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         $this->assertCount(1, $res1);
         $this->assertSame('evt-3', $res1[0]->eventId);
 
-        if ($this->pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
-
         $stmt = $this->pdo->query("SELECT id FROM maa_event_logging_diagnostics_telemetry WHERE event_id = 'evt-3'");
         if ($stmt === false) {
             $this->fail('Failed to execute PDO query.');
@@ -152,10 +161,6 @@ final class DiagnosticsTelemetryRepositoryTest extends MysqlIntegrationTestCase
         $res2 = $this->query->find($query2);
         $this->assertCount(1, $res2);
         $this->assertSame('evt-2', $res2[0]->eventId);
-
-        if ($this->pdo === null) {
-            $this->markTestSkipped('PDO not initialized.');
-        }
 
         $stmt = $this->pdo->query("SELECT id FROM maa_event_logging_diagnostics_telemetry WHERE event_id = 'evt-2'");
         if ($stmt === false) {
