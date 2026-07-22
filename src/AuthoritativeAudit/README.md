@@ -58,7 +58,7 @@ foreach ($result->items as $event) {
 ```
 Supported filters include `eventId`, `actorType`, `actorId`, `targetType`, `targetId`, `action`, `correlationId`, `after`, and `before`. Validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`, invalid pagination constraints throw `AuthoritativeAuditAdminQueryExecutionException`, and database failures throw `AuthoritativeAuditStorageException`.
 
-#### Primitive Query API (v1 Legacy)
+#### Protected Primitive Query API (`v1.0.0`)
 The domain provides a primitive, protected query contract for retrieving logged events:
 - **Query:** `AuthoritativeAuditQueryInterface::find(AuthoritativeAuditQueryDTO $query)`
 - **Behavior:** Primitive cursor-based pagination (`cursorOccurredAt`, `cursorId`, `limit`).
