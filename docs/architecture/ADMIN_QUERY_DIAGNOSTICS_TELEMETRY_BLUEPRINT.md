@@ -27,7 +27,7 @@ This document defines the complete proposed architecture for adding the new Admi
   - Inventory (`DOCUMENTATION_INVENTORY.md`)
 - Explicit separation: The protected `v1.0.0` primitive Runtime and the proposed new Admin Query API are explicitly separated. The Admin Query API does not replace or alter the protected primitive paths.
 
-## 2. Protected Primitive Contract
+## 3. Protected Primitive Contract
 
 The exact current primitive contract must be perfectly preserved:
 
@@ -126,9 +126,9 @@ The exact current primitive contract must be perfectly preserved:
   ```
 - Caller-owned transaction preservation: the read repositories must not start, commit, or rollback transactions.
 
-The distinct-placeholder correction (see Section 7) applies only to primitive `find()`; all other observable primitive behavior must remain unchanged.
+The distinct-placeholder correction (see Section 8) applies only to primitive `find()`; all other observable primitive behavior must remain unchanged.
 
-## 3. Proposed Admin Public Contracts
+## 4. Proposed Admin Public Contracts
 
 - Full interface:
   ```php
@@ -213,7 +213,7 @@ The distinct-placeholder correction (see Section 7) applies only to primitive `f
   - Serialized properties in exact order: `items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection`.
   - State explicitly: there is no root-level `id` field in the page result DTO itself.
 
-## 4. Policy-Aware Mapper and Repository Architecture
+## 5. Policy-Aware Mapper and Repository Architecture
 
 The primitive repository is policy-aware. To resolve this for the Admin Query API:
 
@@ -251,7 +251,7 @@ The primitive repository is policy-aware. To resolve this for the Admin Query AP
   - every translation preserves `previous`;
   - a `DiagnosticsTelemetryStorageException` already produced by the dedicated Admin mapping callback propagates unchanged and is not double-wrapped as a paginator or execution failure.
 
-## 5. SQL, Pagination, and Exceptions
+## 6. SQL, Pagination, and Exceptions
 
 - **Exact total SQL**:
   `SELECT COUNT(*) FROM maa_event_logging_diagnostics_telemetry`
@@ -306,7 +306,7 @@ The primitive repository is policy-aware. To resolve this for the Admin Query AP
     DiagnosticsTelemetry Admin Query execution failed: {previous message}
     ```
 
-## 6. Proposed File and Test Inventory
+## 7. Proposed File and Test Inventory
 
 The exact expected list of files for the later Runtime implementation:
 
@@ -362,7 +362,7 @@ The later Runtime PR must follow these reviewed stages:
 5. strict native-MySQL Admin and primitive Integration gates;
 6. final package/integration/domain documentation and full verification.
 
-## 7. Protected Primitive Correction Details
+## 8. Protected Primitive Correction Details
 
 The distinct-placeholder correction must be applied to the primitive `find()` query (which currently reuses `:cursor_at`). It must use distinct native-PDO placeholders, for example:
 
