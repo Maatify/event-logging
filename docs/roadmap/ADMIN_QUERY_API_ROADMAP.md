@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Implemented / Pending v1.1.0 Release
+**Status:** Phase 0 and Phase 1 Complete / AuditTrail POC Implemented / BehaviorTrace Runtime Implemented / SecuritySignals Runtime Implemented / AuthoritativeAudit Runtime Implemented / Pending v1.1.0 Release
 
 ## 1. Scope Boundary
 
