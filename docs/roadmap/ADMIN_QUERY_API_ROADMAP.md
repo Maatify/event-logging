@@ -93,7 +93,7 @@ Implement the Admin Query API for domains that never received the incorrect post
 
 These are new post-v1.0 features, not corrections to the first-release Runtime.
 
-- **Status:** Pending completion of all rebuild domains.
+- **Status:** Phase 3 rebuilds are complete. Phase 4 is now pending the first new-domain implementation (`DiagnosticsTelemetry`, followed by `DeliveryOperations`).
 
 ### Phase 5 — Reporting and Dashboard Summary Contracts
 
@@ -138,8 +138,7 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-**Phase 3 (Rebuild Domains) is complete.**
-Phase 4 is pending the two new-domain implementations (`DiagnosticsTelemetry`, then `DeliveryOperations`).
+**Phase 3 (Rebuild Domains) is complete.** Both new domains are pending, reporting/dashboard work remains blocked, and no tag or release is authorized.
 
 The `AuditTrail` Admin Query Runtime is implemented and merged, pending the future `v1.1.0` release.
 
