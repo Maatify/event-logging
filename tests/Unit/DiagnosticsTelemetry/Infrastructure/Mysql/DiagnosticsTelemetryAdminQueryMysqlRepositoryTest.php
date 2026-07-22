@@ -20,22 +20,21 @@ use PHPUnit\Framework\TestCase;
  */
 final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
 {
-    public function testCanonicalPaginationConfigurationIsConstructible(): void
+    public function testRepositoryUsesCanonicalPaginationConfiguration(): void
     {
-        $config = new PaginationConfig(
-            sortWhitelist: new SortWhitelist([
-                'occurred_at' => 'occurred_at',
-                'id' => 'id',
-            ]),
-            defaultSortBy: 'occurred_at',
-            defaultSortDirection: SortDirectionEnum::DESC,
-            tieBreakerSortBy: 'id',
-            tieBreakerDirection: SortDirectionEnum::DESC,
-            defaultPerPage: 20,
-            minPerPage: 1,
-            maxPerPage: 200,
-        );
+        $pdo = $this->createMock(PDO::class);
+        $repository = new DiagnosticsTelemetryAdminQueryMysqlRepository($pdo);
 
+        $reflector = new \ReflectionClass($repository);
+        $method = $reflector->getMethod('createPaginationConfig');
+
+        /** @var PaginationConfig $config */
+        $config = $method->invoke($repository);
+
+        $this->assertSame('occurred_at', $config->defaultSortBy);
+        $this->assertSame(SortDirectionEnum::DESC, $config->defaultSortDirection);
+        $this->assertSame('id', $config->tieBreakerSortBy);
+        $this->assertSame(SortDirectionEnum::DESC, $config->tieBreakerDirection);
         $this->assertSame(20, $config->defaultPerPage);
         $this->assertSame(1, $config->minPerPage);
         $this->assertSame(200, $config->maxPerPage);
@@ -76,6 +75,63 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
                 $exception->getMessage(),
             );
             self::assertInstanceOf(PaginationExecutionException::class, $exception->getPrevious());
+        }
+    }
+
+    public function testMapperPolicyFailureIsTranslatedToStorageExceptionAndPreservesPrevious(): void
+    {
+        $pdo = $this->createMock(PDO::class);
+        $policy = new class implements \Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryPolicyInterface {
+            public function normalizeSeverity(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface $severity): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface
+            {
+                throw new \Exception('Simulated policy failure');
+            }
+            public function normalizeActorType(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface $actorType): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface
+            {
+                throw new \Exception('Simulated policy failure');
+            }
+        };
+
+        $repository = new DiagnosticsTelemetryAdminQueryMysqlRepository($pdo, $policy);
+
+        $reflector = new \ReflectionClass($repository);
+        $method = $reflector->getMethod('mapRow');
+
+        try {
+            $method->invoke($repository, ['severity' => 'INFO']);
+            $this->fail('Expected DiagnosticsTelemetryStorageException.');
+        } catch (DiagnosticsTelemetryStorageException $exception) {
+            $this->assertSame('Failed to map DiagnosticsTelemetry row: Simulated policy failure', $exception->getMessage());
+            $this->assertInstanceOf(\Exception::class, $exception->getPrevious());
+            $this->assertSame('Simulated policy failure', $exception->getPrevious()->getMessage());
+        }
+    }
+
+    public function testMapperStorageExceptionIsPropagatedUnchanged(): void
+    {
+        $pdo = $this->createMock(PDO::class);
+        $policy = new class implements \Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryPolicyInterface {
+            public function normalizeSeverity(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface $severity): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface
+            {
+                throw new DiagnosticsTelemetryStorageException('Already a storage exception');
+            }
+            public function normalizeActorType(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface $actorType): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface
+            {
+                throw new DiagnosticsTelemetryStorageException('Already a storage exception');
+            }
+        };
+
+        $repository = new DiagnosticsTelemetryAdminQueryMysqlRepository($pdo, $policy);
+
+        $reflector = new \ReflectionClass($repository);
+        $method = $reflector->getMethod('mapRow');
+
+        try {
+            $method->invoke($repository, ['severity' => 'INFO']);
+            $this->fail('Expected DiagnosticsTelemetryStorageException.');
+        } catch (DiagnosticsTelemetryStorageException $exception) {
+            $this->assertSame('Already a storage exception', $exception->getMessage());
+            $this->assertNull($exception->getPrevious());
         }
     }
 }

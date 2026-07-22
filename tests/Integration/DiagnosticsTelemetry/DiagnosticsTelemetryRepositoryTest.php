@@ -177,4 +177,61 @@ final class DiagnosticsTelemetryRepositoryTest extends TestCase
         $this->assertCount(1, $res3);
         $this->assertSame('evt-1', $res3[0]->eventId);
     }
+
+    public function testLegacyReadPaginationMaintainsAscendingOrder(): void
+    {
+        $now1 = new DateTimeImmutable('2024-01-01 10:00:00', new DateTimeZone('UTC'));
+        $now2 = new DateTimeImmutable('2024-01-01 11:00:00', new DateTimeZone('UTC'));
+
+        $actorType = new class implements DiagnosticsTelemetryActorTypeInterface {
+            public function value(): string { return 'SYSTEM'; }
+        };
+
+        $severity = new class implements DiagnosticsTelemetrySeverityInterface {
+            public function value(): string { return 'INFO'; }
+        };
+
+        $c1 = new DiagnosticsTelemetryContextDTO($actorType, 1, null, null, null, null, null, $now1);
+        $c2 = new DiagnosticsTelemetryContextDTO($actorType, 1, null, null, null, null, null, $now2);
+
+        $dto1 = new DiagnosticsTelemetryEventDTO(0, 'evt-1', 'sys.act', $severity, $c1, null, []);
+        $dto2 = new DiagnosticsTelemetryEventDTO(0, 'evt-2', 'sys.act', $severity, $c2, null, []);
+        $dto3 = new DiagnosticsTelemetryEventDTO(0, 'evt-3', 'sys.act', $severity, $c2, null, []);
+
+        $this->logger->write($dto1);
+        $this->logger->write($dto2);
+        $this->logger->write($dto3);
+
+        $res1 = iterator_to_array($this->query->read(null, 1));
+        $this->assertCount(1, $res1);
+        $this->assertSame('evt-1', $res1[0]->eventId);
+
+        $stmt = $this->pdo->query("SELECT id FROM maa_event_logging_diagnostics_telemetry WHERE event_id = 'evt-1'");
+        if ($stmt === false) {
+            $this->fail('Failed to execute PDO query.');
+        }
+        $evt1Id = (int)$stmt->fetchColumn();
+
+        $cursor1 = new \Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryCursorDTO(
+            lastOccurredAt: $res1[0]->context->occurredAt,
+            lastId: $evt1Id
+        );
+        $res2 = iterator_to_array($this->query->read($cursor1, 1));
+        $this->assertCount(1, $res2);
+        $this->assertSame('evt-2', $res2[0]->eventId);
+
+        $stmt2 = $this->pdo->query("SELECT id FROM maa_event_logging_diagnostics_telemetry WHERE event_id = 'evt-2'");
+        if ($stmt2 === false) {
+            $this->fail('Failed to execute PDO query.');
+        }
+        $evt2Id = (int)$stmt2->fetchColumn();
+
+        $cursor2 = new \Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryCursorDTO(
+            lastOccurredAt: $res2[0]->context->occurredAt,
+            lastId: $evt2Id
+        );
+        $res3 = iterator_to_array($this->query->read($cursor2, 1));
+        $this->assertCount(1, $res3);
+        $this->assertSame('evt-3', $res3[0]->eventId);
+    }
 }

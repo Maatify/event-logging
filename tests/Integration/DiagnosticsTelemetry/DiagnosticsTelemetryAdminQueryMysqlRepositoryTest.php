@@ -123,6 +123,17 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
         // DESC order default
         $this->assertSame('evt-15', $result->items[0]->eventId);
         $this->assertSame('evt-6', $result->items[9]->eventId);
+
+        $requestAsc = new DiagnosticsTelemetryAdminQueryRequestDTO(page: 1, perPage: 10, sortBy: 'occurred_at', sortDirection: 'ASC');
+        $resultAsc = $this->repository->paginate($requestAsc);
+        $this->assertSame('evt-1', $resultAsc->items[0]->eventId);
+        $this->assertSame('evt-10', $resultAsc->items[9]->eventId);
+
+        $requestClamp = new DiagnosticsTelemetryAdminQueryRequestDTO(page: 5, perPage: 250); // > 200 => clamps to 200, page resets
+        $resultClamp = $this->repository->paginate($requestClamp);
+        $this->assertSame(1, $resultClamp->page);
+        $this->assertSame(200, $resultClamp->perPage);
+        $this->assertCount(25, $resultClamp->items);
     }
 
     public function testItFiltersByActorTypeOnlyAndActorIdOnlyIndependently(): void
@@ -243,5 +254,46 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
 
         $resultAfterRollback = $this->repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO());
         $this->assertSame(0, $resultAfterRollback->filtered);
+    }
+
+    public function testItTranslatesRealPdoExceptionToStorageException(): void
+    {
+        $this->pdo->exec('DROP TABLE maa_event_logging_diagnostics_telemetry');
+
+        try {
+            $this->repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO());
+            $this->fail('Expected DiagnosticsTelemetryStorageException');
+        } catch (DiagnosticsTelemetryStorageException $e) {
+            $this->assertStringContainsString('Failed to query DiagnosticsTelemetry records', $e->getMessage());
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+        }
+    }
+
+    public function testItTranslatesPolicyFailuresToStorageExceptionWithoutDoubleWrapping(): void
+    {
+        $throwingPolicy = new class implements \Maatify\EventLogging\DiagnosticsTelemetry\Contract\DiagnosticsTelemetryPolicyInterface {
+            public function normalizeSeverity(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface $severity): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetrySeverityInterface
+            {
+                throw new \Exception('Simulated policy exception');
+            }
+
+            public function normalizeActorType(string|\Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface $actorType): \Maatify\EventLogging\DiagnosticsTelemetry\Enum\DiagnosticsTelemetryActorTypeInterface
+            {
+                throw new \Exception('Simulated policy exception');
+            }
+        };
+
+        $repo = new DiagnosticsTelemetryAdminQueryMysqlRepository($this->pdo, $throwingPolicy);
+
+        $this->insertLog(eventId: 'evt-fail');
+
+        try {
+            $repo->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO());
+            $this->fail('Expected DiagnosticsTelemetryStorageException');
+        } catch (DiagnosticsTelemetryStorageException $e) {
+            $this->assertStringContainsString('Failed to map DiagnosticsTelemetry row: Simulated policy exception', $e->getMessage());
+            $this->assertInstanceOf(\Exception::class, $e->getPrevious());
+            $this->assertSame('Simulated policy exception', $e->getPrevious()->getMessage());
+        }
     }
 }
