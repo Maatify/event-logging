@@ -4,7 +4,14 @@
 
 This document defines the complete proposed architecture for adding the new Admin Query API path for `DiagnosticsTelemetry`.
 
-## 1. Audited Baseline
+## 1. Classification and Strict Non-Scope Boundaries
+
+- This is a new Admin Query API, not a rebuild.
+- DiagnosticsTelemetry has no superseded post-v1 wrapper artifacts to delete.
+- No schema, Composer, CI, host, factory/provider/binding, controller, route, permission, UI, export, dashboard, reporting, or framework-wiring change is authorized.
+- Primitive `find()` and legacy `read()` remain separate supported paths.
+
+## 2. Audited Baseline
 
 - Exact audited `main` SHA: `4070718049aff7cd0b9efa9baba26673930d0ed2`
 - Exact current sources reviewed:
