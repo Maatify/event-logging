@@ -51,8 +51,14 @@ interface DeliveryOperationsAdminQueryInterface
 
 ### 3.2 Exceptions
 #### `DeliveryOperationsAdminQueryInvalidArgumentException`
-Extends `Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException`, implements `EventLoggingExceptionInterface`. Inherits parent's default error code.
 ```php
+namespace Maatify\EventLogging\DeliveryOperations\Exception;
+
+use Maatify\EventLogging\Contract\Exception\EventLoggingExceptionInterface;
+use Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException;
+
+final class DeliveryOperationsAdminQueryInvalidArgumentException extends InvalidArgumentMaatifyException implements EventLoggingExceptionInterface
+{
     public static function invalidId(string $field): self
     {
         return new self("Invalid DeliveryOperations Admin Query ID: {$field}");
@@ -93,15 +99,30 @@ Extends `Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException
     {
         return new self("Invalid DeliveryOperations Admin Query metadata value type");
     }
+}
 ```
 
 #### `DeliveryOperationsAdminQueryExecutionException`
-Extends `Maatify\Exceptions\Exception\System\SystemMaatifyException`, implements `EventLoggingExceptionInterface`. Uses `ErrorCodeEnum::MAATIFY_ERROR`.
 ```php
+namespace Maatify\EventLogging\DeliveryOperations\Exception;
+
+use Maatify\EventLogging\Contract\Exception\EventLoggingExceptionInterface;
+use Maatify\Exceptions\Exception\System\SystemMaatifyException;
+use Maatify\Exceptions\Contract\ErrorCodeInterface;
+use Maatify\Exceptions\Enum\ErrorCodeEnum;
+
+final class DeliveryOperationsAdminQueryExecutionException extends SystemMaatifyException implements EventLoggingExceptionInterface
+{
     public static function executionFailed(\Throwable $previous): self
     {
         return new self("DeliveryOperations Admin Query execution failed: " . $previous->getMessage(), previous: $previous);
     }
+
+    public function defaultErrorCode(): ErrorCodeInterface
+    {
+        return ErrorCodeEnum::MAATIFY_ERROR;
+    }
+}
 ```
 
 ### 3.3 Request DTO
@@ -252,14 +273,18 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
                 throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataCount();
             }
             foreach ($metadataFilters as $path => $value) {
-                if (!is_string($path) || mb_strlen($path) > 64 || !preg_match('/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/', $path)) {
+                if (!is_string($path) || strlen($path) > 64 || !preg_match('/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/', $path)) {
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataPath();
                 }
                 if ($value !== null && !is_scalar($value)) {
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
                 }
                 try {
-                    json_encode($value, \JSON_THROW_ON_ERROR);
+                    $encoded = json_encode($value, \JSON_THROW_ON_ERROR);
+                    // Explicitly reject non-finite float which PHP handles inconsistently
+                    if ($encoded === 'false' && $value !== false) {
+                         throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
+                    }
                 } catch (\JsonException) {
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
                 }
@@ -468,7 +493,7 @@ For `errorMessageLike`, the parameter value must be escaped using:
 This matches the explicit `ESCAPE '\\'` SQL clause.
 
 ### Metadata Paths
-Path format strictly matches `/^\$\.[a-zA-Z0-9_\.]{1,61}$/us`. Callers must supply the leading `$.`. Maximum 5 keys. Deterministic placeholders (e.g., `meta_path_0`, `meta_val_0`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match `CAST('null' AS JSON)` if the path exists, enforced via `JSON_CONTAINS_PATH`.
+Path format strictly matches `/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/`. Callers must supply the leading `$.`. Maximum 5 keys. Maximum path length 64 bytes/characters. Deterministic placeholders (e.g., `meta_path_0`, `meta_val_0`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match `CAST('null' AS JSON)` if the path exists, enforced via `JSON_CONTAINS_PATH`.
 
 ### SQL Semantics
 - **Empty filters:** generates empty `whereSql` (no `WHERE` string added to data/count SQL).
@@ -624,7 +649,7 @@ Exact fallback behavior preserving primitive query:
 - `tests/Unit/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsRowMapperTest.php`
 - `tests/Unit/DeliveryOperations/Infrastructure/Mysql/Pagination/DeliveryOperationsAdminQueryDescriptorBuilderTest.php`
 - `tests/Unit/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsAdminQueryMysqlRepositoryTest.php`
-- `tests/Regression/DeliveryOperations/DeliveryOperationsQueryMysqlRepositoryRegressionTest.php`
+- `tests/Regression/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsQueryMysqlRepositoryRegressionTest.php`
 - `tests/Integration/DeliveryOperations/DeliveryOperationsAdminQueryMysqlRepositoryTest.php`
 
 ### 6.3 Required Later Runtime Sequence
