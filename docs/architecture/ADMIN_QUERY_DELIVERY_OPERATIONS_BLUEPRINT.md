@@ -22,8 +22,8 @@ The complete published `v1.0.0` DeliveryOperations Runtime is strictly preserved
 - fail-open recorder boundary;
 - caller-owned transactions.
 
-No primitive corrections (e.g., placeholder distinction) are authorized in this PR.
-The newly exposed unindexed filters (`target_id`, `provider`, `error_code`, etc.) have scan implications. They are intentionally exposed to provide complete Admin filtering, leaving index optimization for a separate future migration if proven necessary.
+No primitive corrections are authorized in this PR.
+The newly exposed unindexed filters (`target_id`, `provider`, `error_code`, etc.) have scan implications. They are intentionally exposed to provide complete Admin filtering, leaving index optimization for a separate future migration if proven necessary. Silently removing them is forbidden.
 
 ## 3. Public Admin Query Contracts
 
@@ -81,13 +81,17 @@ Extends `Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException
     {
         return new self("Invalid DeliveryOperations Admin Query null-state input: {$field}");
     }
-    public static function invalidErrorMessageSearch(): self
+    public static function invalidMetadataCount(): self
     {
-        return new self("Invalid DeliveryOperations Admin Query error_message search input");
+        return new self("Invalid DeliveryOperations Admin Query metadata filter count");
     }
     public static function invalidMetadataPath(): self
     {
         return new self("Invalid DeliveryOperations Admin Query metadata path or shape");
+    }
+    public static function invalidMetadataValue(): self
+    {
+        return new self("Invalid DeliveryOperations Admin Query metadata value type");
     }
 ```
 
@@ -131,6 +135,7 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
     public readonly ?string $providerMessageId;
     public readonly ?string $errorCode;
     public readonly ?string $errorMessageLike;
+    /** @var array<string, string|int|float|bool|null>|null */
     public readonly ?array $metadataFilters;
     public readonly ?\DateTimeImmutable $scheduledAfter;
     public readonly ?\DateTimeImmutable $scheduledBefore;
@@ -138,6 +143,7 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
     public readonly ?\DateTimeImmutable $completedBefore;
     public readonly ?\DateTimeImmutable $after;
     public readonly ?\DateTimeImmutable $before;
+    /** @var array<string, bool>|null */
     public readonly ?array $nullStateFilters;
 
     public function __construct(
@@ -174,122 +180,135 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
         $this->page = $page;
         $this->perPage = $perPage;
 
-        // Example normalizations explicitly enforced:
-        $this->sortBy = (is_string($sortBy) && mb_strlen($sortBy) > 64) ? null : $sortBy;
-        $this->sortDirection = (is_string($sortDirection) && mb_strlen($sortDirection) > 4) ? null : $sortDirection;
+        $normSortBy = is_string($sortBy) ? trim($sortBy) : null;
+        if ($normSortBy === '') $normSortBy = null;
+        if ($normSortBy !== null && !preg_match('/./us', $normSortBy)) {
+            throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidEncoding('sortBy');
+        }
+        if ($normSortBy !== null && preg_match_all('/./us', $normSortBy) > 64) {
+            throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidLength('sortBy');
+        }
+        $this->sortBy = $normSortBy === 'occurred_at' ? 'occurred_at' : null;
 
-        $this->id = $id;
-        if ($this->id !== null && $this->id <= 0) {
+        $normSortDir = is_string($sortDirection) ? trim($sortDirection) : null;
+        if ($normSortDir === '') $normSortDir = null;
+        if ($normSortDir !== null && !preg_match('/./us', $normSortDir)) {
+            throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidEncoding('sortDirection');
+        }
+        if ($normSortDir !== null && preg_match_all('/./us', $normSortDir) > 4) {
+            throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidLength('sortDirection');
+        }
+        if ($normSortDir !== null) {
+            $normSortDir = strtoupper($normSortDir);
+            $normSortDir = in_array($normSortDir, ['ASC', 'DESC'], true) ? $normSortDir : null;
+        }
+        $this->sortDirection = $normSortDir;
+
+        if ($id !== null && $id <= 0) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidId('id');
         }
+        $this->id = $id;
 
-        $this->eventId = is_string($eventId) ? trim($eventId) : null;
-        if ($this->eventId === '') $this->eventId = null;
-        if ($this->eventId !== null && !preg_match('/./us', $this->eventId)) {
-             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidEncoding('eventId');
-        }
-        if ($this->eventId !== null && preg_match_all('/./us', $this->eventId) > 36) {
-             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidLength('eventId');
-        }
+        $this->eventId = self::normalizeString($eventId, 'eventId', 36);
+        $this->channel = self::normalizeString($channel, 'channel', 32);
+        $this->operationType = self::normalizeString($operationType, 'operationType', 64);
+        $this->actorType = self::normalizeString($actorType, 'actorType', 32);
 
-        $this->channel = is_string($channel) ? trim($channel) : null;
-        if ($this->channel === '') $this->channel = null;
-        // Validation length 32
-
-        $this->operationType = is_string($operationType) ? trim($operationType) : null;
-        if ($this->operationType === '') $this->operationType = null;
-        // Validation length 64
-
-        $this->actorType = is_string($actorType) ? trim($actorType) : null;
-        if ($this->actorType === '') $this->actorType = null;
-        // Validation length 32
-
-        $this->actorId = $actorId;
-        if ($this->actorId !== null && $this->actorId <= 0) {
+        if ($actorId !== null && $actorId <= 0) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidId('actorId');
         }
+        $this->actorId = $actorId;
 
-        $this->targetType = is_string($targetType) ? trim($targetType) : null;
-        if ($this->targetType === '') $this->targetType = null;
-        // Validation length 64
+        $this->targetType = self::normalizeString($targetType, 'targetType', 64);
 
-        $this->targetId = $targetId;
-        if ($this->targetId !== null && $this->targetId <= 0) {
+        if ($targetId !== null && $targetId <= 0) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidId('targetId');
         }
+        $this->targetId = $targetId;
 
-        $this->status = is_string($status) ? trim($status) : null;
-        if ($this->status === '') $this->status = null;
-        // Validation length 32
+        $this->status = self::normalizeString($status, 'status', 32);
 
-        $this->attemptNoMin = $attemptNoMin;
-        if ($this->attemptNoMin !== null && $this->attemptNoMin < 0) {
+        if ($attemptNoMin !== null && $attemptNoMin < 0) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidRetryValue('attemptNoMin');
         }
-        $this->attemptNoMax = $attemptNoMax;
-        if ($this->attemptNoMax !== null && $this->attemptNoMax < 0) {
+        if ($attemptNoMax !== null && $attemptNoMax < 0) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidRetryValue('attemptNoMax');
         }
-        if ($this->attemptNoMin !== null && $this->attemptNoMax !== null && $this->attemptNoMin > $this->attemptNoMax) {
+        if ($attemptNoMin !== null && $attemptNoMax !== null && $attemptNoMin > $attemptNoMax) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidRetryRange();
         }
+        $this->attemptNoMin = $attemptNoMin;
+        $this->attemptNoMax = $attemptNoMax;
 
-        $this->correlationId = is_string($correlationId) ? trim($correlationId) : null;
-        if ($this->correlationId === '') $this->correlationId = null;
-        // Validation length 36
+        $this->correlationId = self::normalizeString($correlationId, 'correlationId', 36);
+        $this->requestId = self::normalizeString($requestId, 'requestId', 64);
+        $this->provider = self::normalizeString($provider, 'provider', 64);
+        $this->providerMessageId = self::normalizeString($providerMessageId, 'providerMessageId', 128);
+        $this->errorCode = self::normalizeString($errorCode, 'errorCode', 64);
+        $this->errorMessageLike = self::normalizeString($errorMessageLike, 'errorMessageLike', 128);
 
-        $this->requestId = is_string($requestId) ? trim($requestId) : null;
-        if ($this->requestId === '') $this->requestId = null;
-        // Validation length 64
-
-        $this->provider = is_string($provider) ? trim($provider) : null;
-        if ($this->provider === '') $this->provider = null;
-        // Validation length 64
-
-        $this->providerMessageId = is_string($providerMessageId) ? trim($providerMessageId) : null;
-        if ($this->providerMessageId === '') $this->providerMessageId = null;
-        // Validation length 128
-
-        $this->errorCode = is_string($errorCode) ? trim($errorCode) : null;
-        if ($this->errorCode === '') $this->errorCode = null;
-        // Validation length 64
-
-        $this->errorMessageLike = is_string($errorMessageLike) ? trim($errorMessageLike) : null;
-        if ($this->errorMessageLike === '') $this->errorMessageLike = null;
-        // Validation length 128 safe upper bound
-        if ($this->errorMessageLike !== null && !preg_match('/./us', $this->errorMessageLike)) {
-             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidEncoding('errorMessageLike');
+        if ($metadataFilters !== null) {
+            if (count($metadataFilters) > 5) {
+                throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataCount();
+            }
+            foreach ($metadataFilters as $path => $value) {
+                if (!is_string($path) || !preg_match('/^\$\.[a-zA-Z0-9_\.]{1,61}$/us', $path)) {
+                    throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataPath();
+                }
+                if ($value !== null && !is_scalar($value)) {
+                    throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
+                }
+            }
         }
-        if ($this->errorMessageLike !== null && preg_match_all('/./us', $this->errorMessageLike) > 128) {
-             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidLength('errorMessageLike');
-        }
-
         $this->metadataFilters = $metadataFilters;
-        // Explicit metadata validation: max 5, valid keys, valid scalars (string|int|float|bool|null).
 
-        $this->scheduledAfter = $scheduledAfter;
-        $this->scheduledBefore = $scheduledBefore;
-        if ($this->scheduledAfter && $this->scheduledBefore && $this->scheduledAfter > $this->scheduledBefore) {
+        if ($scheduledAfter && $scheduledBefore && $scheduledAfter > $scheduledBefore) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidDateRange('scheduled_at');
         }
+        $this->scheduledAfter = $scheduledAfter;
+        $this->scheduledBefore = $scheduledBefore;
 
-        $this->completedAfter = $completedAfter;
-        $this->completedBefore = $completedBefore;
-        if ($this->completedAfter && $this->completedBefore && $this->completedAfter > $this->completedBefore) {
+        if ($completedAfter && $completedBefore && $completedAfter > $completedBefore) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidDateRange('completed_at');
         }
+        $this->completedAfter = $completedAfter;
+        $this->completedBefore = $completedBefore;
 
-        $this->after = $after;
-        $this->before = $before;
-        if ($this->after && $this->before && $this->after > $this->before) {
+        if ($after && $before && $after > $before) {
             throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidDateRange('occurred_at');
         }
+        $this->after = $after;
+        $this->before = $before;
 
+        if ($nullStateFilters !== null) {
+            $allowed = [
+                'actorType', 'actorId', 'targetType', 'targetId',
+                'scheduledAt', 'completedAt', 'correlationId', 'requestId',
+                'provider', 'providerMessageId', 'errorCode', 'errorMessage'
+            ];
+            foreach ($nullStateFilters as $key => $val) {
+                if (!in_array($key, $allowed, true) || !is_bool($val)) {
+                    throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidNullState($key);
+                }
+            }
+        }
         $this->nullStateFilters = $nullStateFilters;
-        // Explicit null state validation: strict bools for exact column whitelist.
     }
 
-    public function jsonSerialize(): mixed
+    private static function normalizeString(?string $value, string $field, int $maxLength): ?string
+    {
+        $val = is_string($value) ? trim($value) : null;
+        if ($val === '') return null;
+        if ($val !== null && !preg_match('/./us', $val)) {
+            throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidEncoding($field);
+        }
+        if ($val !== null && preg_match_all('/./us', $val) > $maxLength) {
+            throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidLength($field);
+        }
+        return $val;
+    }
+
+    public function jsonSerialize(): array
     {
         return [
             'page' => $this->page,
@@ -326,23 +345,11 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
 }
 ```
 
-### 3.4 Request Validation and Semantics
-- **Length Limits**: eventId (36), channel (32), operationType (64), actorType (32), targetType (64), status (32), correlationId (36), requestId (64), provider (64), providerMessageId (128), errorCode (64), errorMessageLike (128). Strings are trimmed and UTF-8 validated `preg_match_all('/./us', $val)`.
-- **Independence**: `actorType`/`actorId` and `targetType`/`targetId` are independently filterable. Positive integers for IDs.
-- **Ranges**: `scheduledAfter` <= `scheduledBefore`, `completedAfter` <= `completedBefore`, `after` <= `before`.
-- **Pagination Limits**: `page`/`perPage` defaults are passed as `null` to `maatify/persistence` to apply normalization.
-- **Retry Bounds**: `attemptNoMin` and `attemptNoMax` must be unsigned (>= 0). If both are set, `attemptNoMin <= attemptNoMax`.
-- **Text Search**: `errorMessageLike` uses safe exact contains search with escaping (`LIKE :error_message_like ESCAPE '\\'`). Escaping must natively escape `\`, `%`, and `_`. Case insensitivity depends on the table's collation.
-- **Null-State Tri-State**: `nullStateFilters` accepts an associative array mapping exactly to these allowed property names: `actorType`, `actorId`, `targetType`, `targetId`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`. Values must be strictly `bool` (`true` -> `IS NULL`, `false` -> `IS NOT NULL`). An exception is thrown for invalid properties or non-bool values. Duplicate semantic conditions (e.g., both equality and null-state) naturally translate into SQL `WHERE column = X AND column IS NULL`, producing 0 rows as intended.
-- **Metadata JSON Search**: `metadataFilters` must be an exact associative array mapping `['stringPath' => scalarValue]`. No arbitrary JSON path evaluation. Maximum 5 filters per request. The path format must explicitly start with `$.` followed by alpha-numeric strings or valid unquoted JSON keys (nesting allowed via `.` up to depth 5, max total length 64). Allowed scalar value types: `string|int|float|bool|null`. Values are natively JSON-encoded for bound parameters. A JSON `null` filter explicitly searches for `CAST(NULL AS JSON)` value stored in the document, whereas missing a path returns NULL which requires `JSON_CONTAINS_PATH(metadata, 'one', :path) = 1` checks to differentiate. Null vs missing must be handled correctly in SQL.
-
 ### 3.5 Result DTO
 `DeliveryOperationsAdminPageResultDTO`
 Must match the exact structure of other domains.
 ```php
 namespace Maatify\EventLogging\DeliveryOperations\DTO;
-
-use Traversable;
 
 /**
  * @implements \IteratorAggregate<int, DeliveryOperationsViewDTO>
@@ -404,39 +411,55 @@ final readonly class DeliveryOperationsAdminPageResultDTO implements \JsonSerial
 
 ## 4. Complete Filter SQL Contract
 
-| Field | PHP Property | PHP Type | Normalization/Validation | SQL Condition | Placeholders | Null Behavior |
-| --- | --- | --- | --- | --- | --- | --- |
-| `id` | `id` | `?int` | Must be > 0 | `id = :id` | `:id` | N/A |
-| `event_id` | `eventId` | `?string` | length <= 36 | `event_id = :event_id` | `:event_id` | N/A |
-| `channel` | `channel` | `?string` | length <= 32 | `channel = :channel` | `:channel` | N/A |
-| `operation_type` | `operationType` | `?string` | length <= 64 | `operation_type = :operation_type` | `:operation_type` | N/A |
-| `actor_type` | `actorType` | `?string` | length <= 32 | `actor_type = :actor_type` | `:actor_type` | Null-state explicit |
-| `actor_id` | `actorId` | `?int` | Must be > 0 | `actor_id = :actor_id` | `:actor_id` | Null-state explicit |
-| `target_type` | `targetType` | `?string` | length <= 64 | `target_type = :target_type` | `:target_type` | Null-state explicit |
-| `target_id` | `targetId` | `?int` | Must be > 0 | `target_id = :target_id` | `:target_id` | Null-state explicit |
-| `status` | `status` | `?string` | length <= 32 | `status = :status` | `:status` | N/A |
-| `attempt_no` | `attemptNoMin`, `attemptNoMax` | `?int` | `>= 0`, min <= max | `attempt_no >= :attempt_no_min AND attempt_no <= :attempt_no_max` | `:attempt_no_min`, `:attempt_no_max` | N/A |
-| `correlation_id` | `correlationId` | `?string` | length <= 36 | `correlation_id = :correlation_id` | `:correlation_id` | Null-state explicit |
-| `request_id` | `requestId` | `?string` | length <= 64 | `request_id = :request_id` | `:request_id` | Null-state explicit |
-| `provider` | `provider` | `?string` | length <= 64 | `provider = :provider` | `:provider` | Null-state explicit |
-| `provider_message_id` | `providerMessageId` | `?string` | length <= 128 | `provider_message_id = :provider_message_id` | `:provider_message_id` | Null-state explicit |
-| `error_code` | `errorCode` | `?string` | length <= 64 | `error_code = :error_code` | `:error_code` | Null-state explicit |
-| `error_message` | `errorMessageLike` | `?string` | length <= 128 | `error_message LIKE :error_message_like ESCAPE '\\'` | `:error_message_like` | Null-state explicit |
-| `scheduled_at` | `scheduledAfter`, `scheduledBefore` | `?\DateTimeImmutable` | ranges | `scheduled_at >= :scheduled_after AND scheduled_at <= :scheduled_before` | `:scheduled_after`, `:scheduled_before` | Null-state explicit |
-| `completed_at` | `completedAfter`, `completedBefore` | `?\DateTimeImmutable` | ranges | `completed_at >= :completed_after AND completed_at <= :completed_before` | `:completed_after`, `:completed_before` | Null-state explicit |
-| `occurred_at` | `after`, `before` | `?\DateTimeImmutable` | ranges | `occurred_at >= :after AND occurred_at <= :before` | `:after`, `:before` | N/A |
-| `metadata` | `metadataFilters` | `?array` | Max 5, JSON scalars | `JSON_CONTAINS_PATH(metadata, 'one', :meta_path_1) = 1 AND JSON_EXTRACT(metadata, :meta_path_1) = CAST(:meta_val_1 AS JSON)` | `:meta_path_1`, `:meta_val_1` | N/A |
+| Field | PHP Property | PHP Type | Normalization/Validation | SQL Condition | Placeholders | Parameter Type / Encoding | Null Behavior |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `id` | `id` | `?int` | Must be > 0 | `id = :id` | `id` | `int` | N/A |
+| `event_id` | `eventId` | `?string` | length <= 36 | `event_id = :event_id` | `event_id` | `string` | N/A |
+| `channel` | `channel` | `?string` | length <= 32 | `channel = :channel` | `channel` | `string` | N/A |
+| `operation_type` | `operationType` | `?string` | length <= 64 | `operation_type = :operation_type` | `operation_type` | `string` | N/A |
+| `actor_type` | `actorType` | `?string` | length <= 32 | `actor_type = :actor_type` | `actor_type` | `string` | Null-state explicit |
+| `actor_id` | `actorId` | `?int` | Must be > 0 | `actor_id = :actor_id` | `actor_id` | `int` | Null-state explicit |
+| `target_type` | `targetType` | `?string` | length <= 64 | `target_type = :target_type` | `target_type` | `string` | Null-state explicit |
+| `target_id` | `targetId` | `?int` | Must be > 0 | `target_id = :target_id` | `target_id` | `int` | Null-state explicit |
+| `status` | `status` | `?string` | length <= 32 | `status = :status` | `status` | `string` | N/A |
+| `attempt_no` | `attemptNoMin` | `?int` | `>= 0` | `attempt_no >= :attempt_no_min` | `attempt_no_min` | `int` | N/A |
+| `attempt_no` | `attemptNoMax` | `?int` | `>= 0` | `attempt_no <= :attempt_no_max` | `attempt_no_max` | `int` | N/A |
+| `correlation_id` | `correlationId` | `?string` | length <= 36 | `correlation_id = :correlation_id` | `correlation_id` | `string` | Null-state explicit |
+| `request_id` | `requestId` | `?string` | length <= 64 | `request_id = :request_id` | `request_id` | `string` | Null-state explicit |
+| `provider` | `provider` | `?string` | length <= 64 | `provider = :provider` | `provider` | `string` | Null-state explicit |
+| `provider_message_id` | `providerMessageId` | `?string` | length <= 128 | `provider_message_id = :provider_message_id` | `provider_message_id` | `string` | Null-state explicit |
+| `error_code` | `errorCode` | `?string` | length <= 64 | `error_code = :error_code` | `error_code` | `string` | Null-state explicit |
+| `error_message` | `errorMessageLike` | `?string` | length <= 128 | `error_message LIKE :error_message_like ESCAPE '\\'` | `error_message_like` | `%` prepended/appended string | Null-state explicit |
+| `scheduled_at` | `scheduledAfter` | `?\DateTimeImmutable` | ranges | `scheduled_at >= :scheduled_after` | `scheduled_after` | UTC `Y-m-d H:i:s.u` | Null-state explicit |
+| `scheduled_at` | `scheduledBefore` | `?\DateTimeImmutable` | ranges | `scheduled_at <= :scheduled_before` | `scheduled_before` | UTC `Y-m-d H:i:s.u` | Null-state explicit |
+| `completed_at` | `completedAfter` | `?\DateTimeImmutable` | ranges | `completed_at >= :completed_after` | `completed_after` | UTC `Y-m-d H:i:s.u` | Null-state explicit |
+| `completed_at` | `completedBefore` | `?\DateTimeImmutable` | ranges | `completed_at <= :completed_before` | `completed_before` | UTC `Y-m-d H:i:s.u` | Null-state explicit |
+| `occurred_at` | `after` | `?\DateTimeImmutable` | ranges | `occurred_at >= :after` | `after` | UTC `Y-m-d H:i:s.u` | N/A |
+| `occurred_at` | `before` | `?\DateTimeImmutable` | ranges | `occurred_at <= :before` | `before` | UTC `Y-m-d H:i:s.u` | N/A |
+| `metadata` | `metadataFilters` | `?array` | Max 5, JSON scalars | `JSON_CONTAINS_PATH(metadata, 'one', :meta_path_1) = 1 AND JSON_EXTRACT(metadata, :meta_path_1) = CAST(:meta_val_1 AS JSON)` | `meta_path_1`, `meta_val_1` | `string` (path), `json_encode(value, JSON_THROW_ON_ERROR)` | N/A |
 
-**Total SQL:**
-`SELECT COUNT(*) FROM maa_event_logging_delivery_operations`
-**Filtered Count SQL:**
-`SELECT COUNT(*) FROM maa_event_logging_delivery_operations WHERE <conditions>`
-**Data SQL:**
-`SELECT id, event_id, channel, operation_type, actor_type, actor_id, target_type, target_id, status, attempt_no, scheduled_at, completed_at, correlation_id, request_id, provider, provider_message_id, error_code, error_message, metadata, occurred_at FROM maa_event_logging_delivery_operations WHERE <conditions>`
+### Null-State Filters
+Property keys: `actorType`, `actorId`, `targetType`, `targetId`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`.
+`true` generates `<column> IS NULL`.
+`false` generates `<column> IS NOT NULL`.
+Duplicate/conflict conditions (e.g. `actorId = 5` and `actorId => true` IS NULL) naturally map to `actor_id = 5 AND actor_id IS NULL`, safely producing 0 results.
+No host-provided column names are permitted outside the exact property whitelist.
 
-- Filtered count and data SQL append the exact same `whereSql`.
+### Error Message Search
+For `errorMessageLike`, the parameter value must be escaped using:
+`'%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $request->errorMessageLike) . '%'`
+This matches the explicit `ESCAPE '\\'` SQL clause.
+
+### Metadata Paths
+Path format strictly matches `/^\$\.[a-zA-Z0-9_\.]{1,61}$/us`. Callers must supply the leading `$.`. Maximum 5 keys. Deterministic placeholders (e.g., `meta_path_0`, `meta_val_0`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match `CAST('null' AS JSON)` if the path exists, enforced via `JSON_CONTAINS_PATH`.
+
+### SQL Semantics
+- **Empty filters:** generates empty `whereSql` (no `WHERE` string added to data/count SQL).
+- **Parameters:** array keys strictly exclude leading colons (e.g., `['event_id' => '123']`).
+- **totalSql:** `SELECT COUNT(*) FROM maa_event_logging_delivery_operations` (no `whereSql`, empty params)
+- **filteredCountSql:** `SELECT COUNT(*) FROM maa_event_logging_delivery_operations` + `whereSql` + parameters
+- **dataSql:** `SELECT id, event_id, channel, operation_type, actor_type, actor_id, target_type, target_id, status, attempt_no, scheduled_at, completed_at, correlation_id, request_id, provider, provider_message_id, error_code, error_message, metadata, occurred_at FROM maa_event_logging_delivery_operations` + `whereSql` + parameters
 - No `ORDER BY`, `LIMIT`, or `OFFSET` in `dataSql`.
-- UTC formatting `Y-m-d H:i:s.u`.
 
 ## 5. Repository and Pagination Mechanics
 
@@ -445,78 +468,133 @@ final readonly class DeliveryOperationsAdminPageResultDTO implements \JsonSerial
 ```php
 namespace Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql;
 
+use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsAdminQueryInterface;
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminPageResultDTO;
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
+use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsAdminQueryExecutionException;
+use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException;
+use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\Pagination\DeliveryOperationsAdminQueryDescriptorBuilder;
+use Maatify\Persistence\Pagination\PageRequest;
+use Maatify\Persistence\Pagination\PaginationConfig;
+use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
+
 final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOperationsAdminQueryInterface
 {
-    private \Maatify\Persistence\Pdo\Pagination\PdoPaginator $paginator;
+    private PdoPaginator $paginator;
     private DeliveryOperationsRowMapper $mapper;
+    private DeliveryOperationsAdminQueryDescriptorBuilder $descriptorBuilder;
 
     public function __construct(private readonly \PDO $pdo)
     {
-        $this->paginator = new \Maatify\Persistence\Pdo\Pagination\PdoPaginator();
+        $this->paginator = new PdoPaginator();
         $this->mapper = new DeliveryOperationsRowMapper();
+        $this->descriptorBuilder = new DeliveryOperationsAdminQueryDescriptorBuilder();
     }
 
     public function paginate(DeliveryOperationsAdminQueryRequestDTO $request): DeliveryOperationsAdminPageResultDTO
     {
-        // 1. Convert DTO -> PaginationConfig (occurred_at only sort, id tiebreaker, 20 default, min 1, max 200).
-        // 2. Build PageRequest.
-        // 3. Build PdoPaginationQueryDescriptor.
-        // 4. Call $this->paginator->paginate($this->pdo, ...).
-        // 5. Catch PaginationExecutionException|PDOException -> DeliveryOperationsStorageException.
-        // 6. Catch InvalidPaginationConfigurationException|InvalidPaginationQueryException -> DeliveryOperationsAdminQueryExecutionException.
-        // 7. Adapt PdoPageResult to DeliveryOperationsAdminPageResultDTO.
+        try {
+            $config = new PaginationConfig(
+                defaultPerPage: 20,
+                minPerPage: 1,
+                maxPerPage: 200,
+                defaultSortBy: 'occurred_at',
+                defaultSortDirection: 'DESC',
+                sortWhitelist: ['occurred_at']
+            );
+            $pageRequest = new PageRequest($request->page, $request->perPage, $request->sortBy, $request->sortDirection);
+
+            $descriptor = $this->descriptorBuilder->build($request);
+
+            $pageResult = $this->paginator->paginate(
+                $this->pdo,
+                $descriptor,
+                $pageRequest,
+                $config,
+                fn (array $row) => $this->mapper->map($row)
+            );
+
+            return new DeliveryOperationsAdminPageResultDTO(
+                $pageResult->data,
+                $pageResult->page,
+                $pageResult->perPage,
+                $pageResult->total,
+                $pageResult->filtered,
+                $pageResult->totalPages,
+                $pageResult->hasNext,
+                $pageResult->hasPrevious,
+                $pageResult->sortBy,
+                $pageResult->sortDirection
+            );
+        } catch (\Maatify\Persistence\Pagination\Exception\InvalidPaginationConfigurationException|\Maatify\Persistence\Pagination\Exception\InvalidPaginationQueryException $e) {
+            throw DeliveryOperationsAdminQueryExecutionException::executionFailed($e);
+        } catch (DeliveryOperationsStorageException $e) {
+            throw $e;
+        } catch (\Maatify\Persistence\Pdo\Pagination\Exception\PaginationExecutionException|\PDOException $e) {
+            throw new DeliveryOperationsStorageException('Failed to query DeliveryOperations records: ' . $e->getMessage(), previous: $e);
+        } catch (\Throwable $e) {
+            throw new DeliveryOperationsStorageException('Failed to map DeliveryOperations row: ' . $e->getMessage(), previous: $e);
+        }
     }
 }
 ```
 
-### 5.2 Exception Mapping
-- `PaginationExecutionException|PDOException` -> `DeliveryOperationsStorageException` with `Failed to query DeliveryOperations records: {message}` + previous throwable.
-- `InvalidPaginationConfigurationException|InvalidPaginationQueryException` -> `DeliveryOperationsAdminQueryExecutionException::executionFailed()`.
-- Mapper failures -> `DeliveryOperationsStorageException` with `Failed to map DeliveryOperations row: {message}` + previous throwable.
-- Already-created `DeliveryOperationsStorageException` must propagate without double-wrapping.
-- No `BEGIN/COMMIT/ROLLBACK` statements exist here.
+### 5.2 Exception Mapping Details
+- Mapper failures are caught as `\Throwable`, wrapped as `DeliveryOperationsStorageException` with `Failed to map DeliveryOperations row:` prefix.
+- `DeliveryOperationsStorageException` caught explicitly avoids double-wrapping (e.g. if the mapper natively throws it).
+- PDO execution fails wrap into `Failed to query DeliveryOperations records:`.
+- Invalid configuration routes to execution exception.
+- No transaction state mutation (`BEGIN/COMMIT/ROLLBACK`).
 
 ### 5.3 Shared Mapper
 `DeliveryOperationsRowMapper` is `/** @internal */ final`.
 Exact fallback behavior preserving primitive query:
-- `id`: numeric -> int, otherwise 0
-- `event_id/channel/operation_type/status`: string -> value, otherwise ''
-- `actor_type/target_type/correlation_id/request_id/provider/provider_message_id/error_code/error_message`: string -> value, otherwise null
-- `actor_id/target_id/attempt_no`: numeric -> int, otherwise null
-- `scheduled_at/completed_at`: valid date string -> DateTimeImmutable, otherwise null
-- `occurred_at`: valid date string -> DateTimeImmutable, otherwise epoch. Invalid format throws mapper exception.
-- `metadata`: non-empty string decoded to any array -> array; missing/non-string/empty/malformed/scalar/associative-object/numeric-key-array -> handled by JSON decode. Missing or invalid shape resolves to `null`.
-No policy is injected into this read mapper.
+- `id`: numeric -> int, otherwise `0`
+- `event_id/correlation_id/request_id/provider/provider_message_id/error_code/error_message`: string -> value, otherwise `null`
+- `channel/operation_type/status`: raw unknown strings pass through unchanged; if absent/non-string -> `''` (or exact primitive mapping for non-strings)
+- `actor_type/target_type`: string -> value, otherwise `null`
+- `actor_id/target_id`: numeric -> int, otherwise `null`
+- `attempt_no`: numeric -> int, otherwise `0`
+- `scheduled_at/completed_at`: valid date string -> parsed as UTC DateTimeImmutable, otherwise (null/missing/non-string) -> `null`. Invalid date text throws mapper exception.
+- `occurred_at`: valid string -> parsed as UTC DateTimeImmutable; missing/non-string -> epoch UTC. Invalid date text throws mapper exception.
+- `metadata`: associative objects (incl empty) -> array; missing/non-string/empty string/malformed/scalar -> `null`. Any decoded array containing a numeric key is rejected as `null`.
 
-## 6. Verification Matrix (Test Design)
+## 6. Exact File and Test Inventory
 
-### 6.1 Unit Tests
-- `DeliveryOperationsAdminQueryRequestDTOTest`: Every normalization and validation rule (UTF-8 length, invalid dates, sorting logic, null-state filters).
-- `DeliveryOperationsAdminPageResultDTOTest`: Exact serialization order.
-- `DeliveryOperationsAdminQueryDescriptorBuilderTest`: Descriptor generation (explicit columns, exactly correct placeholders, no offset/limit, metadata JSON search, null-state generation, timestamp ranges, LIKE escaping).
-- `DeliveryOperationsRowMapperTest`: JSON fallback, types, null handling, missing array keys.
-- `DeliveryOperationsAdminQueryMysqlRepositoryTest`: Exception translation and delegation assertions.
-- `DeliveryOperationsAdminQueryExceptionTest`: Formatting and previous preservation.
+### 6.1 Repository Files
+- `src/DeliveryOperations/Contract/DeliveryOperationsAdminQueryInterface.php`
+- `src/DeliveryOperations/DTO/DeliveryOperationsAdminPageResultDTO.php`
+- `src/DeliveryOperations/DTO/DeliveryOperationsAdminQueryRequestDTO.php`
+- `src/DeliveryOperations/Exception/DeliveryOperationsAdminQueryExecutionException.php`
+- `src/DeliveryOperations/Exception/DeliveryOperationsAdminQueryInvalidArgumentException.php`
+- `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsAdminQueryMysqlRepository.php`
+- `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsRowMapper.php` (Internal)
+- `src/DeliveryOperations/Infrastructure/Mysql/Pagination/DeliveryOperationsAdminQueryDescriptorBuilder.php` (Internal)
 
-### 6.2 Regression Tests
-- `DeliveryOperationsQueryMysqlRepositoryRegressionTest`: Prove primitive `find()`, limits, exception boundaries, constructor preserved, cursor behavior, strict policy-free mapping preserved.
-- Full primitive contract regression protecting writer, recorder, policy, bindings, fail-open boundary.
+### 6.2 Tests
+- `tests/Unit/DeliveryOperations/DTO/DeliveryOperationsAdminQueryRequestDTOTest.php`
+- `tests/Unit/DeliveryOperations/DTO/DeliveryOperationsAdminPageResultDTOTest.php`
+- `tests/Unit/DeliveryOperations/Exception/DeliveryOperationsAdminQueryExecutionExceptionTest.php`
+- `tests/Unit/DeliveryOperations/Exception/DeliveryOperationsAdminQueryInvalidArgumentExceptionTest.php`
+- `tests/Unit/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsRowMapperTest.php`
+- `tests/Unit/DeliveryOperations/Infrastructure/Mysql/Pagination/DeliveryOperationsAdminQueryDescriptorBuilderTest.php`
+- `tests/Unit/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsAdminQueryMysqlRepositoryTest.php`
+- `tests/Regression/DeliveryOperations/DeliveryOperationsQueryMysqlRepositoryRegressionTest.php`
+- `tests/Integration/DeliveryOperations/DeliveryOperationsAdminQueryMysqlRepositoryTest.php`
 
-### 6.3 Strict MySQL Integration Tests
-- `DeliveryOperationsAdminQueryMysqlRepositoryTest`: Strict database test.
+### 6.3 Required Later Runtime Sequence
+1. public contracts, DTO validation/serialization, and exceptions;
+2. policy-free mapper and descriptor builder;
+3. Admin MySQL repository and Unit exception/execution gates;
+4. **Regression/protected-contract gate:** explicitly cover primitive query constructor/signature/filters/cursor/order/limit/hydration/exceptions, writer/recorder/policy/factory/provider/bindings, schema, and fail-open behavior;
+5. **Strict Integration gate:** explicitly cover every equality/range/null/text/metadata filter independently and in combinations, exact microseconds, total/filtered/data alignment, pagination/clamping/overflow/tie-breaks, native prepared statements, transaction preservation. Unindexed-filter scan implications are tested, not skipped.
+6. final package/integration/domain documentation (e.g., `README.md`, `ADMIN_READ_USAGE.md`).
+
+### 6.4 Strict Integration Requirements
 - Missing/empty `EVENT_LOGGING_TEST_MYSQL_DSN` -> throws `RuntimeException`. No `markTestSkipped()`.
-- Must execute against native MySQL using `PDO::ATTR_EMULATE_PREPARES => false`, `PDO::FETCH_ASSOC`, and `PDO::ERRMODE_EXCEPTION`.
-- Every independent filter, range boundaries, complex combinations.
-- Metadata JSON exact filtering.
-- Null-state `true`/`false` exact isolation.
-- Pagination navigation, overflow, deterministic tie-breaking (`id DESC`).
-- Failure mapping (e.g., forced schema/table missing or invalid SQL context for `PDOException`).
-- Caller-owned transaction preservation (transaction state unchanged after read).
-- Unindexed-filter scan implications explicitly accepted in tests without skipping them.
-
-## 7. Later Runtime sequence
-- public contracts, DTO validation/serialization, and exceptions;
-- policy-free mapper and descriptor builder;
-- Admin MySQL repository and Unit exception/execution gates;
-- strict native-MySQL Admin Integration gates;
-- final package/integration/domain documentation and full verification.
+- Must execute against native MySQL using:
+  ```php
+  PDO::ATTR_EMULATE_PREPARES => false
+  PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+  ```
