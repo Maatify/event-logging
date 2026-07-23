@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Runtime Complete / DeliveryOperations Discovery/Audit Complete / DeliveryOperations Blueprint Proposed Next
+**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Runtime Complete / DeliveryOperations Blueprint Approved / Runtime Implementation Next
 
 ## 1. Purpose
 
@@ -227,9 +227,8 @@ The approved implementation sequence is:
 Phase 3 Remediation Complete.
 Phase 4 Active.
 DiagnosticsTelemetry Runtime complete
-DeliveryOperations discovery/audit and blueprint design authorized next
-DeliveryOperations Owner approval pending
-DeliveryOperations Runtime not authorized
+DeliveryOperations Blueprint Approved
+DeliveryOperations Runtime Next
 Reporting/dashboard blocked
 No release or tag authorized
 
@@ -238,6 +237,6 @@ No release or tag authorized
 - `SecuritySignals`: Runtime implemented.
 - `AuthoritativeAudit`: Runtime implemented.
 - `DiagnosticsTelemetry`: Runtime implemented
-- `DeliveryOperations`: Discovery/audit and blueprint design authorized next
+- `DeliveryOperations`: Blueprint Approved / Runtime Next. The implementation must strictly follow the merged Blueprint.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.
