@@ -203,7 +203,7 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame('evt-1', $result->items[2]->eventId);
     }
 
-        public function testItHydratesDTOsAndMetadataCorrectlyIncludingNumericArrays(): void
+    public function testItHydratesDTOsAndMetadataCorrectlyIncludingNumericArrays(): void
     {
         // Recreate the table with metadata as TEXT to bypass MySQL JSON validation for this specific test
         $schema = file_get_contents(__DIR__ . '/../../../src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql');

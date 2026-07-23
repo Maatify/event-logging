@@ -6,7 +6,7 @@
 > - `*QueryPageDTO`
 > - `*PaginatedQueryService`
 >
-> AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DiagnosticsTelemetry now use the approved replacement path. The only remaining domain (`DeliveryOperations`) is future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals use rebuilt/replacement Admin Query paths. DiagnosticsTelemetry uses a new Admin Query implementation. DeliveryOperations blueprint/design and Owner approval are next; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 The `maatify/event-logging` library provides both protected primitive read/query contracts and separate Admin Query offset pagination contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
