@@ -54,7 +54,7 @@ interface DeliveryOperationsAdminQueryInterface
 ```php
 namespace Maatify\EventLogging\DeliveryOperations\Exception;
 
-use Maatify\EventLogging\Contract\Exception\EventLoggingExceptionInterface;
+use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
 use Maatify\Exceptions\Exception\Validation\InvalidArgumentMaatifyException;
 
 final class DeliveryOperationsAdminQueryInvalidArgumentException extends InvalidArgumentMaatifyException implements EventLoggingExceptionInterface
@@ -106,19 +106,23 @@ final class DeliveryOperationsAdminQueryInvalidArgumentException extends Invalid
 ```php
 namespace Maatify\EventLogging\DeliveryOperations\Exception;
 
-use Maatify\EventLogging\Contract\Exception\EventLoggingExceptionInterface;
-use Maatify\Exceptions\Exception\System\SystemMaatifyException;
-use Maatify\Exceptions\Contract\ErrorCodeInterface;
+use Maatify\EventLogging\Exception\EventLoggingExceptionInterface;
+use Maatify\Exceptions\Contracts\ErrorCodeInterface;
 use Maatify\Exceptions\Enum\ErrorCodeEnum;
+use Maatify\Exceptions\Exception\System\SystemMaatifyException;
+use Throwable;
 
 final class DeliveryOperationsAdminQueryExecutionException extends SystemMaatifyException implements EventLoggingExceptionInterface
 {
-    public static function executionFailed(\Throwable $previous): self
+    public static function executionFailed(Throwable $previous): self
     {
-        return new self("DeliveryOperations Admin Query execution failed: " . $previous->getMessage(), previous: $previous);
+        return new self(
+            message: "DeliveryOperations Admin Query execution failed: " . $previous->getMessage(),
+            previous: $previous
+        );
     }
 
-    public function defaultErrorCode(): ErrorCodeInterface
+    protected function defaultErrorCode(): ErrorCodeInterface
     {
         return ErrorCodeEnum::MAATIFY_ERROR;
     }
@@ -280,11 +284,7 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
                 }
                 try {
-                    $encoded = json_encode($value, \JSON_THROW_ON_ERROR);
-                    // Explicitly reject non-finite float which PHP handles inconsistently
-                    if ($encoded === 'false' && $value !== false) {
-                         throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
-                    }
+                    json_encode($value, \JSON_THROW_ON_ERROR);
                 } catch (\JsonException) {
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
                 }
@@ -317,8 +317,8 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
                 'provider', 'providerMessageId', 'errorCode', 'errorMessage'
             ];
             foreach ($nullStateFilters as $key => $val) {
-                if (!in_array($key, $allowed, true) || !is_bool($val)) {
-                    throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidNullState($key);
+                if (!is_string($key) || !in_array($key, $allowed, true) || !is_bool($val)) {
+                    throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidNullState((string) $key);
                 }
             }
         }
@@ -383,15 +383,13 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
 - **Retry Bounds**: `attemptNoMin` and `attemptNoMax` must be unsigned (>= 0). If both are set, `attemptNoMin <= attemptNoMax`.
 - **Text Search**: `errorMessageLike` uses safe exact contains search with escaping (`LIKE :error_message_like ESCAPE '\\'`). Escaping must natively escape `\`, `%`, and `_`. Case insensitivity depends on the table's collation.
 - **Null-State Tri-State**: `nullStateFilters` accepts an associative array mapping exactly to these allowed property names: `actorType`, `actorId`, `targetType`, `targetId`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`. Values must be strictly `bool` (`true` -> `IS NULL`, `false` -> `IS NOT NULL`). An exception is thrown for invalid properties or non-bool values. Duplicate semantic conditions (e.g., both equality and null-state) naturally translate into SQL `WHERE column = X AND column IS NULL`, producing 0 rows as intended.
-- **Metadata JSON Search**: `metadataFilters` must be an exact associative array mapping `['stringPath' => scalarValue]`. No arbitrary JSON path evaluation. Maximum 5 filters per request. The path format must strictly enforce leading `$.`, exactly 1 to 5 non-empty ASCII `[A-Za-z0-9_]+` segments, dot separators only, no repeated dots, and maximum total length 64. Allowed scalar value types: `string|int|float|bool|null`. Values must be successfully encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. A JSON `null` filter explicitly searches for `CAST(NULL AS JSON)` value stored in the document, whereas missing a path returns NULL which requires `JSON_CONTAINS_PATH(metadata, 'one', :path) = 1` checks to differentiate. Null vs missing must be handled correctly in SQL.
+- **Metadata JSON Search**: `metadataFilters` must be an exact associative array mapping `['stringPath' => scalarValue]`. No arbitrary JSON path evaluation. Maximum 5 filters per request. The path format must strictly enforce leading `$.`, exactly 1 to 5 non-empty ASCII `[A-Za-z0-9_]+` segments, dot separators only, no repeated dots, and maximum total length 64 bytes/characters. Allowed scalar value types: `string|int|float|bool|null`. Values must be successfully encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. A JSON `null` filter explicitly searches for `CAST(NULL AS JSON)` value stored in the document, whereas missing a path returns NULL which requires `JSON_CONTAINS_PATH(metadata, 'one', :path) = 1` checks to differentiate. Null vs missing must be handled correctly in SQL.
 
 ### 3.5 Result DTO
 `DeliveryOperationsAdminPageResultDTO`
 Must match the exact structure of other domains.
 ```php
 namespace Maatify\EventLogging\DeliveryOperations\DTO;
-
-use Traversable;
 
 /**
  * @implements \IteratorAggregate<int, DeliveryOperationsViewDTO>
