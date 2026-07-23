@@ -252,10 +252,15 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
                 throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataCount();
             }
             foreach ($metadataFilters as $path => $value) {
-                if (!is_string($path) || !preg_match('/^\$\.[a-zA-Z0-9_\.]{1,61}$/us', $path)) {
+                if (!is_string($path) || mb_strlen($path) > 64 || !preg_match('/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/', $path)) {
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataPath();
                 }
                 if ($value !== null && !is_scalar($value)) {
+                    throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
+                }
+                try {
+                    json_encode($value, \JSON_THROW_ON_ERROR);
+                } catch (\JsonException) {
                     throw DeliveryOperationsAdminQueryInvalidArgumentException::invalidMetadataValue();
                 }
             }
@@ -345,11 +350,23 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
 }
 ```
 
+### 3.4 Request Validation and Semantics
+- **Length Limits**: eventId (36), channel (32), operationType (64), actorType (32), targetType (64), status (32), correlationId (36), requestId (64), provider (64), providerMessageId (128), errorCode (64), errorMessageLike (128). Strings are trimmed and UTF-8 validated `preg_match_all('/./us', $val)`.
+- **Independence**: `actorType`/`actorId` and `targetType`/`targetId` are independently filterable. Positive integers for IDs.
+- **Ranges**: `scheduledAfter` <= `scheduledBefore`, `completedAfter` <= `completedBefore`, `after` <= `before`.
+- **Pagination Limits**: `page`/`perPage` defaults are passed as `null` to `maatify/persistence` to apply normalization.
+- **Retry Bounds**: `attemptNoMin` and `attemptNoMax` must be unsigned (>= 0). If both are set, `attemptNoMin <= attemptNoMax`.
+- **Text Search**: `errorMessageLike` uses safe exact contains search with escaping (`LIKE :error_message_like ESCAPE '\\'`). Escaping must natively escape `\`, `%`, and `_`. Case insensitivity depends on the table's collation.
+- **Null-State Tri-State**: `nullStateFilters` accepts an associative array mapping exactly to these allowed property names: `actorType`, `actorId`, `targetType`, `targetId`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`. Values must be strictly `bool` (`true` -> `IS NULL`, `false` -> `IS NOT NULL`). An exception is thrown for invalid properties or non-bool values. Duplicate semantic conditions (e.g., both equality and null-state) naturally translate into SQL `WHERE column = X AND column IS NULL`, producing 0 rows as intended.
+- **Metadata JSON Search**: `metadataFilters` must be an exact associative array mapping `['stringPath' => scalarValue]`. No arbitrary JSON path evaluation. Maximum 5 filters per request. The path format must strictly enforce leading `$.`, exactly 1 to 5 non-empty ASCII `[A-Za-z0-9_]+` segments, dot separators only, no repeated dots, and maximum total length 64. Allowed scalar value types: `string|int|float|bool|null`. Values must be successfully encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. A JSON `null` filter explicitly searches for `CAST(NULL AS JSON)` value stored in the document, whereas missing a path returns NULL which requires `JSON_CONTAINS_PATH(metadata, 'one', :path) = 1` checks to differentiate. Null vs missing must be handled correctly in SQL.
+
 ### 3.5 Result DTO
 `DeliveryOperationsAdminPageResultDTO`
 Must match the exact structure of other domains.
 ```php
 namespace Maatify\EventLogging\DeliveryOperations\DTO;
+
+use Traversable;
 
 /**
  * @implements \IteratorAggregate<int, DeliveryOperationsViewDTO>
@@ -471,12 +488,18 @@ namespace Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql;
 use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsAdminQueryInterface;
 use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminPageResultDTO;
 use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsViewDTO;
 use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsAdminQueryExecutionException;
 use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\Pagination\DeliveryOperationsAdminQueryDescriptorBuilder;
-use Maatify\Persistence\Pagination\PageRequest;
-use Maatify\Persistence\Pagination\PaginationConfig;
+use Maatify\Persistence\Exception\InvalidPaginationConfigurationException;
+use Maatify\Persistence\Exception\InvalidPaginationQueryException;
+use Maatify\Persistence\Exception\PaginationExecutionException;
+use Maatify\Persistence\Pdo\Pagination\PageRequest;
+use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
 use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
+use Maatify\Persistence\Pdo\Pagination\SortDirectionEnum;
+use Maatify\Persistence\Pdo\Pagination\SortWhitelist;
 
 final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOperationsAdminQueryInterface
 {
@@ -495,14 +518,25 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
     {
         try {
             $config = new PaginationConfig(
+                sortWhitelist: new SortWhitelist([
+                    'occurred_at' => 'occurred_at',
+                    'id' => 'id',
+                ]),
+                defaultSortBy: 'occurred_at',
+                defaultSortDirection: SortDirectionEnum::DESC,
+                tieBreakerSortBy: 'id',
+                tieBreakerDirection: SortDirectionEnum::DESC,
                 defaultPerPage: 20,
                 minPerPage: 1,
                 maxPerPage: 200,
-                defaultSortBy: 'occurred_at',
-                defaultSortDirection: 'DESC',
-                sortWhitelist: ['occurred_at']
             );
-            $pageRequest = new PageRequest($request->page, $request->perPage, $request->sortBy, $request->sortDirection);
+
+            $pageRequest = new PageRequest(
+                page: $request->page,
+                perPage: $request->perPage,
+                sortBy: $request->sortBy,
+                sortDirection: $request->sortDirection
+            );
 
             $descriptor = $this->descriptorBuilder->build($request);
 
@@ -511,7 +545,7 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
                 $descriptor,
                 $pageRequest,
                 $config,
-                fn (array $row) => $this->mapper->map($row)
+                fn(array $row) => $this->mapRow($row)
             );
 
             return new DeliveryOperationsAdminPageResultDTO(
@@ -524,14 +558,26 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
                 $pageResult->hasNext,
                 $pageResult->hasPrevious,
                 $pageResult->sortBy,
-                $pageResult->sortDirection
+                $pageResult->sortDirection->value
             );
-        } catch (\Maatify\Persistence\Pagination\Exception\InvalidPaginationConfigurationException|\Maatify\Persistence\Pagination\Exception\InvalidPaginationQueryException $e) {
+        } catch (InvalidPaginationConfigurationException|InvalidPaginationQueryException $e) {
             throw DeliveryOperationsAdminQueryExecutionException::executionFailed($e);
+        } catch (PaginationExecutionException|\PDOException $e) {
+            throw new DeliveryOperationsStorageException('Failed to query DeliveryOperations records: ' . $e->getMessage(), previous: $e);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return DeliveryOperationsViewDTO
+     * @throws DeliveryOperationsStorageException
+     */
+    private function mapRow(array $row): DeliveryOperationsViewDTO
+    {
+        try {
+            return $this->mapper->map($row);
         } catch (DeliveryOperationsStorageException $e) {
             throw $e;
-        } catch (\Maatify\Persistence\Pdo\Pagination\Exception\PaginationExecutionException|\PDOException $e) {
-            throw new DeliveryOperationsStorageException('Failed to query DeliveryOperations records: ' . $e->getMessage(), previous: $e);
         } catch (\Throwable $e) {
             throw new DeliveryOperationsStorageException('Failed to map DeliveryOperations row: ' . $e->getMessage(), previous: $e);
         }
@@ -540,7 +586,7 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
 ```
 
 ### 5.2 Exception Mapping Details
-- Mapper failures are caught as `\Throwable`, wrapped as `DeliveryOperationsStorageException` with `Failed to map DeliveryOperations row:` prefix.
+- Mapper failures are caught as `\Throwable` within the `mapRow` callback, wrapped as `DeliveryOperationsStorageException` with `Failed to map DeliveryOperations row:` prefix.
 - `DeliveryOperationsStorageException` caught explicitly avoids double-wrapping (e.g. if the mapper natively throws it).
 - PDO execution fails wrap into `Failed to query DeliveryOperations records:`.
 - Invalid configuration routes to execution exception.
@@ -550,14 +596,13 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
 `DeliveryOperationsRowMapper` is `/** @internal */ final`.
 Exact fallback behavior preserving primitive query:
 - `id`: numeric -> int, otherwise `0`
-- `event_id/correlation_id/request_id/provider/provider_message_id/error_code/error_message`: string -> value, otherwise `null`
-- `channel/operation_type/status`: raw unknown strings pass through unchanged; if absent/non-string -> `''` (or exact primitive mapping for non-strings)
-- `actor_type/target_type`: string -> value, otherwise `null`
+- `event_id`, `channel`, `operation_type`, `status`: string -> value, otherwise `''`
+- `actor_type/target_type/correlation_id/request_id/provider/provider_message_id/error_code/error_message`: string -> value, otherwise `null`
 - `actor_id/target_id`: numeric -> int, otherwise `null`
 - `attempt_no`: numeric -> int, otherwise `0`
 - `scheduled_at/completed_at`: valid date string -> parsed as UTC DateTimeImmutable, otherwise (null/missing/non-string) -> `null`. Invalid date text throws mapper exception.
 - `occurred_at`: valid string -> parsed as UTC DateTimeImmutable; missing/non-string -> epoch UTC. Invalid date text throws mapper exception.
-- `metadata`: associative objects (incl empty) -> array; missing/non-string/empty string/malformed/scalar -> `null`. Any decoded array containing a numeric key is rejected as `null`.
+- `metadata`: associative arrays (incl empty) -> array; missing/non-string/empty string/malformed/scalar/numeric-key-array -> `null`.
 
 ## 6. Exact File and Test Inventory
 
@@ -598,3 +643,15 @@ Exact fallback behavior preserving primitive query:
   PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
   PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
   ```
+
+### 6.5 Documentation Files Updated in Later Runtime PR
+```text
+EVENT_LOGGING_PACKAGE_REFERENCE.md
+CHANGELOG.md
+src/DeliveryOperations/README.md
+docs/integration/ADMIN_READ_USAGE.md
+docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md
+docs/architecture/ADMIN_QUERY_DELIVERY_OPERATIONS_BLUEPRINT.md
+docs/roadmap/ADMIN_QUERY_API_ROADMAP.md
+docs/audits/DOCUMENTATION_INVENTORY.md
+```
