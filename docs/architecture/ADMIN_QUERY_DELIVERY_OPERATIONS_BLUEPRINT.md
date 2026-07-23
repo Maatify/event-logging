@@ -1,9 +1,18 @@
 # DeliveryOperations Admin Query Blueprint
 
-**Status:** Proposed / Pending Owner Approval
-**Runtime Not Authorized**
+**Status:** Owner Approved / Runtime Authorized / Implementation Pending
 
-This document defines the complete proposed contract for adding the new Admin Query API path for `DeliveryOperations`.
+## Approval Record
+
+- Owner approval completed on July 24, 2026.
+- The approved blueprint was merged through PR #124.
+- Merge commit: `f5ff025c9a539162c7e8dd42c0d7b43044894a6f`.
+- Runtime must be implemented in a subsequent PR from the latest `main`.
+- The implementation is strictly bound to the contracts documented in this blueprint, including covering all persisted fields with package-owned, safe filter contracts.
+- No authorization to modify the protected `v1.0.0` primitive Runtime.
+- No schema, Composer, CI, host, reporting, dashboard, tag, or release work is authorized.
+
+This document defines the complete approved contract for adding the new Admin Query API path for `DeliveryOperations`.
 
 ## 1. Scope and Design Principle
 The DeliveryOperations domain has no superseded post-v1 pagination experiment to rebuild. This is a new post-v1 implementation.
