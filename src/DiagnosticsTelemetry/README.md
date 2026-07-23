@@ -137,3 +137,35 @@ The module is designed to support future archiving via the `DiagnosticsTelemetry
 - **Metadata**: MUST be an array or null. Maximum size is 64KB (JSON encoded).
 - **Secrets**: Metadata MUST NOT contain secrets (passwords, tokens, OTPs).
 - **Actor Type**: Default policy enforces uppercase, max length 32, and sanitizes characters (replacing invalid chars with `_`) using pattern `[^A-Z0-9_.:-]`. It does NOT collapse invalid types to ANONYMOUS by default, but sanitizes them to valid ad-hoc types. Falls back to ANONYMOUS if sanitization results in an empty string.
+
+## Admin Query API
+
+The DiagnosticsTelemetry Admin Query API provides paginated admin read access using `maatify/persistence`.
+
+### Supported Filters
+- `actorType` (independent)
+- `actorId` (independent)
+- `eventKey`
+- `severity`
+- `requestId`
+- `correlationId`
+- `after`
+- `before`
+
+### Pagination and Results
+Page results strictly guarantee the serialization order: `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, `sortDirection`.
+
+### Exception Boundaries
+- Validation errors map to `DiagnosticsTelemetryAdminQueryInvalidArgumentException`.
+- Admin execution/pagination errors map to `DiagnosticsTelemetryAdminQueryExecutionException`.
+- Native mapping and database execution errors map to `DiagnosticsTelemetryStorageException`.
+
+### Unsupported Features
+The Admin Query API explicitly excludes:
+- `eventId`, `routeName`, and `durationMs` filtering
+- Metadata search or free-text search
+- Generic filtering and arbitrary SQL injection
+
+The host application retains ownership of authorization, controllers, routes, UI, localization, actor resolution, exports, and presentation.
+
+*Note: The Admin API is a dedicated administrative access path and does not replace the `DiagnosticsTelemetryQueryInterface::find()` or legacy `read()` primitive patterns.*

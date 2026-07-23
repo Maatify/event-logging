@@ -140,18 +140,8 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-DiagnosticsTelemetry blueprint approval is complete. DiagnosticsTelemetry Runtime is the next authorized implementation.
-
-DeliveryOperations remains pending after DiagnosticsTelemetry.
-
-Reporting and dashboard work remain blocked.
-
-No tag or release is authorized.
-
-The `AuditTrail` Admin Query Runtime is implemented and merged, pending the future `v1.1.0` release.
-
-The `BehaviorTrace` Admin Query Runtime is implemented and complete.
-
-The `SecuritySignals` Admin Query Runtime is implemented and complete, pending only the future package release where applicable. The replacement API is present, the protected primitive behavior is preserved, the required distinct-placeholder correction is applied, the exact superseded Runtime/test artifacts are deleted, and strict real-MySQL Integration coverage is present.
-
-`AuthoritativeAudit` replacement Runtime, primitive preservation, strict MySQL coverage, and seven-artifact retirement are complete.
+- DiagnosticsTelemetry Runtime implemented;
+- DeliveryOperations blueprint/design and Owner approval next;
+- DeliveryOperations Runtime not yet authorized;
+- reporting/dashboard blocked;
+- no release/tag authorized.
