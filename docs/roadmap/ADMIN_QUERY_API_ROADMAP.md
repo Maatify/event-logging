@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 3 Complete / DiagnosticsTelemetry Runtime Complete and Merged / DeliveryOperations Discovery/Audit and Blueprint Design Authorized Next
+**Status:** Phase 3 Complete / DiagnosticsTelemetry Runtime Complete and Merged / DeliveryOperations Discovery/Audit Complete / DeliveryOperations Blueprint Proposed Next
 
 ## 1. Scope Boundary
 
@@ -141,7 +141,7 @@ Every implementation phase must prove all of the following:
 ## 6. Current Gate
 
 - DiagnosticsTelemetry Runtime complete and merged;
-- DeliveryOperations discovery/audit and blueprint design authorized next;
+- DeliveryOperations discovery/audit complete; DeliveryOperations blueprint proposed next;
 - DeliveryOperations Owner approval pending;
 - DeliveryOperations Runtime not authorized;
 - reporting/dashboard blocked;
