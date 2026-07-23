@@ -30,7 +30,7 @@
 - `src/DeliveryOperations/Exception/DeliveryOperationsStorageException.php` - Protected contract
 - `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsLoggerMysqlRepository.php` - Protected published Runtime surface (internals may be refactored if behavior remains compatible)
 - `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsQueryMysqlRepository.php` - Protected published Runtime surface (internals may be refactored if behavior remains compatible)
-- `src/DeliveryOperations/README.md` - Documentation
+- `src/DeliveryOperations/README.md` - Historical/irrelevant to Admin Query (current supporting documentation, not part of the protected Runtime compatibility surface)
 - `src/DeliveryOperations/Recorder/DeliveryOperationsDefaultPolicy.php` - Protected published Runtime surface (internals may be refactored if behavior remains compatible)
 - `src/DeliveryOperations/Recorder/DeliveryOperationsRecorder.php` - Protected contract (Write boundary)
 
@@ -46,7 +46,7 @@
 - `tests/Unit/DeliveryOperations/Repository/DeliveryOperationsQueryMysqlRepositoryTest.php`
 
 ### Package Reference Sections
-- Sections reviewed: `6. DeliveryOperations`, `DeliveryOperationsFactory`, Delivery operations filtering/pagination capabilities, and exceptions/fail-open boundaries in `EVENT_LOGGING_PACKAGE_REFERENCE.md`.
+- Sections reviewed: Domain index `DeliveryOperations`, `DeliveryOperationsFactory` instantiation reference, Domain query capabilities (primitive `DeliveryOperationsQueryInterface` and `DeliveryOperationsQueryDTO`), Domain-specific policy interface `DeliveryOperationsPolicyInterface`, Exceptions boundary `DeliveryOperationsStorageException`, and Fail-open at recorder boundary references in `EVENT_LOGGING_PACKAGE_REFERENCE.md`.
 
 ### External Tests
 - Searched entire `tests/` outside `tests/*/DeliveryOperations/` for Factory/Provider/Bindings references.
@@ -135,6 +135,8 @@
 ## 4. Write-Side Compatibility Boundary
 
 - **`DeliveryOperationsRecorder`:**
+  - `public function __construct(private readonly DeliveryOperationsLoggerInterface $logger, private readonly ClockInterface $clock, private readonly ?LoggerInterface $fallbackLogger = null, private ?DeliveryOperationsPolicyInterface $policy = null)`
+  - **Constructor behavior:** If `$policy` is `null`, it instantiates `DeliveryOperationsDefaultPolicy` internally as a fallback.
   - `public function record(DeliveryChannelEnum|string $channel, DeliveryOperationTypeEnum|string $operationType, DeliveryStatusEnum|string $status, int $attemptNo = 0, DeliveryActorTypeInterface|string|null $actorType = null, ?int $actorId = null, ?string $targetType = null, ?int $targetId = null, ?DateTimeImmutable $scheduledAt = null, ?DateTimeImmutable $completedAt = null, ?string $correlationId = null, ?string $requestId = null, ?string $provider = null, ?string $providerMessageId = null, ?string $errorCode = null, ?string $errorMessage = null, ?array $metadata = null): void`
   - Fail-open boundary. Catches all `Throwable` errors during validation, metadata size checking (64KB default limit), JSON encoding, or PDO log operations. Best-effort reports to PSR-3 fallback logger and does not crash the caller.
 - **`DeliveryOperationsLoggerInterface`:**
@@ -201,7 +203,33 @@
   - `src/DiagnosticsTelemetry/Infrastructure/Mysql/DiagnosticsTelemetryAdminQueryMysqlRepository.php` (Protected Admin Query)
   - `src/SecuritySignals/Contract/SecuritySignalsAdminQueryInterface.php` (Protected Admin Query)
   - `src/SecuritySignals/Infrastructure/Mysql/SecuritySignalsAdminQueryMysqlRepository.php` (Protected Admin Query)
-  - (and associated DTOs/Tests for the above implemented domains).
+  - `src/AuthoritativeAudit/DTO/AuthoritativeAuditAdminQueryRequestDTO.php` (Protected Admin Query DTO)
+  - `src/AuthoritativeAudit/DTO/AuthoritativeAuditAdminPageResultDTO.php` (Protected Admin Query DTO)
+  - `src/AuditTrail/DTO/AuditTrailAdminQueryRequestDTO.php` (Protected Admin Query DTO)
+  - `src/AuditTrail/DTO/AuditTrailAdminPageResultDTO.php` (Protected Admin Query DTO)
+  - `src/BehaviorTrace/DTO/BehaviorTraceAdminQueryRequestDTO.php` (Protected Admin Query DTO)
+  - `src/BehaviorTrace/DTO/BehaviorTraceAdminPageResultDTO.php` (Protected Admin Query DTO)
+  - `src/DiagnosticsTelemetry/DTO/DiagnosticsTelemetryAdminQueryRequestDTO.php` (Protected Admin Query DTO)
+  - `src/DiagnosticsTelemetry/DTO/DiagnosticsTelemetryAdminPageResultDTO.php` (Protected Admin Query DTO)
+  - `src/SecuritySignals/DTO/SecuritySignalsAdminQueryRequestDTO.php` (Protected Admin Query DTO)
+  - `src/SecuritySignals/DTO/SecuritySignalsAdminPageResultDTO.php` (Protected Admin Query DTO)
+  - `tests/Integration/AuthoritativeAudit/AuthoritativeAuditAdminQueryMysqlRepositoryTest.php` (Test)
+  - `tests/Unit/AuthoritativeAudit/DTO/AuthoritativeAuditAdminQueryRequestDTOTest.php` (Test)
+  - `tests/Unit/AuthoritativeAudit/DTO/AuthoritativeAuditAdminPageResultDTOTest.php` (Test)
+  - `tests/Integration/AuditTrail/AuditTrailAdminQueryMysqlRepositoryTest.php` (Test)
+  - `tests/Integration/BehaviorTrace/BehaviorTraceAdminQueryMysqlRepositoryTest.php` (Test)
+  - `tests/Integration/DiagnosticsTelemetry/DiagnosticsTelemetryAdminQueryMysqlRepositoryTest.php` (Test)
+  - `tests/Integration/SecuritySignals/SecuritySignalsAdminQueryMysqlRepositoryTest.php` (Test)
+  - `src/AuthoritativeAudit/Mapper/AuthoritativeAuditRowMapper.php` (Internal)
+  - `src/AuditTrail/Mapper/AuditTrailRowMapper.php` (Internal)
+  - `src/BehaviorTrace/Mapper/BehaviorTraceRowMapper.php` (Internal)
+  - `src/DiagnosticsTelemetry/Mapper/DiagnosticsTelemetryRowMapper.php` (Internal)
+  - `src/SecuritySignals/Mapper/SecuritySignalsRowMapper.php` (Internal)
+  - `src/AuthoritativeAudit/Database/AuthoritativeAuditAdminQueryDescriptorBuilder.php` (Internal)
+  - `src/AuditTrail/Database/AuditTrailAdminQueryDescriptorBuilder.php` (Internal)
+  - `src/BehaviorTrace/Database/BehaviorTraceAdminQueryDescriptorBuilder.php` (Internal)
+  - `src/DiagnosticsTelemetry/Database/DiagnosticsTelemetryAdminQueryDescriptorBuilder.php` (Internal)
+  - `src/SecuritySignals/Database/SecuritySignalsAdminQueryDescriptorBuilder.php` (Internal)
 - **Conclusion:** No DeliveryOperations Admin or paginated artifact exists. No superseded post-v1 pagination experiment or partial implementation exists for this domain.
 
 ## 7. Current Test Evidence and Gaps
@@ -218,7 +246,7 @@
 | Cursor ordering | PARTIAL (Integration test exists but can be skipped if DB unavailable) |
 | Limit normalization | NOT PROVEN |
 | Corrupt/scalar/numeric-array JSON | PARTIAL (only corrupt JSON proven) |
-| Invalid enum-like persisted values | NOT APPLICABLE |
+| Invalid enum-like persisted values | NOT PROVEN (applicable because channel, operationType, and status hydrate as raw strings bypassing fallback, but no explicit test proves unknown passthrough behavior) |
 | Storage failure translation | PARTIAL (PDO failure proven, hydration mapping prefix/throwable NOT fully proven directly) |
 | Caller-owned transaction preservation | NOT PROVEN (applicable but not proven) |
 | Native PDO named-placeholder compatibility | NOT PROVEN |
