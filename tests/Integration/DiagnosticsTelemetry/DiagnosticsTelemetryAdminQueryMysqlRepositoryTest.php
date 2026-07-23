@@ -203,8 +203,17 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame('evt-1', $result->items[2]->eventId);
     }
 
-    public function testItHydratesDTOsAndMetadataCorrectlyIncludingNumericArrays(): void
+        public function testItHydratesDTOsAndMetadataCorrectlyIncludingNumericArrays(): void
     {
+        // Recreate the table with metadata as TEXT to bypass MySQL JSON validation for this specific test
+        $schema = file_get_contents(__DIR__ . '/../../../src/DiagnosticsTelemetry/Database/schema.maa_event_logging_diagnostics_telemetry.sql');
+        if (! is_string($schema)) {
+            $this->fail('Failed to load schema.');
+        }
+        $schema = str_replace('metadata JSON', 'metadata TEXT', $schema);
+        $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_diagnostics_telemetry;');
+        $this->pdo->exec($schema);
+
         $this->insertLog(
             eventId: 'evt-1',
             durationMs: 450,
@@ -222,11 +231,6 @@ final class DiagnosticsTelemetryAdminQueryMysqlRepositoryTest extends TestCase
             metadata: '"scalar"', // Invalid, becomes null
         );
 
-        // Disable strict JSON validation temporarily by setting metadata via string instead of prepared parameters natively if needed
-        // Or actually the error happens during INSERT since `metadata JSON NULL` requires valid JSON syntax at the MySQL level!
-        // The test aims to prove that IF corrupt data exists (e.g. from an old version), it maps to null.
-        // We can simulate this by changing the schema definition on the fly just for this test, or bypass by skipping the literal `{malformed_json_here}` which MySQL rejects natively in JSON columns.
-        $this->pdo->exec("ALTER TABLE maa_event_logging_diagnostics_telemetry MODIFY COLUMN metadata TEXT NULL");
 
         $this->insertLog(
             eventId: 'evt-4',
