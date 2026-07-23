@@ -1,14 +1,14 @@
 # DiagnosticsTelemetry Admin Query Blueprint
 
 
-**Status:** Owner Approved / Runtime Authorized / Implementation Pending
+**Status:** Owner Approved / Runtime Implemented / Complete
 
 ## Approval Record
 
 - Owner approval was completed on July 22, 2026.
 - The approved blueprint was merged through PR #119.
 - Merge commit: `201d3369c78c6f88e6bb7cba1ae0a442befb0ee2`.
-- Runtime must be implemented in a separate PR from current `main`.
+- Runtime is now implemented in a separate PR.
 - No schema, Composer, CI, host, reporting, dashboard, tag, or release work is authorized.
 
 

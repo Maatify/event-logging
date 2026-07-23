@@ -1,12 +1,12 @@
 # Admin Read Usage
 
-> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DiagnosticsTelemetry Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
 > - `*PaginatedQueryInterface`
 > - `*QueryCursorDTO`
 > - `*QueryPageDTO`
 > - `*PaginatedQueryService`
 >
-> AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals now use the approved replacement path. Remaining domains (`DiagnosticsTelemetry` and `DeliveryOperations`) are future roadmap work; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals use rebuilt/replacement Admin Query paths. DiagnosticsTelemetry uses a new Admin Query implementation. DeliveryOperations blueprint/design and Owner approval are next; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 The `maatify/event-logging` library provides both protected primitive read/query contracts and separate Admin Query offset pagination contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
@@ -164,6 +164,36 @@ Supported filters are `eventId`, `actorType`, `actorId`, `targetType`, `targetId
 The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
 
 Admin Query validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuthoritativeAuditAdminQueryExecutionException`. PDO and pagination execution failures throw `AuthoritativeAuditStorageException` using the existing `Failed to query AuthoritativeAudit records: ...` message pattern.
+
+## DiagnosticsTelemetry Admin Query Offset Pagination
+
+DiagnosticsTelemetry also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\DiagnosticsTelemetry\DTO\DiagnosticsTelemetryAdminQueryRequestDTO;
+use Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\DiagnosticsTelemetryAdminQueryMysqlRepository;
+
+$repository = new DiagnosticsTelemetryAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new DiagnosticsTelemetryAdminQueryRequestDTO(
+    actorType: 'sys',
+    actorId: 42,
+    eventKey: 'http.request',
+    severity: 'INFO',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `actorType`, `actorId`, `eventKey`, `severity`, `requestId`, `correlationId`, `after`, and `before`. DiagnosticsTelemetry actor filters are independent: `actorType` only, `actorId` only, both together, and neither are all valid. Date boundaries are inclusive and equal boundaries are valid.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `DiagnosticsTelemetryAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `DiagnosticsTelemetryAdminQueryExecutionException`. PDO and pagination execution failures throw `DiagnosticsTelemetryStorageException` using the existing `Failed to query DiagnosticsTelemetry records: ...` message pattern.
+
+Unsupported filters: eventId, routeName, durationMs, metadata, free-text, generic, and arbitrary-SQL filtering are explicitly unsupported.
 
 ## Supported Filters per Domain
 

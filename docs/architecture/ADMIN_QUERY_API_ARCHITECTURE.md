@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Blueprint Approved / Runtime Next
+**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Runtime implemented / DeliveryOperations blueprint/design next
 
 ## 1. Purpose
 
@@ -224,15 +224,19 @@ The approved implementation sequence is:
 
 ## 12. Implementation Gate
 
-The DiagnosticsTelemetry Owner-approval gate is satisfied. DiagnosticsTelemetry Runtime is the next authorized implementation. Implementation must follow the merged blueprint exactly.
-
-DeliveryOperations remains pending. Reporting/dashboard remains blocked. No release or tag is authorized.
+Phase 3 Remediation Complete.
+Phase 4 Active.
+DiagnosticsTelemetry Runtime implemented.
+DeliveryOperations blueprint/design and Owner approval next.
+DeliveryOperations Runtime not yet authorized.
+reporting/dashboard blocked.
+no release or tag authorized.
 
 - `AuditTrail`: Runtime implemented.
 - `BehaviorTrace`: Runtime implemented.
 - `SecuritySignals`: Runtime implemented.
 - `AuthoritativeAudit`: Runtime implemented.
-- `DiagnosticsTelemetry`: Blueprint Approved. Runtime Next.
-- `DeliveryOperations`: Pending.
+- `DiagnosticsTelemetry`: Runtime implemented
+- `DeliveryOperations`: Blueprint/design pending Owner approval
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.

@@ -21,7 +21,8 @@ The module follows the Canonical Logger Design Standard:
 
 Consumers should strictly use the defined Public API:
 - **Write:** `DiagnosticsTelemetryRecorder::record(...)`
-- **Read:** `DiagnosticsTelemetryQueryInterface::read(...)`
+- **Read (Primitive Archive/Cursor):** `DiagnosticsTelemetryQueryInterface::read(...)` and `DiagnosticsTelemetryQueryInterface::find(...)`
+- **Read (Admin Pagination):** `DiagnosticsTelemetryAdminQueryInterface::paginate(...)`
 - **Configure:** `DiagnosticsTelemetryPolicyInterface` (optional implementation)
 
 See `EVENT_LOGGING_PACKAGE_REFERENCE.md` for full contract details.
@@ -123,9 +124,9 @@ The module is designed to support future archiving via the `DiagnosticsTelemetry
 
 > **Reader Scope Clarification**
 >
-> The read-side provided by this module is a **primitive, cursor-based reader**
-> intended strictly for archiving and sequential processing.
-> Statements saying the reader is not designed for UI pagination, searching, or analytics apply only to this protected primitive `v1.0.0` reader. It does not imply that the entire domain can never contain the future separate Admin Query API.
+> The protected primitive `v1.0.0` read-side provided by this module (`DiagnosticsTelemetryQueryInterface`) is a **primitive, cursor-based reader** intended strictly for archiving and sequential processing.
+>
+> For administrative UI dashboards, the package provides a separate offset-based Admin Query API (`DiagnosticsTelemetryAdminQueryInterface`). The Admin Query API supports filtering by actor, event key, severity, request ID, correlation ID, and date range. The Admin Query API uses strict deterministic sorting by `occurred_at DESC` and `id DESC`. Note that generic search, free-text search, event ID lookup, and complex reporting aggregations remain explicitly out of scope for the package.
 
 
 ### Constraints & Guards
@@ -136,3 +137,35 @@ The module is designed to support future archiving via the `DiagnosticsTelemetry
 - **Metadata**: MUST be an array or null. Maximum size is 64KB (JSON encoded).
 - **Secrets**: Metadata MUST NOT contain secrets (passwords, tokens, OTPs).
 - **Actor Type**: Default policy enforces uppercase, max length 32, and sanitizes characters (replacing invalid chars with `_`) using pattern `[^A-Z0-9_.:-]`. It does NOT collapse invalid types to ANONYMOUS by default, but sanitizes them to valid ad-hoc types. Falls back to ANONYMOUS if sanitization results in an empty string.
+
+## Admin Query API
+
+The DiagnosticsTelemetry Admin Query API provides paginated admin read access using `maatify/persistence`.
+
+### Supported Filters
+- `actorType` (independent)
+- `actorId` (independent)
+- `eventKey`
+- `severity`
+- `requestId`
+- `correlationId`
+- `after`
+- `before`
+
+### Pagination and Results
+Page results strictly guarantee the serialization order: `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, `sortDirection`.
+
+### Exception Boundaries
+- Validation errors map to `DiagnosticsTelemetryAdminQueryInvalidArgumentException`.
+- Admin execution/pagination errors map to `DiagnosticsTelemetryAdminQueryExecutionException`.
+- Native mapping and database execution errors map to `DiagnosticsTelemetryStorageException`.
+
+### Unsupported Features
+The Admin Query API explicitly excludes:
+- `eventId`, `routeName`, and `durationMs` filtering
+- Metadata search or free-text search
+- Generic filtering and arbitrary SQL injection
+
+The host application retains ownership of authorization, controllers, routes, UI, localization, actor resolution, exports, and presentation.
+
+*Note: The Admin API is a dedicated administrative access path and does not replace the `DiagnosticsTelemetryQueryInterface::find()` or legacy `read()` primitive patterns.*
