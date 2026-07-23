@@ -8,7 +8,9 @@
 - Owner approval was completed on July 22, 2026.
 - The approved blueprint was merged through PR #119.
 - Merge commit: `201d3369c78c6f88e6bb7cba1ae0a442befb0ee2`.
-- Runtime is now implemented in a separate PR.
+- Runtime PR #121
+- Merge commit 2f5048fed08db56adf49d320bb7bc9443b2b820d
+- Runtime Implemented / Complete
 - No schema, Composer, CI, host, reporting, dashboard, tag, or release work is authorized.
 
 
