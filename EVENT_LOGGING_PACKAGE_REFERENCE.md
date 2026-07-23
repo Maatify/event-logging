@@ -21,7 +21,7 @@ The package intentionally uses explicit runtime dependencies rather than hiding 
 - PHP `^8.2`.
 - PHP extensions: `ext-json`, `ext-pdo`.
 - `maatify/exceptions`.
-- `maatify/persistence` for AuditTrail, BehaviorTrace, SecuritySignals, and AuthoritativeAudit Admin Query offset pagination mechanics.
+- `maatify/persistence` for AuditTrail, BehaviorTrace, SecuritySignals, AuthoritativeAudit, and DiagnosticsTelemetry Admin Query offset pagination mechanics.
 - `maatify/shared-common` for shared contracts such as `ClockInterface`.
 - `psr/log` for optional fail-open fallback logging.
 - `ramsey/uuid` for UUID generation; the package does not provide an internal UUID fallback generator.
