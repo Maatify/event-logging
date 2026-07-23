@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 3 Complete / DiagnosticsTelemetry Runtime Implemented / DeliveryOperations Discovery/Audit and Blueprint Design Authorized Next
+**Status:** Phase 3 Complete / DiagnosticsTelemetry Runtime Complete and Merged / DeliveryOperations Discovery/Audit and Blueprint Design Authorized Next
 
 ## 1. Scope Boundary
 
