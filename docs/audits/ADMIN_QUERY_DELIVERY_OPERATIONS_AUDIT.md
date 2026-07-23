@@ -1,4 +1,4 @@
-# Admin Query API Phase 1 Runtime Compatibility Inventory - DeliveryOperations
+# DeliveryOperations Discovery and Compatibility Audit
 
 **Status:** Discovery and Audit Baseline
 **Verdict:** AUDIT COMPLETE - READY FOR BLUEPRINT DESIGN
@@ -6,7 +6,8 @@
 ## 1. Audited State
 
 - **Date:** 2026-07-23
-- **Expected SHA:** `3d6abd502d7d82ac05828ac0beb2066e3dfc35d0`
+- **Audited main SHA:** `3d6abd502d7d82ac05828ac0beb2066e3dfc35d0`
+- **Governing Documents Inspected:** `AGENTS.md`, `EVENT_LOGGING_PACKAGE_REFERENCE.md`, `CHANGELOG.md`, `docs/standards/PACKAGE_BUILDING_STANDARD.md`, `docs/architecture/ADMIN_QUERY_API_ARCHITECTURE.md`, `docs/roadmap/ADMIN_QUERY_API_ROADMAP.md`, `docs/audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md`, `docs/audits/DOCUMENTATION_INVENTORY.md`
 - **Released Baseline:** Tag `v1.0.0`
 - **Inspected Paths:** `src/DeliveryOperations/`, `tests/Unit/DeliveryOperations/`, `tests/Integration/DeliveryOperations/`, `src/Provider/`, `src/Factory/`, `src/Bootstrap/`, `schema/`, `EVENT_LOGGING_PACKAGE_REFERENCE.md`
 - **Verification Gaps:** Host repositories are inaccessible in this environment.
@@ -45,10 +46,12 @@
 - `tests/Unit/DeliveryOperations/Repository/DeliveryOperationsQueryMysqlRepositoryTest.php`
 
 ### Factories and Bindings
-- `src/Factory/DeliveryOperationsFactory.php`
-- `src/Provider/EventLoggingProvider.php`
-- `src/Provider/EventLoggingProviderFactory.php`
-- `src/Bootstrap/EventLoggingBindings.php`
+- `src/Factory/DeliveryOperationsFactory.php` - Protected contract
+- `src/Provider/EventLoggingProvider.php` (accessor) - Protected contract
+- `src/Provider/EventLoggingProviderFactory.php` - Protected contract
+- `src/Bootstrap/EventLoggingBindings.php` - Protected contract
+
+*Note: No DeliveryOperations Regression test file exists.*
 
 ## 3. Protected Primitive Query Contract
 
@@ -76,9 +79,8 @@
       public int $limit = 50
   )
   ```
-- **Rules:** Limits have a default of 50. Positive/non-negative identifier constraints are handled directly in the query without throwing validation errors at instantiation.
+- **Rules:** Performs no validation or normalization. Empty strings remain equality-filter values (no implicit normalization). Zero/negative actor, target, and cursor IDs are not rejected by the query DTO.
 - Serializes keys: `after`, `before`, `actorType`, `actorId`, `targetType`, `targetId`, `channel`, `operationType`, `status`, `requestId`, `correlationId`, `cursorOccurredAt`, `cursorId`, `limit`.
-- Empty strings normalize implicitly or are allowed based on strict PDO binds.
 
 ### View DTO: `DeliveryOperationsViewDTO`
 - Fully maps `maa_event_logging_delivery_operations` columns.
@@ -108,17 +110,18 @@
   )
   ```
 - Timestamps serialize using `DATE_ATOM`.
-- **Selected Columns:** Explicitly avoids `SELECT *` by mapping directly from PDO `FETCH_ASSOC`.
+- **Selected Columns:** The repository currently uses `SELECT *`; it does **not** use an explicit selected-column list.
 
 ### Implementation: `DeliveryOperationsQueryMysqlRepository`
 - **Constructor:** `public function __construct(private readonly PDO $pdo)`
 - **Filters:** independent bindings for `actor_type`, `actor_id`, `target_type`, `target_id`, `channel`, `operation_type`, `status`, `request_id`, `correlation_id`, `after`, `before`.
-- **Cursor Logic:** `< cursor_at OR (= cursor_at AND id < cursor_id)`.
+- **Cursor Logic:** `< cursor_at OR (= cursor_at AND id < cursor_id)`. Cursor filtering activates only when both cursor values are non-null; a partial cursor is ignored.
 - **Sort Order:** `occurred_at DESC, id DESC`.
-- **Limit Rules:** Uses `max(1, $query->limit)`.
-- **Placeholders:** Employs distinct bindings preventing PDO named-parameter reuse issues.
-- **Hydration:** Replaces corrupt JSON with `null`. Non-array JSON parsed safely.
-- **Exception Boundary:** Caught `PDOException` wraps into `DeliveryOperationsStorageException` ('Failed to query DeliveryOperations records: ' or 'Failed to map DeliveryOperations row: '). Exception traces are preserved (`previous` throwable).
+- **Limit Rules:** Behavior is `max(1, $query->limit)` with no maximum clamp.
+- **Placeholders:** The cursor SQL reuses `:cursor_at` twice. Native-PDO distinct-placeholder compatibility is therefore **not proven** and the current implementation conflicts with the repository distinct-placeholder rule. This is a factual primitive implementation gap for later correction.
+- **Hydration:** Corrupt JSON returns `null`. Scalar JSON and numeric-list JSON also return `null` by code behavior, but existing tests only directly prove the corrupt-JSON case. Timestamps are hydrated as UTC `DateTimeImmutable`.
+- **Serialization Evidence:** DTO JSON serialization uses `DATE_ATOM` and does not preserve six-digit microseconds in serialized output. Exact microsecond preservation is not directly proven by current tests.
+- **Exception Boundary:** `PDOException` maps to the `Failed to query DeliveryOperations records:` prefix. Non-PDO mapping/hydration failures map through the separate `Throwable` catch to `Failed to map DeliveryOperations row:`. Previous throwable is preserved in both cases.
 
 ## 4. Write-Side Compatibility Boundary
 
@@ -134,7 +137,7 @@
   - `public function normalizeActorType(DeliveryActorTypeInterface|string $actorType): string;`
   - `public function validateMetadataSize(string $json): bool;`
 - **`DeliveryOperationsDefaultPolicy`:**
-  - Normalizes allowed actor types ('SYSTEM', 'ADMIN', 'USER', 'SERVICE', 'API_CLIENT', 'ANONYMOUS'). Uppercases inputs. Max metadata size 64KB.
+  - Uppercases every actor type. It recognizes the documented list ('SYSTEM', 'ADMIN', 'USER', 'SERVICE', 'API_CLIENT', 'ANONYMOUS') but does not reject or remap values outside that list. Max metadata size 64KB.
 - **`DeliveryOperationsFactory`:**
   - `public static function create(PDO $pdo, ClockInterface $clock, ?LoggerInterface $psrLogger = null, ?DeliveryOperationsPolicyInterface $policy = null): DeliveryOperationsRecorder`
   - Instantiates logger repository and recorder.
@@ -177,34 +180,34 @@
 
 ## 6. Existing Pagination-Artifact Search
 
-- Searched `src/DeliveryOperations` and `tests/`.
-- No `AdminQuery`, `PaginatedQuery`, `PdoPaginator`, or page artifacts discovered.
-- **Conclusion:** No superseded post-v1 pagination experiment or partial implementation exists.
+- Searched entire repository (`src/`, `tests/`, `docs/`) for `AdminQuery`, `PaginatedQuery`, `PdoPaginator`, `QueryCursorDTO`, `QueryPageDTO`, `PaginatedQueryService`, `PaginationQueryDescriptor`.
+- Matches found for AuthoritativeAudit, AuditTrail, BehaviorTrace, DiagnosticsTelemetry, SecuritySignals, and `maatify/persistence` artifacts.
+- **Conclusion:** No DeliveryOperations Admin or paginated artifact exists. No superseded post-v1 pagination experiment or partial implementation exists for this domain.
 
 ## 7. Current Test Evidence and Gaps
 
 | Behavior | Status |
 | --- | --- |
 | Empty result | PROVEN |
-| Every independent filter | PROVEN |
-| Combined filters | PROVEN |
-| Actor type-only and ID-only | PROVEN |
-| Target type-only and ID-only | PROVEN |
-| Inclusive date boundaries | PROVEN |
-| Exact microseconds | PROVEN |
+| Every independent filter | PARTIAL |
+| Combined filters | PARTIAL |
+| Actor type-only and ID-only | NOT PROVEN |
+| Target type-only and ID-only | NOT PROVEN |
+| Inclusive date boundaries | NOT PROVEN |
+| Exact microseconds | NOT PROVEN |
 | Cursor ordering | PROVEN |
-| Limit normalization | PROVEN |
-| Corrupt/scalar/numeric-array JSON | PROVEN |
+| Limit normalization | NOT PROVEN |
+| Corrupt/scalar/numeric-array JSON | PARTIAL (only corrupt JSON proven) |
 | Invalid enum-like persisted values | NOT APPLICABLE |
 | Storage failure translation | PROVEN |
-| Caller-owned transaction preservation | NOT APPLICABLE |
-| Native PDO named-placeholder compatibility | PROVEN |
-| Custom policy hydration | PROVEN |
+| Caller-owned transaction preservation | NOT PROVEN (applicable but not proven) |
+| Native PDO named-placeholder compatibility | NOT PROVEN |
+| Custom policy hydration | NOT APPLICABLE (query repository has no policy dependency) |
 
 ## 8. Host-Usage Search
 
-- Repositories searched: None (Simulated environment; inaccessible host repositories).
-- Result: Unable to independently prove external usage, assume protected until evidence suggests otherwise.
+- Repositories attempted: None.
+- Result: Host repositories are inaccessible. Host usage is **not verified / search unperformed due environment access**.
 
 ## 9. Blueprint Decision Matrix
 
@@ -219,7 +222,7 @@
 | Is `eventId` filterable? | OWNER DECISION REQUIRED |
 | Provider/attempt filters included? | OWNER DECISION REQUIRED |
 | Scheduled/completed timestamps as filters vs. output | OWNER DECISION REQUIRED |
-| Allowed sort fields | EVIDENCE DETERMINES |
+| Allowed sort fields | OWNER DECISION REQUIRED |
 | Selected column list | EVIDENCE DETERMINES |
 | Mapper and policy reuse | EVIDENCE DETERMINES |
 | Pagination ownership by `maatify/persistence` | EVIDENCE DETERMINES |
