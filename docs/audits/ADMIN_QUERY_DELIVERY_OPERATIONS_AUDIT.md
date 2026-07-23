@@ -1,7 +1,7 @@
 # DeliveryOperations Discovery and Compatibility Audit
 
 **Status:** Discovery and Audit Baseline
-**Verdict:** AUDIT COMPLETE - READY FOR BLUEPRINT DESIGN
+**Verdict:** PACKAGE AUDIT COMPLETE - WITH EXPLICIT HOST-USAGE VERIFICATION GAP
 
 ## 1. Audited State
 
@@ -28,10 +28,10 @@
 - `src/DeliveryOperations/Enum/DeliveryOperationTypeEnum.php` - Protected contract
 - `src/DeliveryOperations/Enum/DeliveryStatusEnum.php` - Protected contract
 - `src/DeliveryOperations/Exception/DeliveryOperationsStorageException.php` - Protected contract
-- `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsLoggerMysqlRepository.php` - Implementation detail
-- `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsQueryMysqlRepository.php` - Implementation detail
+- `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsLoggerMysqlRepository.php` - Protected published Runtime surface (internals may be refactored if behavior remains compatible)
+- `src/DeliveryOperations/Infrastructure/Mysql/DeliveryOperationsQueryMysqlRepository.php` - Protected published Runtime surface (internals may be refactored if behavior remains compatible)
 - `src/DeliveryOperations/README.md` - Documentation
-- `src/DeliveryOperations/Recorder/DeliveryOperationsDefaultPolicy.php` - Implementation detail (Policy)
+- `src/DeliveryOperations/Recorder/DeliveryOperationsDefaultPolicy.php` - Protected published Runtime surface (internals may be refactored if behavior remains compatible)
 - `src/DeliveryOperations/Recorder/DeliveryOperationsRecorder.php` - Protected contract (Write boundary)
 
 ### Tests
@@ -44,6 +44,13 @@
 - `tests/Unit/DeliveryOperations/Recorder/DeliveryOperationsRecorderTest.php`
 - `tests/Unit/DeliveryOperations/Repository/DeliveryOperationsLoggerMysqlRepositoryTest.php`
 - `tests/Unit/DeliveryOperations/Repository/DeliveryOperationsQueryMysqlRepositoryTest.php`
+
+### Package Reference Sections
+- Sections reviewed: `6. DeliveryOperations`, `DeliveryOperationsFactory`, Delivery operations filtering/pagination capabilities, and exceptions/fail-open boundaries in `EVENT_LOGGING_PACKAGE_REFERENCE.md`.
+
+### External Tests
+- Searched entire `tests/` outside `tests/*/DeliveryOperations/` for Factory/Provider/Bindings references.
+- Exact search returned no tests covering DeliveryOperations bindings outside its own domain folder.
 
 ### Factories and Bindings
 - `src/Factory/DeliveryOperationsFactory.php` - Protected contract
@@ -115,11 +122,13 @@
 ### Implementation: `DeliveryOperationsQueryMysqlRepository`
 - **Constructor:** `public function __construct(private readonly PDO $pdo)`
 - **Filters:** independent bindings for `actor_type`, `actor_id`, `target_type`, `target_id`, `channel`, `operation_type`, `status`, `request_id`, `correlation_id`, `after`, `before`.
+- **Inclusive Date Boundaries:** `occurred_at >= :after` and `occurred_at <= :before`.
 - **Cursor Logic:** `< cursor_at OR (= cursor_at AND id < cursor_id)`. Cursor filtering activates only when both cursor values are non-null; a partial cursor is ignored.
 - **Sort Order:** `occurred_at DESC, id DESC`.
 - **Limit Rules:** Behavior is `max(1, $query->limit)` with no maximum clamp.
 - **Placeholders:** The cursor SQL reuses `:cursor_at` twice. Native-PDO distinct-placeholder compatibility is therefore **not proven** and the current implementation conflicts with the repository distinct-placeholder rule. This is a factual primitive implementation gap for later correction.
-- **Hydration:** Corrupt JSON returns `null`. Scalar JSON and numeric-list JSON also return `null` by code behavior, but existing tests only directly prove the corrupt-JSON case. Timestamps are hydrated as UTC `DateTimeImmutable`.
+- **Hydration:** Corrupt JSON returns `null`. Scalar JSON and numeric-list JSON also return `null` by code behavior, but existing tests only directly prove the corrupt-JSON case. Timestamps are hydrated as UTC `DateTimeImmutable`. `channel`, `operationType`, and `status` are hydrated as raw strings, passing through unknown persisted values rather than invoking enum fallback.
+- **Transactions:** The repository does not begin, commit, or roll back transactions. Caller-owned transactions are preserved by code structure, but no direct transaction test currently proves it.
 - **Serialization Evidence:** DTO JSON serialization uses `DATE_ATOM` and does not preserve six-digit microseconds in serialized output. Exact microsecond preservation is not directly proven by current tests.
 - **Exception Boundary:** `PDOException` maps to the `Failed to query DeliveryOperations records:` prefix. Non-PDO mapping/hydration failures map through the separate `Throwable` catch to `Failed to map DeliveryOperations row:`. Previous throwable is preserved in both cases.
 
@@ -153,20 +162,20 @@
 ## 5. Schema and Index Audit
 
 **Table:** `maa_event_logging_delivery_operations`
-- `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
-- `event_id` CHAR(36) NOT NULL UNIQUE. Retained for lookups.
-- `channel` VARCHAR(32) NOT NULL
-- `operation_type` VARCHAR(64) NOT NULL
-- `actor_type` VARCHAR(32) NULL, `actor_id` BIGINT NULL
-- `target_type` VARCHAR(64) NULL, `target_id` BIGINT NULL
-- `status` VARCHAR(32) NOT NULL
-- `attempt_no` INT UNSIGNED NOT NULL DEFAULT 0. Relevance: Useful for tracking retries.
-- `scheduled_at`, `completed_at` DATETIME(6) NULL. Relevance: Optional lifecycle timestamps.
-- `correlation_id` CHAR(36) NULL, `request_id` VARCHAR(64) NULL
-- `provider` VARCHAR(64) NULL, `provider_message_id` VARCHAR(128) NULL. Relevance: Optional external delivery identifiers.
-- `error_code` VARCHAR(64) NULL, `error_message` TEXT NULL. Relevance: Best-effort failure details.
-- `metadata` JSON NOT NULL. Relevance: Additional structured data.
-- `occurred_at` DATETIME(6) NOT NULL
+- `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY (No explicit default)
+- `event_id` CHAR(36) NOT NULL UNIQUE (No explicit default). Retained for lookups.
+- `channel` VARCHAR(32) NOT NULL (No explicit default)
+- `operation_type` VARCHAR(64) NOT NULL (No explicit default)
+- `actor_type` VARCHAR(32) NULL (Effective default NULL), `actor_id` BIGINT NULL (Effective default NULL)
+- `target_type` VARCHAR(64) NULL (Effective default NULL), `target_id` BIGINT NULL (Effective default NULL)
+- `status` VARCHAR(32) NOT NULL (No explicit default)
+- `attempt_no` INT UNSIGNED NOT NULL DEFAULT 0 (Explicit default). Relevance: Useful for tracking retries.
+- `scheduled_at`, `completed_at` DATETIME(6) NULL (Effective default NULL). Relevance: Optional lifecycle timestamps.
+- `correlation_id` CHAR(36) NULL (Effective default NULL), `request_id` VARCHAR(64) NULL (Effective default NULL)
+- `provider` VARCHAR(64) NULL (Effective default NULL), `provider_message_id` VARCHAR(128) NULL (Effective default NULL). Relevance: Optional external delivery identifiers.
+- `error_code` VARCHAR(64) NULL (Effective default NULL), `error_message` TEXT NULL (Effective default NULL). Relevance: Best-effort failure details.
+- `metadata` JSON NOT NULL (No explicit default). Relevance: Additional structured data.
+- `occurred_at` DATETIME(6) NOT NULL (No explicit default)
 
 **Indices:**
 - `idx_delivery_ops_time` (occurred_at, id)
@@ -181,7 +190,18 @@
 ## 6. Existing Pagination-Artifact Search
 
 - Searched entire repository (`src/`, `tests/`, `docs/`) for `AdminQuery`, `PaginatedQuery`, `PdoPaginator`, `QueryCursorDTO`, `QueryPageDTO`, `PaginatedQueryService`, `PaginationQueryDescriptor`.
-- Matches found for AuthoritativeAudit, AuditTrail, BehaviorTrace, DiagnosticsTelemetry, SecuritySignals, and `maatify/persistence` artifacts.
+- Exact matching paths:
+  - `src/AuthoritativeAudit/Contract/AuthoritativeAuditAdminQueryInterface.php` (Protected Admin Query)
+  - `src/AuthoritativeAudit/Infrastructure/Mysql/AuthoritativeAuditAdminQueryMysqlRepository.php` (Protected Admin Query)
+  - `src/AuditTrail/Contract/AuditTrailAdminQueryInterface.php` (Protected Admin Query)
+  - `src/AuditTrail/Infrastructure/Mysql/AuditTrailAdminQueryMysqlRepository.php` (Protected Admin Query)
+  - `src/BehaviorTrace/Contract/BehaviorTraceAdminQueryInterface.php` (Protected Admin Query)
+  - `src/BehaviorTrace/Infrastructure/Mysql/BehaviorTraceAdminQueryMysqlRepository.php` (Protected Admin Query)
+  - `src/DiagnosticsTelemetry/Contract/DiagnosticsTelemetryAdminQueryInterface.php` (Protected Admin Query)
+  - `src/DiagnosticsTelemetry/Infrastructure/Mysql/DiagnosticsTelemetryAdminQueryMysqlRepository.php` (Protected Admin Query)
+  - `src/SecuritySignals/Contract/SecuritySignalsAdminQueryInterface.php` (Protected Admin Query)
+  - `src/SecuritySignals/Infrastructure/Mysql/SecuritySignalsAdminQueryMysqlRepository.php` (Protected Admin Query)
+  - (and associated DTOs/Tests for the above implemented domains).
 - **Conclusion:** No DeliveryOperations Admin or paginated artifact exists. No superseded post-v1 pagination experiment or partial implementation exists for this domain.
 
 ## 7. Current Test Evidence and Gaps
@@ -195,26 +215,26 @@
 | Target type-only and ID-only | NOT PROVEN |
 | Inclusive date boundaries | NOT PROVEN |
 | Exact microseconds | NOT PROVEN |
-| Cursor ordering | PROVEN |
+| Cursor ordering | PARTIAL (Integration test exists but can be skipped if DB unavailable) |
 | Limit normalization | NOT PROVEN |
 | Corrupt/scalar/numeric-array JSON | PARTIAL (only corrupt JSON proven) |
 | Invalid enum-like persisted values | NOT APPLICABLE |
-| Storage failure translation | PROVEN |
+| Storage failure translation | PARTIAL (PDO failure proven, hydration mapping prefix/throwable NOT fully proven directly) |
 | Caller-owned transaction preservation | NOT PROVEN (applicable but not proven) |
 | Native PDO named-placeholder compatibility | NOT PROVEN |
 | Custom policy hydration | NOT APPLICABLE (query repository has no policy dependency) |
 
 ## 8. Host-Usage Search
 
-- Repositories attempted: None.
-- Result: Host repositories are inaccessible. Host usage is **not verified / search unperformed due environment access**.
+- Repositories attempted: None (0 repositories searched).
+- Result: Host search was unperformed. Host usage is preserved as an unresolved verification gap.
 
 ## 9. Blueprint Decision Matrix
 
 | Question | Status |
 | --- | --- |
 | Admin Query public interface name | EVIDENCE DETERMINES |
-| Request DTO fields | EVIDENCE DETERMINES |
+| Request DTO fields | OWNER DECISION REQUIRED |
 | Page-result DTO fields and serialization order | EVIDENCE DETERMINES |
 | Actor type and actor ID independence | EVIDENCE DETERMINES |
 | Target type and target ID independence | EVIDENCE DETERMINES |
@@ -224,14 +244,14 @@
 | Scheduled/completed timestamps as filters vs. output | OWNER DECISION REQUIRED |
 | Allowed sort fields | OWNER DECISION REQUIRED |
 | Selected column list | EVIDENCE DETERMINES |
-| Mapper and policy reuse | EVIDENCE DETERMINES |
+| Mapper and policy reuse | OWNER DECISION REQUIRED |
 | Pagination ownership by `maatify/persistence` | EVIDENCE DETERMINES |
 | Exception translation | EVIDENCE DETERMINES |
 | Strict MySQL test matrix | EVIDENCE DETERMINES |
-| Schema-change requirement | EVIDENCE DETERMINES (No change needed) |
+| Schema-change requirement | OWNER DECISION REQUIRED (Current evidence does not justify schema change, but remains unresolved until filters/sorts approved) |
 
 ## 10. Recommended Blueprint Scope
 
 **AUDIT RECOMMENDATION — NOT OWNER APPROVAL**
 
-The recommended scope for the upcoming Blueprint is to define `DeliveryOperationsAdminQueryInterface`, `DeliveryOperationsAdminQueryRequestDTO`, `DeliveryOperationsAdminQueryPageResultDTO`, and a `DeliveryOperationsAdminQueryMysqlRepository`. The Repository must use `PdoPaginator` from `maatify/persistence` to provide offset-based pagination while preserving the domain exception boundary. The exact allowed filters and sort mechanisms require Owner approval. No changes should be made to the schema or primitive write/query logic.
+The recommended scope for the upcoming Blueprint is to define `DeliveryOperationsAdminQueryInterface`, `DeliveryOperationsAdminQueryRequestDTO`, `DeliveryOperationsAdminPageResultDTO`, and a `DeliveryOperationsAdminQueryMysqlRepository`. The Repository must use `PdoPaginator` from `maatify/persistence` to provide offset-based pagination while preserving the domain exception boundary. The exact allowed filters and sort mechanisms require Owner approval. No changes should be made to the schema or primitive write/query logic.
