@@ -53,7 +53,7 @@ final class DeliveryOperationsAdminQueryDescriptorBuilderTest extends TestCase
             providerMessageId: 'pmid-1',
             errorCode: 'err-1',
             errorMessageLike: 'foo\%bar_baz\\',
-            metadataFilters: ['$.foo' => 'bar', '$.baz' => 123],
+            metadataFilters: ['$.foo' => 'bar', '$.baz' => 123, '$.nullval' => null],
             scheduledAfter: new DateTimeImmutable('2023-01-01'),
             scheduledBefore: new DateTimeImmutable('2023-01-02'),
             completedAfter: new DateTimeImmutable('2023-01-03'),
@@ -65,7 +65,7 @@ final class DeliveryOperationsAdminQueryDescriptorBuilderTest extends TestCase
 
         $descriptor = $this->builder->build($request);
 
-        $expectedWhere = ' WHERE id = :id AND event_id = :event_id AND channel = :channel AND operation_type = :operation_type AND actor_type = :actor_type AND actor_id = :actor_id AND target_type = :target_type AND target_id = :target_id AND status = :status AND attempt_no >= :attempt_no_min AND attempt_no <= :attempt_no_max AND correlation_id = :correlation_id AND request_id = :request_id AND provider = :provider AND provider_message_id = :provider_message_id AND error_code = :error_code AND error_message LIKE :error_message_like ESCAPE \'\\\\\' AND scheduled_at >= :scheduled_after AND scheduled_at <= :scheduled_before AND completed_at >= :completed_after AND completed_at <= :completed_before AND occurred_at >= :after AND occurred_at <= :before AND JSON_CONTAINS_PATH(metadata, \'one\', :meta_path_exists_1) = 1 AND JSON_CONTAINS(metadata, :meta_value_1, :meta_path_value_1) = 1 AND JSON_CONTAINS_PATH(metadata, \'one\', :meta_path_exists_2) = 1 AND JSON_CONTAINS(metadata, :meta_value_2, :meta_path_value_2) = 1 AND actor_id IS NULL AND target_id IS NOT NULL';
+        $expectedWhere = ' WHERE id = :id AND event_id = :event_id AND channel = :channel AND operation_type = :operation_type AND actor_type = :actor_type AND actor_id = :actor_id AND target_type = :target_type AND target_id = :target_id AND status = :status AND attempt_no >= :attempt_no_min AND attempt_no <= :attempt_no_max AND correlation_id = :correlation_id AND request_id = :request_id AND provider = :provider AND provider_message_id = :provider_message_id AND error_code = :error_code AND error_message LIKE :error_message_like ESCAPE \'\\\\\' AND scheduled_at >= :scheduled_after AND scheduled_at <= :scheduled_before AND completed_at >= :completed_after AND completed_at <= :completed_before AND occurred_at >= :after AND occurred_at <= :before AND JSON_CONTAINS_PATH(metadata, \'one\', :meta_path_exists_1) = 1 AND JSON_CONTAINS(metadata, :meta_value_1, :meta_path_value_1) = 1 AND JSON_CONTAINS_PATH(metadata, \'one\', :meta_path_exists_2) = 1 AND JSON_CONTAINS(metadata, :meta_value_2, :meta_path_value_2) = 1 AND JSON_CONTAINS_PATH(metadata, \'one\', :meta_path_exists_3) = 1 AND JSON_CONTAINS(metadata, :meta_value_3, :meta_path_value_3) = 1 AND actor_id IS NULL AND target_id IS NOT NULL';
 
         $expectedParams = [
             'id' => 5,
@@ -96,7 +96,10 @@ final class DeliveryOperationsAdminQueryDescriptorBuilderTest extends TestCase
             'meta_value_1' => '"bar"',
             'meta_path_exists_2' => '$.baz',
             'meta_path_value_2' => '$.baz',
-            'meta_value_2' => '123'
+            'meta_value_2' => '123',
+            'meta_path_exists_3' => '$.nullval',
+            'meta_path_value_3' => '$.nullval',
+            'meta_value_3' => 'null'
         ];
 
         $this->assertEquals('SELECT COUNT(*) FROM maa_event_logging_delivery_operations' . $expectedWhere, $descriptor->filteredCountSql);
