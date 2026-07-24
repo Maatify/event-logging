@@ -1,6 +1,6 @@
 # DeliveryOperations Admin Query Blueprint
 
-**Status:** Owner Approved / Runtime Implemented / Complete
+**Status:** Owner Approved / Runtime Authorized / Implementation Pending
 
 ## Approval Record
 

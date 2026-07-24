@@ -165,8 +165,6 @@ The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `t
 
 Admin Query validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuthoritativeAuditAdminQueryExecutionException`. PDO and pagination execution failures throw `AuthoritativeAuditStorageException` using the existing `Failed to query AuthoritativeAudit records: ...` message pattern.
 
-## DiagnosticsTelemetry Admin Query Offset Pagination
-
 ## DeliveryOperations Admin Query Offset Pagination
 
 DeliveryOperations also exposes a separate public Admin Query contract for offset pagination:
