@@ -180,7 +180,34 @@ The primitive read side is designed for archiving, sequential processing, export
 
 ## 12. Admin Query APIs
 
-AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DiagnosticsTelemetry additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, DiagnosticsTelemetry, and DeliveryOperations additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+
+### DeliveryOperations
+
+Public contract:
+
+```php
+use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsAdminQueryInterface;
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
+use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
+
+$query = new DeliveryOperationsAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+    channel: 'email',
+    operationType: 'notification_send',
+    status: 'success',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+
+$items = $page->items; // list<DeliveryOperationsViewDTO>
+$total = $page->total; // total rows ignoring filters
+$filtered = $page->filtered; // total rows matching filters
+$totalPages = $page->totalPages;
+```
 
 ### AuthoritativeAudit
 
@@ -401,6 +428,8 @@ Classes marked `@internal` under infrastructure namespaces are package implement
 - `Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\Pagination\DiagnosticsTelemetryAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsRowMapper`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\Pagination\SecuritySignalsAdminQueryDescriptorBuilder`
+- `Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsRowMapper`
+- `Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\Pagination\DeliveryOperationsAdminQueryDescriptorBuilder`
 
 ## 14. Failure and exception behavior
 
