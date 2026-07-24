@@ -26,6 +26,8 @@ The module follows the Canonical Logger Design Standard:
 Consumers should strictly use the defined Public API:
 - **Write:** `DeliveryOperationsRecorder::record(...)`
 - **Configure:** `DeliveryOperationsPolicyInterface`
+- **Read (Primitive):** `DeliveryOperationsQueryInterface::find(...)`
+- **Read (Admin Query):** `DeliveryOperationsAdminQueryInterface::paginate(...)`
 
 ### Data Flow
 
@@ -96,3 +98,8 @@ $recorder->record(
 - **Fail-Open**: Exceptions during logging are SWALLOWED (after fallback logging).
 - **Metadata**: MUST be an array or null. Maximum size is 64KB (JSON encoded).
 - **String Constraints**: Strings are truncated to safe limits.
+
+### Admin Query
+Host applications may build administration or deep investigation screens using `DeliveryOperationsAdminQueryInterface::paginate()`.
+This API natively calculates count, limits, offsets, and metadata mappings internally using `maatify/persistence`.
+To support deep investigation, Admin Query Request DTO allows querying on unindexed columns like provider or error_message_like.

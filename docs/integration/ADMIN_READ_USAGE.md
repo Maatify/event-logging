@@ -167,6 +167,35 @@ Admin Query validation errors throw `AuthoritativeAuditAdminQueryInvalidArgument
 
 ## DiagnosticsTelemetry Admin Query Offset Pagination
 
+## DeliveryOperations Admin Query Offset Pagination
+
+DeliveryOperations also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
+use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
+
+$repository = new DeliveryOperationsAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+    channel: 'email',
+    operationType: 'notification_send',
+    status: 'success',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters include `id`, `eventId`, `channel`, `operationType`, `actorType`, `actorId`, `targetType`, `targetId`, `status`, `attemptNoMin`, `attemptNoMax`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessageLike`, `metadataFilters`, `scheduledAfter`, `scheduledBefore`, `completedAfter`, `completedBefore`, `after`, `before`, and `nullStateFilters`.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `DeliveryOperationsAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `DeliveryOperationsAdminQueryExecutionException`. PDO and pagination execution failures throw `DeliveryOperationsStorageException`.
+
+## DiagnosticsTelemetry Admin Query Offset Pagination
+
 DiagnosticsTelemetry also exposes a separate public Admin Query contract for offset pagination:
 
 ```php
