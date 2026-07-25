@@ -342,7 +342,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame('evt-1', $res2->items[0]->eventId);
     }
 
-    public function testItPreservesCallerOwnedTransaction(): void
+    public function testItPreservesCallerOwnedTransactionStateOnSuccess(): void
     {
         $this->pdo->beginTransaction();
 

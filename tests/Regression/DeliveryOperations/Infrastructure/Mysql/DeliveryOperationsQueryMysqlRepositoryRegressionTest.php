@@ -259,7 +259,7 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
             $this->assertSame($type, $actualParams[$name]);
         }
     }
-    public function testPrimitiveRepositoryPreservesCallerOwnedTransactionState(): void
+    public function testPrimitiveRepositoryPreservesCallerOwnedTransactionStateOnFailure(): void
     {
         $this->pdo->expects($this->never())->method('beginTransaction');
         $this->pdo->expects($this->never())->method('commit');
@@ -269,11 +269,30 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
             ->method('prepare')
             ->willThrowException(new PDOException('Fail'));
 
+        $this->expectException(DeliveryOperationsStorageException::class);
+
         try {
             $this->repository->find(new DeliveryOperationsQueryDTO());
-        } catch (\Throwable $e) {
-            // Expected
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertInstanceOf(PDOException::class, $e->getPrevious());
+            throw $e;
         }
+    }
+
+    public function testPrimitiveRepositoryPreservesCallerOwnedTransactionStateOnSuccess(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willReturn($this->statement);
+
+        $this->statement->method('execute')->willReturn(true);
+        $this->statement->method('fetchAll')->willReturn([]);
+
+        $this->repository->find(new DeliveryOperationsQueryDTO());
     }
 
 }
