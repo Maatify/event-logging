@@ -158,42 +158,29 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
         $request = new DeliveryOperationsAdminQueryRequestDTO();
 
-        try {
-            $this->repository->paginate($request);
-        } catch (\Throwable $e) {
-            // Expected
-        }
+        $this->expectException(DeliveryOperationsStorageException::class);
+        $this->repository->paginate($request);
     }
 
 
 
-    public function testItPropagatesExistingStorageExceptionWithoutDoubleWrapping(): void
+        public function testItTranslatesPaginationExecutionException(): void
     {
-        $reflection = new \ReflectionClass($this->repository);
-        $mapRowMethod = $reflection->getMethod('mapRow');
-        $mapRowMethod->setAccessible(true);
-
-        // To test the catch block for existing StorageException in mapRow,
-        // we can temporarily overwrite the mapper property to a mock.
-        // But the mapper property is typed.
-        // We can't use a mock for the final DeliveryOperationsRowMapper.
-        // We will just test it on the outer pagination wrapper using PDO throwing the exception natively, which bypasses the PDOException double wrapping block.
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
 
         $this->pdo->expects($this->once())
             ->method('prepare')
-            ->willThrowException(new DeliveryOperationsStorageException('Existing Storage Exception'));
-
-        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
+            ->willReturn(false); // Returning false causes PDO to fail prepare, thus PdoPaginator throws PaginationExecutionException!
 
         $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Existing Storage Exception');
+        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
 
         try {
             $this->repository->paginate($request);
         } catch (DeliveryOperationsStorageException $e) {
-            $this->assertStringNotContainsString('Failed to query', $e->getMessage());
-            $this->assertNull($e->getPrevious());
+            $this->assertInstanceOf(\Maatify\Persistence\Exception\PaginationExecutionException::class, $e->getPrevious());
             throw $e;
         }
     }
+
 }
