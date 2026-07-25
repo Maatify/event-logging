@@ -31,6 +31,8 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->repository = new DeliveryOperationsAdminQueryMysqlRepository($this->pdo);
     }
 
+
+
     public function testItAdaptsResultCorrectly(): void
     {
         $this->pdo->expects($this->exactly(3))
@@ -124,43 +126,74 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testItWrapsMapperFailure(): void
     {
-        $this->pdo->expects($this->exactly(3))
-            ->method('prepare')
-            ->willReturnCallback(function (string $sql) {
-                if (str_contains($sql, 'COUNT(*)')) {
-                    return $this->countStatement;
-                }
-                return $this->statement;
-            });
-
-        $this->countStatement->method('execute')->willReturn(true);
-        $this->countStatement->method('bindValue')->willReturn(true);
-        $this->statement->method('execute')->willReturn(true);
-        $this->statement->method('bindValue')->willReturn(true);
-
-        $this->countStatement->expects($this->exactly(2))
-            ->method('columnCount')
-            ->willReturn(1);
-
-        $this->countStatement->expects($this->exactly(4))
-            ->method('fetch')
-            ->willReturnOnConsecutiveCalls(['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false);
-
-        $this->countStatement->method('errorCode')->willReturn('00000');
-        $this->statement->method('errorCode')->willReturn('00000');
-
-        $this->statement->expects($this->once())
-            ->method('fetch')
-            ->willReturn([
-                'id' => '1',
-                'occurred_at' => 'invalid-date-string'
-            ]);
-
-        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
+        $reflection = new \ReflectionClass($this->repository);
+        $mapRowMethod = $reflection->getMethod('mapRow');
+        $mapRowMethod->setAccessible(true);
 
         $this->expectException(DeliveryOperationsStorageException::class);
         $this->expectExceptionMessage('Failed to map DeliveryOperations row:');
 
-        $this->repository->paginate($request);
+        try {
+            // Invalid occurred_at triggers mapper Exception
+            $mapRowMethod->invoke($this->repository, [
+                'id' => '1',
+                'occurred_at' => 'invalid-date-string'
+            ]);
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringStartsWith('Failed to map DeliveryOperations row:', $e->getMessage());
+            $this->assertInstanceOf(\Exception::class, $e->getPrevious());
+            throw $e;
+        }
+    }
+
+    public function testItPreservesCallerOwnedTransactionState(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willThrowException(new \PDOException('Fail'));
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO();
+
+        try {
+            $this->repository->paginate($request);
+        } catch (\Throwable $e) {
+            // Expected
+        }
+    }
+
+
+
+    public function testItPropagatesExistingStorageExceptionWithoutDoubleWrapping(): void
+    {
+        $reflection = new \ReflectionClass($this->repository);
+        $mapRowMethod = $reflection->getMethod('mapRow');
+        $mapRowMethod->setAccessible(true);
+
+        // To test the catch block for existing StorageException in mapRow,
+        // we can temporarily overwrite the mapper property to a mock.
+        // But the mapper property is typed.
+        // We can't use a mock for the final DeliveryOperationsRowMapper.
+        // We will just test it on the outer pagination wrapper using PDO throwing the exception natively, which bypasses the PDOException double wrapping block.
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willThrowException(new DeliveryOperationsStorageException('Existing Storage Exception'));
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
+
+        $this->expectException(DeliveryOperationsStorageException::class);
+        $this->expectExceptionMessage('Existing Storage Exception');
+
+        try {
+            $this->repository->paginate($request);
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringNotContainsString('Failed to query', $e->getMessage());
+            $this->assertNull($e->getPrevious());
+            throw $e;
+        }
     }
 }

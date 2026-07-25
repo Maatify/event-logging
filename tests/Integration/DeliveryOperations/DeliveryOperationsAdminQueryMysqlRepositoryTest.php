@@ -103,6 +103,39 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(status: 'failed'));
         $this->assertSame(1, $result->filtered);
         $this->assertSame('failed', $result->items[0]->status);
+
+        // Additional independent equality filters: id, correlationId, requestId, provider, providerMessageId, errorCode
+        $this->insertLog(eventId: 'eq-6', correlationId: 'corr-1');
+        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(correlationId: 'corr-1'));
+        $this->assertSame(1, $result->filtered);
+        $this->assertSame('corr-1', $result->items[0]->correlationId);
+
+        $this->insertLog(eventId: 'eq-7', requestId: 'req-1');
+        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(requestId: 'req-1'));
+        $this->assertSame(1, $result->filtered);
+        $this->assertSame('req-1', $result->items[0]->requestId);
+
+        $this->insertLog(eventId: 'eq-8', provider: 'prov-1');
+        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(provider: 'prov-1'));
+        $this->assertSame(1, $result->filtered);
+        $this->assertSame('prov-1', $result->items[0]->provider);
+
+        $this->insertLog(eventId: 'eq-9', providerMessageId: 'pm-1');
+        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(providerMessageId: 'pm-1'));
+        $this->assertSame(1, $result->filtered);
+        $this->assertSame('pm-1', $result->items[0]->providerMessageId);
+
+        $this->insertLog(eventId: 'eq-10', errorCode: 'err-1');
+        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorCode: 'err-1'));
+        $this->assertSame(1, $result->filtered);
+        $this->assertSame('err-1', $result->items[0]->errorCode);
+
+        // Test ID equality (we need the inserted ID)
+        $this->pdo->exec("INSERT INTO maa_event_logging_delivery_operations (event_id, channel, operation_type, status, metadata, occurred_at) VALUES ('eq-11', '', '', '', '[]', '2023-01-01 00:00:00')");
+        $id = (int) $this->pdo->lastInsertId();
+        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(id: $id));
+        $this->assertSame(1, $result->filtered);
+        $this->assertSame($id, $result->items[0]->id);
     }
 
     public function testItFiltersActorIndependently(): void
