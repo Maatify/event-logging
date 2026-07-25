@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DeliveryOperations Runtime Complete
+**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Runtime Complete / DeliveryOperations Blueprint Approved / Runtime Implementation Next
 
 ## 1. Purpose
 
@@ -22,48 +22,73 @@ The architecture separates three distinct layers:
 
 No implementation is authorized by this document alone.
 
-## 2. Protected Baseline (`v1.0.0`)
+## 2. Protected `v1.0.0` Runtime Baseline
 
-The published `v1.0.0` primitive capabilities must be explicitly protected:
+The first stable release remains the canonical current Runtime and public API baseline.
 
-- Stable write, record, factory, schema, policy, and DTO implementations.
-- Primitive `read()` and `find()` behavior using raw SQL limit offsets or simple `lastId` / `lastOccurredAt` cursors.
-- Exact existing row hydration arrays, default handling, timezone usage, and exceptions.
-- Hardcoded query sort keys `ORDER BY occurred_at DESC, id DESC`.
-- Implicit limit protections, usually enforced as `max(1, limit)`.
-- Reused query placeholders in basic parameters.
-- Empty result sets returning identical structure with no results.
-- `AuthoritativeAudit`'s strict validation mapping string sizes correctly without truncation.
+The following are frozen and outside the remediation scope of this architecture:
 
-## 3. Rebuild Scope (Phase 1 Remediation)
+- Event-writing and logging Runtime behavior.
+- Public domain contracts released in `v1.0.0`.
+- Primitive read/query APIs across all six logging domains.
+- Existing query DTOs and view/event DTOs.
+- Existing repositories, schemas, row hydration behavior, and domain exceptions.
+- Existing cursor behavior that belongs to the first-release Runtime.
+- Existing host integrations that depend on first-release contracts.
 
-Between Phase 1 implementation and stable release, partial cursor-based pagination experiments were added across `AuthoritativeAudit`, `AuditTrail`, `BehaviorTrace`, and `SecuritySignals`. These APIs attempted pagination using an intermediate wrapper over the protected primitive queries.
+No Admin pagination or reporting phase may redesign, replace, remove, or silently alter this baseline.
 
-These wrapper APIs (e.g., `AuthoritativeAuditPaginatedQueryInterface`, `SecuritySignalsQueryCursorDTO`) are now classified as superseded internal experiments. They must not be copied to `DiagnosticsTelemetry` or `DeliveryOperations` and must be deleted atomically when each domain's new Admin pagination API is merged.
+Any internal refactor required by later work must prove through regression coverage that all first-release behavior remains identical.
 
-## 4. Target Architecture: Admin Query API
+## 3. Incorrect Post-v1.0 Pagination Experiment
 
-The Admin Query API is a new, separate read-only capability for each domain to support administrative dashboards.
+After `v1.0.0`, a separate pagination feature track introduced additional artifacts in four domains:
 
-### 4.1 Implementation Rules
+- `AuditTrail`
+- `BehaviorTrace`
+- `SecuritySignals`
+- `AuthoritativeAudit`
 
-- Must provide deterministic offset pagination with page normalization and per-page limits.
-- Must filter using `COUNT(*)` data metrics that align securely with row output.
-- Must provide safe optional host-selected ordering with deterministic tie-breakers.
-- Must separate the DTO used to configure pagination from the DTO used to hydrate the database row.
-- Must use distinct named PDO placeholders for every bound variable, eliminating duplicate placeholder reuse for complex `metadata` path generation or `JSON_EXTRACT` statements.
-- Must depend on `maatify/persistence` purely as an internal mechanical utility, not exposed in the public interface.
-- Must not introduce cross-domain `EventLogging` repository abstraction.
+These artifacts include combinations of:
 
-### 4.2 Sequence of Work
+- `*PaginatedQueryInterface`
+- cursor/page DTOs
+- `*PaginatedQueryService`
 
-To minimize merge conflicts and ensure safety, the Admin pagination logic must be completed for one domain at a time, strictly sequenced as defined in [ADMIN_QUERY_API_ROADMAP.md](../roadmap/ADMIN_QUERY_API_ROADMAP.md):
+This work is not part of the protected `v1.0.0` baseline.
 
-1. `AuditTrail` — proof of concept complete.
-2. `BehaviorTrace` — standardizes actor filters.
-3. `SecuritySignals` — incorporates enums.
-4. `AuthoritativeAudit` — strict validation rules and strict target/action bounds.
-5. `DiagnosticsTelemetry` — new implementation for complex schema not previously paginated.
+It was implemented using an architecture that does not follow the approved `maatify/persistence v1.1.0` package standard and was stopped before all six domains were covered.
+
+Therefore:
+
+- It must not be generalized or copied to additional domains.
+- It must not be preserved merely because it already exists.
+- Each affected domain must be rebuilt through the approved Admin Query API architecture.
+- Superseded post-v1.0 pagination artifacts may be removed or retired only after the replacement passes its complete implementation, test, and compatibility gate.
+- Removal or retirement must not affect any `v1.0.0` contract or Runtime behavior.
+
+## 4. Target Admin Query API
+
+The target Admin Query API is a separate, offset/page-based execution path designed for admin grids, filtering, sorting, and deterministic pagination.
+
+It does not replace the primitive Runtime.
+
+It must cover all six domains in the order fixed by the roadmap.
+
+### 4.1 Rebuild domains
+
+These domains already contain incorrect post-v1.0 pagination work and must be rebuilt:
+
+1. `AuditTrail` — rebuild POC.
+2. `BehaviorTrace` — rebuild.
+3. `SecuritySignals` — rebuild.
+4. `AuthoritativeAudit` — rebuild last among remediation domains because of its fail-closed behavior and outbox/materialized-log boundary. (Runtime Implemented)
+
+### 4.2 New implementation domains
+
+These domains never received the incorrect post-v1.0 pagination experiment and require a new Admin Query API path:
+
+5. `DiagnosticsTelemetry` — new implementation.
 6. `DeliveryOperations` — new implementation after the simpler domains because of its broader state and provider-related query surface.
 
 The six domains must not be implemented as one bulk generic repository or one cross-domain query layer.
@@ -85,21 +110,100 @@ The package owns all domain-specific behavior:
 - Semantic alignment between total-count, filtered-count, and data queries.
 - Row mapping into package/domain DTOs.
 - Package-owned request and response contracts.
-- Independent exception mapping matching the existing write and query contracts (e.g. `AuthoritativeAuditStorageException`).
+- Translation of persistence exceptions into the approved package exception boundary.
+- Regression protection for all `v1.0.0` Runtime behavior.
 
-### 5.2 Persistence Package (`maatify/persistence`)
+### 5.2 Pagination Owner (`maatify/persistence v1.1.0+`)
 
-The mechanical execution is delegated to `maatify/persistence` via `PdoPaginator`. The `maatify/persistence` package provides generic page normalization, offset logic, bound-parameter formatting, loop mechanics, limit clauses, sort direction enum handling, and total/filtered metadata construction.
+`maatify/persistence` exclusively owns generic pagination mechanics:
 
-## 6. Prohibited Practices
+- Page and per-page normalization.
+- Total and filtered count execution.
+- Offset calculation.
+- Deterministic sorting execution.
+- Sort whitelist enforcement.
+- Tie-breaker behavior.
+- `LIMIT` and `OFFSET` handling.
+- Mapper invocation.
+- Canonical pagination metadata.
+- Generic pagination query validation and execution errors.
 
-The following are strictly banned during Admin Query implementation:
+The event-logging package must not copy, fork, or reimplement these mechanics.
 
-- Exposing `maatify/persistence` DTOs or exception classes in any Event Logging public API.
-- Wrapping a primitive `find()` or `read()` to fake pagination limits instead of writing new SQL.
-- Removing or altering the primitive `find()` behavior.
-- Altering any domain schema.
-- Sharing a generic Request/Response DTO between distinct domains.
+### 5.3 Host Application
+
+The host application retains responsibility for integration concerns:
+
+- HTTP controllers and routes.
+- Permissions and user authorization.
+- Actor, target, entity, or subject name resolution.
+- Localization.
+- UI screens and tables.
+- HTTP response mapping.
+- Exports.
+
+These concerns must not be moved into the package.
+
+## 6. Count and Data Semantic Alignment
+
+For every domain implementation:
+
+- `total` counts rows under mandatory package/domain constraints without optional Admin filters.
+- `filtered` counts rows under the same mandatory constraints plus all accepted Admin filters.
+- The data query uses exactly the same mandatory and optional filter semantics as `filtered`.
+- Filtered-count and data SQL must be generated from one shared semantic source of truth.
+- Null handling, date boundaries, type/id pairs, parameter normalization, and security constraints must not diverge between count and data queries.
+
+No current count/data alignment is assumed merely because primitive cursor queries already exist.
+
+Every domain must prove alignment through focused unit and integration tests.
+
+## 7. Sorting and SQL Safety
+
+Each domain must define an explicit public sort whitelist.
+
+The implementation must:
+
+- Map public sort keys to trusted SQL identifiers.
+- Reject or normalize invalid sort input according to the approved contract.
+- Define a deterministic default sort.
+- Define a deterministic tie-breaker.
+- Never accept arbitrary column names.
+- Never include paginator-owned `ORDER BY`, `LIMIT`, or `OFFSET` inside the supplied data SQL.
+- Follow all `PdoPaginationQueryDescriptor` SQL and parameter restrictions.
+- Use explicit selected columns rather than `SELECT *` for the new Admin path.
+
+## 8. Reporting and Dashboard Contracts
+
+Reporting and dashboard summary work is a separate post-v1.0 phase.
+
+It begins only after pagination is complete and stable across all six domains.
+
+Reporting must cover all six domains, domain by domain, and may include:
+
+- Counts.
+- Trends.
+- Domain-specific aggregates.
+- Dashboard summary contracts.
+
+Reporting work must not be mixed into pagination remediation PRs.
+
+Cross-domain reporting queries remain prohibited unless a separate approved architecture decision explicitly authorizes them.
+
+## 9. Current Contract Precedence
+
+- [EVENT_LOGGING_PACKAGE_REFERENCE.md](../../EVENT_LOGGING_PACKAGE_REFERENCE.md) remains the canonical current stable Runtime and public API contract.
+- [PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md](PRIMITIVE_READ_QUERY_SUPPORT_DESIGN.md) remains authoritative for the first-release primitive query path.
+- [ADMIN_QUERY_API_ROADMAP.md](../roadmap/ADMIN_QUERY_API_ROADMAP.md) defines the approved post-v1.0 execution order.
+- [ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md](../audits/ADMIN_QUERY_PHASE_1_RUNTIME_COMPATIBILITY_INVENTORY.md) defines the historical Phase 1 baseline. Current per-domain truth is established by the latest approved/reviewable domain blueprint and actual main state.
+- This architecture becomes Runtime truth only through separately approved implementation PRs and a later release update.
+
+## 10. Absolute Prohibitions
+
+The following are prohibited:
+
+- Modifying or replacing the published `v1.0.0` Runtime baseline as part of pagination remediation.
+- Treating incorrect post-v1.0 pagination artifacts as protected first-release contracts.
 - Extending the old wrapper experiment to `DiagnosticsTelemetry` or `DeliveryOperations`.
 - Creating one generic repository for all domains.
 - Creating generic cross-domain queries.
@@ -123,7 +227,8 @@ The approved implementation sequence is:
 Phase 3 Remediation Complete.
 Phase 4 Active.
 DiagnosticsTelemetry Runtime complete
-DeliveryOperations Runtime complete
+DeliveryOperations Blueprint Approved
+DeliveryOperations Runtime Next
 Reporting/dashboard blocked
 No release or tag authorized
 
@@ -131,7 +236,7 @@ No release or tag authorized
 - `BehaviorTrace`: Runtime implemented.
 - `SecuritySignals`: Runtime implemented.
 - `AuthoritativeAudit`: Runtime implemented.
-- `DiagnosticsTelemetry`: Runtime implemented.
-- `DeliveryOperations`: Runtime implemented.
+- `DiagnosticsTelemetry`: Runtime implemented
+- `DeliveryOperations`: Blueprint Approved / Runtime Next. The implementation must strictly follow the merged Blueprint.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.

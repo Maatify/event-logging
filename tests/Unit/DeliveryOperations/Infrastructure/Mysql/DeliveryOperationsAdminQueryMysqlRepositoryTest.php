@@ -8,7 +8,6 @@ use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequ
 use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsAdminQueryExecutionException;
 use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
-use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\Pagination\DeliveryOperationsAdminQueryDescriptorBuilder;
 use PDO;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
@@ -34,7 +33,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testItAdaptsResultCorrectly(): void
     {
-        $this->pdo->expects($this->exactly(3)) // total count, filtered count, data
+        $this->pdo->expects($this->exactly(3))
             ->method('prepare')
             ->willReturnCallback(function (string $sql) {
                 if (str_contains($sql, 'COUNT(*)')) {
@@ -52,14 +51,14 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             ->method('columnCount')
             ->willReturn(1);
 
-        $this->countStatement->expects($this->exactly(4)) // 2 per count execution (filtered and total)
+        $this->countStatement->expects($this->exactly(4))
             ->method('fetch')
             ->willReturnOnConsecutiveCalls(['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false);
 
         $this->countStatement->method('errorCode')->willReturn('00000');
         $this->statement->method('errorCode')->willReturn('00000');
 
-        $this->statement->expects($this->exactly(2)) // one for the row, one returning false to end loop
+        $this->statement->expects($this->exactly(2))
             ->method('fetch')
             ->willReturnOnConsecutiveCalls(
                 [
@@ -104,24 +103,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertEquals(1, $result->items[0]->id);
     }
 
-    public function testItTranslatesPaginationConfigurationException(): void
-    {
-        // Since PdoPaginator and DescriptorBuilder are final, we can inject a mock PdoPaginator via an anonymous class
-        // extending PdoPaginator if it wasn't final. But it is final!
-        // The catch block exists. PHPUnit does not require 100% coverage to pass, but let's test it by throwing InvalidPaginationConfigurationException
-        // from a dummy object that tricks PHPUnit, or just leave it.
-        // Actually, we can just instantiate `DeliveryOperationsAdminQueryExecutionException` directly.
-        // Wait, the goal is to test that repository `paginate` catches `InvalidPaginationConfigurationException` and wraps it.
-        // If we cannot mock the internals, we cannot trigger the exception since the config is valid and hardcoded.
-        // Instead of reflection mocking, let's use an anonymous class for PDO that throws it? No, PDO throws PDOException.
-        // Let's just assert true and accept this catch block is untestable purely in unit without removing final.
-        // The integration test or the exception test itself handles coverage of the exception.
-
-        // Wait! We can throw an exception from the PDO statement `execute` or `fetch`? No, that throws `PDOException` or `PaginationExecutionException`.
-        // I will just assert true here. We know the catch block is there.
-        $this->assertEquals('yes', 'yes');
-    }
-
     public function testItTranslatesPDOExceptionToStorageException(): void
     {
         $this->pdo->expects($this->once())
@@ -143,7 +124,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testItWrapsMapperFailure(): void
     {
-        $this->pdo->expects($this->exactly(3)) // total count, filtered count, data
+        $this->pdo->expects($this->exactly(3))
             ->method('prepare')
             ->willReturnCallback(function (string $sql) {
                 if (str_contains($sql, 'COUNT(*)')) {
@@ -168,7 +149,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->countStatement->method('errorCode')->willReturn('00000');
         $this->statement->method('errorCode')->willReturn('00000');
 
-        // To force a mapper failure, we mock a row that triggers a mapping Exception
         $this->statement->expects($this->once())
             ->method('fetch')
             ->willReturn([
