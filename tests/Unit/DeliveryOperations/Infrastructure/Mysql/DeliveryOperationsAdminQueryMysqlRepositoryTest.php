@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Maatify\EventLogging\Tests\Unit\DeliveryOperations\Infrastructure\Mysql;
 
 use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
-use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsAdminQueryExecutionException;
 use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
 use PDO;
@@ -30,8 +29,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->countStatement = $this->createMock(PDOStatement::class);
         $this->repository = new DeliveryOperationsAdminQueryMysqlRepository($this->pdo);
     }
-
-
 
     public function testItAdaptsResultCorrectly(): void
     {
@@ -134,7 +131,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->expectExceptionMessage('Failed to map DeliveryOperations row:');
 
         try {
-            // Invalid occurred_at triggers mapper Exception
             $mapRowMethod->invoke($this->repository, [
                 'id' => '1',
                 'occurred_at' => 'invalid-date-string'
@@ -195,16 +191,17 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertCount(1, $result->items);
     }
 
-
-
-        public function testItValidatesCanonicalPaginationConfiguration(): void
+    public function testItValidatesCanonicalPaginationConfiguration(): void
     {
-        $reflection = new \ReflectionClass($this->repository);
-        $paginatorProp = $reflection->getProperty('paginator');
-        $paginatorProp->setAccessible(true);
-
         $this->pdo->expects($this->any())
             ->method('prepare')
+            ->with($this->callback(function (string $sql) {
+                if (str_contains($sql, 'COUNT(*)')) {
+                    return true;
+                }
+                $this->assertStringContainsString('ORDER BY `occurred_at` DESC, `id` DESC', $sql);
+                return true;
+            }))
             ->willReturnCallback(function (string $sql) {
                 if (str_contains($sql, 'COUNT(*)')) {
                     return $this->countStatement;
@@ -230,23 +227,20 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             ['id' => '1', 'occurred_at' => '2023-01-01 00:00:00'], false
         );
 
-        // Test default 20, minimum 1, maximum 200, default occurred_at DESC, tie-breaker id DESC
-        // We can test this by passing nulls and extremes and observing the RequestDTO vs ResultDTO
-
         $request = new DeliveryOperationsAdminQueryRequestDTO(page: 0, perPage: 0, sortBy: null, sortDirection: null);
         $result = $this->repository->paginate($request);
-        $this->assertEquals(1, $result->page); // Min page is 1
-        $this->assertEquals(1, $result->perPage); // Min perPage is 1
-        $this->assertEquals('occurred_at', $result->sortBy);
-        $this->assertEquals('DESC', $result->sortDirection);
+        $this->assertSame(1, $result->page);
+        $this->assertSame(1, $result->perPage);
+        $this->assertSame('occurred_at', $result->sortBy);
+        $this->assertSame('DESC', $result->sortDirection);
 
         $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 9999);
         $result = $this->repository->paginate($request);
-        $this->assertEquals(200, $result->perPage); // Max perPage is 200
+        $this->assertSame(200, $result->perPage);
 
-        $request = new DeliveryOperationsAdminQueryRequestDTO(); // Default
+        $request = new DeliveryOperationsAdminQueryRequestDTO();
         $result = $this->repository->paginate($request);
-        $this->assertEquals(20, $result->perPage); // Default perPage is 20
+        $this->assertSame(20, $result->perPage);
     }
 
     public function testItTranslatesPaginationExecutionException(): void
@@ -255,7 +249,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
         $this->pdo->expects($this->once())
             ->method('prepare')
-            ->willReturn(false); // Returning false causes PDO to fail prepare, thus PdoPaginator throws PaginationExecutionException!
+            ->willReturn(false);
 
         $this->expectException(DeliveryOperationsStorageException::class);
         $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
@@ -267,5 +261,4 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             throw $e;
         }
     }
-
 }
