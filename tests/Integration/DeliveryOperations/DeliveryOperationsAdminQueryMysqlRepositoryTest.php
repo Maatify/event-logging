@@ -356,52 +356,56 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $res2->filtered);
     }
 
-    public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
+        public function testItTranslatesRealPdoExceptionToStorageExceptionAndPreservesCallerOwnedTransactionStateOnFailure(): void
     {
-        $this->pdo->beginTransaction();
-        $this->assertTrue($this->pdo->inTransaction());
-
-        $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
-
-        // We can cause a PDOException natively by attempting to query with a bad connection or something?
-        // Actually, if we just execute a query with an invalid metadata JSON path?
-        // e.g. path format is validated by DTO but what if we pass invalid json to DB directly?
-        // Wait, DTO prevents bad strings.
-        // What if we drop a column? It commits.
-        // What if we prepare a statement that exceeds max_allowed_packet?
-        // Let's just drop the table BEFORE beginTransaction, then it'll fail on execute without implicit commit breaking the assertion?
-        // If the table doesn't exist, the transaction stays active.
-
-        $this->pdo->rollBack(); // end the initial one
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
-
-        $this->pdo->beginTransaction();
-        $this->assertTrue($this->pdo->inTransaction());
+        $sql = <<<SQL
+CREATE TABLE IF NOT EXISTS `maa_event_logging_delivery_operations` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `channel` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `operation_type` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `actor_type` varchar(32) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `actor_id` bigint(20) unsigned DEFAULT NULL,
+  `target_type` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `target_id` bigint(20) unsigned DEFAULT NULL,
+  `status` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `attempt_no` int(10) unsigned NOT NULL DEFAULT 0,
+  `scheduled_at` datetime(6) DEFAULT NULL,
+  `completed_at` datetime(6) DEFAULT NULL,
+  `correlation_id` char(36) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `request_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `provider` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `provider_message_id` varchar(128) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `error_code` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `error_message` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `occurred_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_actor` (`actor_type`,`actor_id`),
+  INDEX `idx_target` (`target_type`,`target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL;
 
         try {
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
-        } catch (DeliveryOperationsStorageException $e) {
+            $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
+
+            $this->pdo->beginTransaction();
             $this->assertTrue($this->pdo->inTransaction());
-            $this->pdo->rollBack();
-            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-            $this->setUp(); // Restore table
-            throw $e;
+
+            try {
+                $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+                $this->fail('Expected DeliveryOperationsStorageException');
+            } catch (DeliveryOperationsStorageException $e) {
+                $this->assertTrue($this->pdo->inTransaction());
+                $this->pdo->rollBack();
+                $this->assertStringStartsWith('Failed to query DeliveryOperations records:', $e->getMessage());
+                $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+            }
+        } finally {
+            $this->pdo->exec($sql);
         }
     }
 
-    public function testItTranslatesRealPdoExceptionToStorageException(): void
-    {
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
 
-        $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
 
-        try {
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
-        } catch (DeliveryOperationsStorageException $e) {
-            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-            throw $e;
-        }
-    }
 }
