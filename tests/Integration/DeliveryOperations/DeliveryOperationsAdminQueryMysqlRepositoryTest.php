@@ -361,15 +361,33 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->pdo->beginTransaction();
         $this->assertTrue($this->pdo->inTransaction());
 
-        try {
-            // Trigger failure (invalid sort column throws ExecutionException)
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(sortBy: 'non_existent'));
-        } catch (\Throwable $e) {
-            // Expected
-        }
+        $this->expectException(DeliveryOperationsStorageException::class);
+        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
 
+        // We can cause a PDOException natively by attempting to query with a bad connection or something?
+        // Actually, if we just execute a query with an invalid metadata JSON path?
+        // e.g. path format is validated by DTO but what if we pass invalid json to DB directly?
+        // Wait, DTO prevents bad strings.
+        // What if we drop a column? It commits.
+        // What if we prepare a statement that exceeds max_allowed_packet?
+        // Let's just drop the table BEFORE beginTransaction, then it'll fail on execute without implicit commit breaking the assertion?
+        // If the table doesn't exist, the transaction stays active.
+
+        $this->pdo->rollBack(); // end the initial one
+        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
+
+        $this->pdo->beginTransaction();
         $this->assertTrue($this->pdo->inTransaction());
-        $this->pdo->rollBack();
+
+        try {
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertTrue($this->pdo->inTransaction());
+            $this->pdo->rollBack();
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+            $this->setUp(); // Restore table
+            throw $e;
+        }
     }
 
     public function testItTranslatesRealPdoExceptionToStorageException(): void
