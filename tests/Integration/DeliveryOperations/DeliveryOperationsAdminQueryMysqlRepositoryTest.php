@@ -356,6 +356,22 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $res2->filtered);
     }
 
+    public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
+    {
+        $this->pdo->beginTransaction();
+        $this->assertTrue($this->pdo->inTransaction());
+
+        try {
+            // Trigger failure (invalid sort column throws ExecutionException)
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(sortBy: 'non_existent'));
+        } catch (\Throwable $e) {
+            // Expected
+        }
+
+        $this->assertTrue($this->pdo->inTransaction());
+        $this->pdo->rollBack();
+    }
+
     public function testItTranslatesRealPdoExceptionToStorageException(): void
     {
         $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
