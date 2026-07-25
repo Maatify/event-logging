@@ -146,7 +146,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         }
     }
 
-    public function testItPreservesCallerOwnedTransactionState(): void
+    public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
     {
         $this->pdo->expects($this->never())->method('beginTransaction');
         $this->pdo->expects($this->never())->method('commit');
@@ -160,6 +160,39 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
         $this->expectException(DeliveryOperationsStorageException::class);
         $this->repository->paginate($request);
+    }
+
+    public function testItPreservesCallerOwnedTransactionStateOnSuccess(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->exactly(3))
+            ->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                if (str_contains($sql, 'COUNT(*)')) {
+                    return $this->countStatement;
+                }
+                return $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->statement->method('execute')->willReturn(true);
+        $this->statement->method('bindValue')->willReturn(true);
+
+        $this->countStatement->expects($this->exactly(2))->method('columnCount')->willReturn(1);
+        $this->countStatement->expects($this->exactly(4))->method('fetch')->willReturnOnConsecutiveCalls(['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false);
+        $this->countStatement->method('errorCode')->willReturn('00000');
+        $this->statement->method('errorCode')->willReturn('00000');
+
+        $this->statement->expects($this->exactly(2))->method('fetch')->willReturnOnConsecutiveCalls(['id' => '1', 'occurred_at' => '2023-01-01 00:00:00'], false);
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO();
+        $result = $this->repository->paginate($request);
+
+        $this->assertCount(1, $result->items);
     }
 
 

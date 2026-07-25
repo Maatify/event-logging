@@ -274,6 +274,21 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '\b%c_'));
         $this->assertSame(1, $res->filtered);
         $this->assertSame('e1', $res->items[0]->eventId);
+
+        // Escape backslash
+        $this->insertLog(eventId: 'e3', errorMessage: 'this \ slash');
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '\\'));
+        $this->assertSame(2, $res->filtered); // e1 and e3
+
+        // Escape percent
+        $this->insertLog(eventId: 'e4', errorMessage: 'this % percent');
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '%'));
+        $this->assertSame(2, $res->filtered); // e1 and e4
+
+        // Escape underscore
+        $this->insertLog(eventId: 'e5', errorMessage: 'this _ underscore');
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '_'));
+        $this->assertSame(2, $res->filtered); // e1 and e5
     }
 
     public function testItFiltersMetadataWithNullVersusMissingPath(): void
