@@ -619,7 +619,7 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
 
 ### 5.2 Exception Mapping Details
 - Mapper failures are caught as `\Throwable` within the `mapRow` callback, wrapped as `DeliveryOperationsStorageException` with `Failed to map DeliveryOperations row:` prefix.
-- `DeliveryOperationsStorageException` caught explicitly avoids double-wrapping (e.g. if the mapper natively throws it).
+- Mapper `\Throwable` is wrapped once with `Failed to map DeliveryOperations row:` and the original previous throwable.
 - PDO execution fails wrap into `Failed to query DeliveryOperations records:`.
 - Invalid configuration routes to execution exception.
 - No transaction state mutation (`BEGIN/COMMIT/ROLLBACK`).

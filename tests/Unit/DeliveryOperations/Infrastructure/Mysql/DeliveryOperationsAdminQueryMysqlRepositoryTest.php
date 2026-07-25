@@ -164,7 +164,59 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
 
 
-        public function testItTranslatesPaginationExecutionException(): void
+        public function testItValidatesCanonicalPaginationConfiguration(): void
+    {
+        $reflection = new \ReflectionClass($this->repository);
+        $paginatorProp = $reflection->getProperty('paginator');
+        $paginatorProp->setAccessible(true);
+
+        $this->pdo->expects($this->any())
+            ->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                if (str_contains($sql, 'COUNT(*)')) {
+                    return $this->countStatement;
+                }
+                return $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->statement->method('execute')->willReturn(true);
+        $this->statement->method('bindValue')->willReturn(true);
+        $this->countStatement->method('columnCount')->willReturn(1);
+        $this->countStatement->method('fetch')->willReturnOnConsecutiveCalls(
+            ['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false,
+            ['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false,
+            ['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false
+        );
+        $this->countStatement->method('errorCode')->willReturn('00000');
+        $this->statement->method('errorCode')->willReturn('00000');
+        $this->statement->method('fetch')->willReturnOnConsecutiveCalls(
+            ['id' => '1', 'occurred_at' => '2023-01-01 00:00:00'], false,
+            ['id' => '1', 'occurred_at' => '2023-01-01 00:00:00'], false,
+            ['id' => '1', 'occurred_at' => '2023-01-01 00:00:00'], false
+        );
+
+        // Test default 20, minimum 1, maximum 200, default occurred_at DESC, tie-breaker id DESC
+        // We can test this by passing nulls and extremes and observing the RequestDTO vs ResultDTO
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 0, perPage: 0, sortBy: null, sortDirection: null);
+        $result = $this->repository->paginate($request);
+        $this->assertEquals(1, $result->page); // Min page is 1
+        $this->assertEquals(1, $result->perPage); // Min perPage is 1
+        $this->assertEquals('occurred_at', $result->sortBy);
+        $this->assertEquals('DESC', $result->sortDirection);
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 9999);
+        $result = $this->repository->paginate($request);
+        $this->assertEquals(200, $result->perPage); // Max perPage is 200
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(); // Default
+        $result = $this->repository->paginate($request);
+        $this->assertEquals(20, $result->perPage); // Default perPage is 20
+    }
+
+    public function testItTranslatesPaginationExecutionException(): void
     {
         $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
 
