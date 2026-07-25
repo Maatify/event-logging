@@ -95,8 +95,6 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
     {
         try {
             return $this->mapper->map($row);
-        } catch (DeliveryOperationsStorageException $e) {
-            throw $e;
         } catch (\Throwable $e) {
             throw new DeliveryOperationsStorageException('Failed to map DeliveryOperations row: ' . $e->getMessage(), previous: $e);
         }
