@@ -356,56 +356,49 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $res2->filtered);
     }
 
-        public function testItTranslatesRealPdoExceptionToStorageExceptionAndPreservesCallerOwnedTransactionStateOnFailure(): void
+                public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
     {
-        $sql = <<<SQL
-CREATE TABLE IF NOT EXISTS `maa_event_logging_delivery_operations` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `event_id` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `channel` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `operation_type` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `actor_type` varchar(32) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `actor_id` bigint(20) unsigned DEFAULT NULL,
-  `target_type` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `target_id` bigint(20) unsigned DEFAULT NULL,
-  `status` varchar(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `attempt_no` int(10) unsigned NOT NULL DEFAULT 0,
-  `scheduled_at` datetime(6) DEFAULT NULL,
-  `completed_at` datetime(6) DEFAULT NULL,
-  `correlation_id` char(36) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `request_id` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `provider` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `provider_message_id` varchar(128) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `error_code` varchar(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
-  `error_message` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
-  `occurred_at` datetime(6) NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `idx_actor` (`actor_type`,`actor_id`),
-  INDEX `idx_target` (`target_type`,`target_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-SQL;
+        // Drop table BEFORE starting the transaction to avoid implicit DDL commit.
+        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
+
+        $this->pdo->beginTransaction();
+        $this->assertTrue($this->pdo->inTransaction());
 
         try {
-            $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
-
-            $this->pdo->beginTransaction();
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            // Transaction must still be active
             $this->assertTrue($this->pdo->inTransaction());
-
-            try {
-                $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
-                $this->fail('Expected DeliveryOperationsStorageException');
-            } catch (DeliveryOperationsStorageException $e) {
-                $this->assertTrue($this->pdo->inTransaction());
-                $this->pdo->rollBack();
-                $this->assertStringStartsWith('Failed to query DeliveryOperations records:', $e->getMessage());
-                $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-            }
+            $this->assertStringStartsWith('Failed to query DeliveryOperations records:', $e->getMessage());
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
         } finally {
-            $this->pdo->exec($sql);
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            $schema = file_get_contents(__DIR__ . '/../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql');
+        if (!is_string($schema)) throw new \RuntimeException('Schema not found');
+            $this->pdo->exec($schema);
         }
     }
 
+    public function testItTranslatesRealPdoExceptionToStorageException(): void
+    {
+        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
 
+        $this->expectException(DeliveryOperationsStorageException::class);
+        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
+
+        try {
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+            throw $e;
+        } finally {
+            $schema = file_get_contents(__DIR__ . '/../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql');
+        if (!is_string($schema)) throw new \RuntimeException('Schema not found');
+            $this->pdo->exec($schema);
+        }
+    }
 
 }
