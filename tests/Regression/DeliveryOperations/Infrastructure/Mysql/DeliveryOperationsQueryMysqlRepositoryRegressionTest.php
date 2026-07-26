@@ -239,15 +239,89 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
 
         // Assert all but limit are nullable
         foreach ($params as $param) {
+            $type = $param->getType();
+            $this->assertInstanceOf(\ReflectionNamedType::class, $type);
             if ($param->getName() === 'limit') {
-                $this->assertFalse($param->getType() !== null && $param->getType()->allowsNull());
+                $this->assertFalse($type->allowsNull());
+                $this->assertSame('int', $type->getName());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertSame(50, $param->getDefaultValue());
             } else {
-                $this->assertTrue($param->getType() !== null && $param->getType()->allowsNull());
+                $this->assertTrue($type->allowsNull());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertNull($param->getDefaultValue());
+
+                if (str_ends_with($param->getName(), 'At') || in_array($param->getName(), ['after', 'before'])) {
+                    $this->assertSame(DateTimeImmutable::class, $type->getName());
+                } elseif (in_array($param->getName(), ['actorId', 'targetId', 'cursorId'])) {
+                    $this->assertSame('int', $type->getName());
+                } else {
+                    $this->assertSame('string', $type->getName());
+                }
             }
         }
+    }
+
+    public function testPrimitiveRepositoryNeverCallsTransactionMethods(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willReturn($this->statement);
+
+        $this->statement->expects($this->once())
+            ->method('execute');
+
+        $this->statement->expects($this->once())
+            ->method('fetchAll')
+            ->willReturn([]);
+
+        $this->repository->find(new DeliveryOperationsQueryDTO());
+    }
+
+    public function testPrimitiveRepositoryNeverCallsTransactionMethodsOnFailure(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willThrowException(new PDOException('PDO failure'));
+
+        $this->expectException(DeliveryOperationsStorageException::class);
+        $this->repository->find(new DeliveryOperationsQueryDTO());
+    }
+
+    public function testPrimitiveRepositoryContractBoundariesArePreserved(): void
+    {
+        $interfaces = class_implements(DeliveryOperationsQueryMysqlRepository::class);
+        $this->assertContains(\Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsQueryInterface::class, $interfaces);
+        $this->assertTrue((new \ReflectionClass(DeliveryOperationsQueryMysqlRepository::class))->isFinal());
+
+        $constructor = (new \ReflectionClass(DeliveryOperationsQueryMysqlRepository::class))->getConstructor();
+        $this->assertNotNull($constructor);
+        $this->assertCount(1, $constructor->getParameters());
+        $param = $constructor->getParameters()[0];
+        $this->assertSame('pdo', $param->getName());
+        $type = $param->getType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $type);
+        $this->assertSame(PDO::class, $type->getName());
+
+        $findMethod = (new \ReflectionClass(DeliveryOperationsQueryMysqlRepository::class))->getMethod('find');
+        $this->assertTrue($findMethod->isPublic());
+        $this->assertCount(1, $findMethod->getParameters());
+        $queryParam = $findMethod->getParameters()[0];
+        $this->assertSame('query', $queryParam->getName());
+        $queryType = $queryParam->getType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $queryType);
+        $this->assertSame(DeliveryOperationsQueryDTO::class, $queryType->getName());
+
+        $returnType = $findMethod->getReturnType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $returnType);
+        $this->assertSame('array', $returnType->getName());
     }
 }

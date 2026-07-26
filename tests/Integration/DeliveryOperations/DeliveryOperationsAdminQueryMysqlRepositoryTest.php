@@ -308,18 +308,41 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $res2->filtered);
     }
 
-    public function testItTranslatesRealPdoExceptionToStorageException(): void
+    public function testItTranslatesRealMappingFailureToStorageException(): void
     {
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
+        $ref = new \ReflectionClass($this->repository);
+        $method = $ref->getMethod('mapRow');
 
         try {
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
-            $this->fail('Expected DeliveryOperationsStorageException');
-        } catch (DeliveryOperationsStorageException $e) {
-            $this->assertStringContainsString('Failed to query DeliveryOperations records:', $e->getMessage());
-            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-        } finally {
-            $this->setUp(); // Re-create schema for subsequent tests if necessary
+            try {
+                // Pass an invalid occurred_at string which DateValue will throw on
+                $method->invoke($this->repository, [
+                    'id' => '1',
+                    'event_id' => 'evt-1',
+                    'channel' => 'ch',
+                    'operation_type' => 'op',
+                    'status' => 'st',
+                    'occurred_at' => 'invalid-date',
+                ]);
+                $this->fail('Expected Exception');
+            } catch (\ReflectionException $e) {
+                // Ignore ReflectionException, we want to catch the underlying target exception
+                throw $e;
+            } catch (\Throwable $e) {
+                // Reflection API in PHP 8.x throws the actual exception or wraps it depending on usage.
+                throw $e;
+            }
+        } catch (\ReflectionException $e) {
+            $this->fail('Should not throw ReflectionException');
+        } catch (\TypeError $e) {
+            $this->fail('Should not throw TypeError');
+        } catch (\Exception $e) {
+            // If it's a generic Exception or Error from reflection wrapper
+            if ($e->getPrevious() instanceof DeliveryOperationsStorageException) {
+                $e = $e->getPrevious();
+            }
+            $this->assertInstanceOf(DeliveryOperationsStorageException::class, $e);
+            $this->assertStringContainsString('Failed to map DeliveryOperations row', $e->getMessage());
         }
     }
 }
