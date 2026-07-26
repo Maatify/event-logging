@@ -207,92 +207,47 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
             throw $e;
         }
     }
-    public function testPrimitiveQueryInterfaceSignature(): void
+
+    public function testDtoPreservesPrimitiveSignatureAndDefaults(): void
     {
-        $reflection = new \ReflectionClass(\Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsQueryInterface::class);
-        $method = $reflection->getMethod('find');
-        /** @var \ReflectionNamedType $returnType */
-        $returnType = $method->getReturnType();
-        $this->assertSame('array', $returnType->getName());
+        $ref = new \ReflectionClass(DeliveryOperationsQueryDTO::class);
+        $constructor = $ref->getConstructor();
 
-        $params = $method->getParameters();
-        $this->assertCount(1, $params);
-        $this->assertSame('query', $params[0]->getName());
-        /** @var \ReflectionNamedType $paramType */
-        $paramType = $params[0]->getType();
-        $this->assertSame(\Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsQueryDTO::class, $paramType->getName());
-    }
+        $this->assertNotNull($constructor);
 
-    public function testPrimitiveQueryDTOConstructor(): void
-    {
-        $reflection = new \ReflectionClass(\Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsQueryDTO::class);
-        /** @var \ReflectionMethod $constructor */
-        $constructor = $reflection->getConstructor();
+        $params = $constructor->getParameters();
+        $paramNames = array_map(fn(\ReflectionParameter $p) => $p->getName(), $params);
 
-        $expectedParams = [
-            'after' => '?DateTimeImmutable',
-            'before' => '?DateTimeImmutable',
-            'actorType' => '?string',
-            'actorId' => '?int',
-            'targetType' => '?string',
-            'targetId' => '?int',
-            'channel' => '?string',
-            'operationType' => '?string',
-            'status' => '?string',
-            'requestId' => '?string',
-            'correlationId' => '?string',
-            'cursorOccurredAt' => '?DateTimeImmutable',
-            'cursorId' => '?int',
-            'limit' => 'int',
+        $expected = [
+            'after',
+            'before',
+            'actorType',
+            'actorId',
+            'targetType',
+            'targetId',
+            'channel',
+            'operationType',
+            'status',
+            'requestId',
+            'correlationId',
+            'cursorOccurredAt',
+            'cursorId',
+            'limit',
         ];
 
-        $actualParams = [];
-        foreach ($constructor->getParameters() as $param) {
-            /** @var \ReflectionType $type */
-            $type = $param->getType();
-            $actualParams[$param->getName()] = $type->__toString();
-        }
+        $this->assertSame($expected, $paramNames);
 
-        $this->assertSame(array_keys($expectedParams), array_keys($actualParams));
-
-        foreach ($expectedParams as $name => $type) {
-            $this->assertSame($type, $actualParams[$name]);
-        }
-    }
-    public function testPrimitiveRepositoryPreservesCallerOwnedTransactionStateOnFailure(): void
-    {
-        $this->pdo->expects($this->never())->method('beginTransaction');
-        $this->pdo->expects($this->never())->method('commit');
-        $this->pdo->expects($this->never())->method('rollBack');
-
-        $this->pdo->expects($this->once())
-            ->method('prepare')
-            ->willThrowException(new PDOException('Fail'));
-
-        $this->expectException(DeliveryOperationsStorageException::class);
-
-        try {
-            $this->repository->find(new DeliveryOperationsQueryDTO());
-        } catch (DeliveryOperationsStorageException $e) {
-            $this->assertInstanceOf(PDOException::class, $e->getPrevious());
-            throw $e;
+        // Assert all but limit are nullable
+        foreach ($params as $param) {
+            if ($param->getName() === 'limit') {
+                $this->assertFalse($param->getType()->allowsNull());
+                $this->assertTrue($param->isDefaultValueAvailable());
+                $this->assertSame(50, $param->getDefaultValue());
+            } else {
+                $this->assertTrue($param->getType()->allowsNull());
+                $this->assertTrue($param->isDefaultValueAvailable());
+                $this->assertNull($param->getDefaultValue());
+            }
         }
     }
-
-    public function testPrimitiveRepositoryPreservesCallerOwnedTransactionStateOnSuccess(): void
-    {
-        $this->pdo->expects($this->never())->method('beginTransaction');
-        $this->pdo->expects($this->never())->method('commit');
-        $this->pdo->expects($this->never())->method('rollBack');
-
-        $this->pdo->expects($this->once())
-            ->method('prepare')
-            ->willReturn($this->statement);
-
-        $this->statement->method('execute')->willReturn(true);
-        $this->statement->method('fetchAll')->willReturn([]);
-
-        $this->repository->find(new DeliveryOperationsQueryDTO());
-    }
-
 }

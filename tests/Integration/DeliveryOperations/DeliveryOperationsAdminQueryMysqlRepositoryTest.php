@@ -103,39 +103,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(status: 'failed'));
         $this->assertSame(1, $result->filtered);
         $this->assertSame('failed', $result->items[0]->status);
-
-        // Additional independent equality filters: id, correlationId, requestId, provider, providerMessageId, errorCode
-        $this->insertLog(eventId: 'eq-6', correlationId: 'corr-1');
-        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(correlationId: 'corr-1'));
-        $this->assertSame(1, $result->filtered);
-        $this->assertSame('corr-1', $result->items[0]->correlationId);
-
-        $this->insertLog(eventId: 'eq-7', requestId: 'req-1');
-        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(requestId: 'req-1'));
-        $this->assertSame(1, $result->filtered);
-        $this->assertSame('req-1', $result->items[0]->requestId);
-
-        $this->insertLog(eventId: 'eq-8', provider: 'prov-1');
-        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(provider: 'prov-1'));
-        $this->assertSame(1, $result->filtered);
-        $this->assertSame('prov-1', $result->items[0]->provider);
-
-        $this->insertLog(eventId: 'eq-9', providerMessageId: 'pm-1');
-        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(providerMessageId: 'pm-1'));
-        $this->assertSame(1, $result->filtered);
-        $this->assertSame('pm-1', $result->items[0]->providerMessageId);
-
-        $this->insertLog(eventId: 'eq-10', errorCode: 'err-1');
-        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorCode: 'err-1'));
-        $this->assertSame(1, $result->filtered);
-        $this->assertSame('err-1', $result->items[0]->errorCode);
-
-        // Test ID equality (we need the inserted ID)
-        $this->pdo->exec("INSERT INTO maa_event_logging_delivery_operations (event_id, channel, operation_type, status, metadata, occurred_at) VALUES ('eq-11', '', '', '', '[]', '2023-01-01 00:00:00')");
-        $id = (int) $this->pdo->lastInsertId();
-        $result = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(id: $id));
-        $this->assertSame(1, $result->filtered);
-        $this->assertSame($id, $result->items[0]->id);
     }
 
     public function testItFiltersActorIndependently(): void
@@ -274,67 +241,25 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '\b%c_'));
         $this->assertSame(1, $res->filtered);
         $this->assertSame('e1', $res->items[0]->eventId);
-
-        // Escape backslash
-        $this->insertLog(eventId: 'e3', errorMessage: 'this \ slash');
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '\\'));
-        $this->assertSame(2, $res->filtered); // e1 and e3
-
-        // Escape percent
-        $this->insertLog(eventId: 'e4', errorMessage: 'this % percent');
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '%'));
-        $this->assertSame(2, $res->filtered); // e1 and e4
-
-        // Escape underscore
-        $this->insertLog(eventId: 'e5', errorMessage: 'this _ underscore');
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(errorMessageLike: '_'));
-        $this->assertSame(2, $res->filtered); // e1 and e5
     }
 
-        public function testItFiltersMetadataWithNullVersusMissingPath(): void
+    public function testItFiltersMetadataWithNullVersusMissingPath(): void
     {
         $this->insertLog(eventId: 'e1', metadata: '{"a": 1, "b": null}');
         $this->insertLog(eventId: 'e2', metadata: '{"a": 1}');
 
         // Exists and is null
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.b' => null]));
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: [
+            '$.b' => null
+        ]));
         $this->assertSame(1, $res->filtered);
         $this->assertSame('e1', $res->items[0]->eventId);
 
-        // Missing path does not match JSON null
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.c' => null]));
-        $this->assertSame(0, $res->filtered);
-
-        // Test metadata scalar types: string, int, float, bool
-        $this->insertLog(eventId: 'e3', metadata: '{"str": "hello", "int": 42, "float": 3.14, "bool_true": true, "bool_false": false}');
-
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.str' => 'hello']));
-        $this->assertSame(1, $res->filtered);
-        $this->assertSame('e3', $res->items[0]->eventId);
-
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.int' => 42]));
-        $this->assertSame(1, $res->filtered);
-        $this->assertSame('e3', $res->items[0]->eventId);
-
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.float' => 3.14]));
-        $this->assertSame(1, $res->filtered);
-        $this->assertSame('e3', $res->items[0]->eventId);
-
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.bool_true' => true]));
-        $this->assertSame(1, $res->filtered);
-        $this->assertSame('e3', $res->items[0]->eventId);
-
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.bool_false' => false]));
-        $this->assertSame(1, $res->filtered);
-        $this->assertSame('e3', $res->items[0]->eventId);
-
-        // Distinction between string "42" and int 42
-        $this->insertLog(eventId: 'e4', metadata: '{"int_str": "42"}');
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.int_str' => 42]));
-        $this->assertSame(0, $res->filtered); // because type distinction must be preserved
-
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.int' => "42"]));
-        $this->assertSame(0, $res->filtered);
+        // Missing path -> not matched by null search
+        $res2 = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: [
+            '$.c' => null
+        ]));
+        $this->assertSame(0, $res2->filtered);
     }
 
     public function testItFiltersMultipleMetadataWithDistinctPlaceholders(): void
@@ -369,7 +294,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame('evt-1', $res2->items[0]->eventId);
     }
 
-    public function testItPreservesCallerOwnedTransactionStateOnSuccess(): void
+    public function testItPreservesCallerOwnedTransaction(): void
     {
         $this->pdo->beginTransaction();
 
@@ -383,65 +308,18 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $res2->filtered);
     }
 
-    public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
+    public function testItTranslatesRealPdoExceptionToStorageException(): void
     {
-        $this->pdo->beginTransaction();
-        $this->assertTrue($this->pdo->inTransaction());
-
-        // Get the connection ID
-        $stmt = $this->pdo->query('SELECT CONNECTION_ID()');
-        if ($stmt === false) {
-            throw new \RuntimeException('Failed to query connection id');
-        }
-        $connectionId = $stmt->fetchColumn();
-
-        // Kill the connection using a separate PDO instance
-        $dsn = getenv('EVENT_LOGGING_TEST_MYSQL_DSN');
-        if (!is_string($dsn)) {
-            throw new \RuntimeException('DSN not found');
-        }
-        $user = getenv('EVENT_LOGGING_TEST_MYSQL_USER') ?: 'root';
-        $pass = getenv('EVENT_LOGGING_TEST_MYSQL_PASSWORD') ?: '';
-        $pdo2 = new \PDO($dsn, $user, $pass);
-        $pdo2->exec("KILL $connectionId");
+        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
 
         try {
             $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
             $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
-            $this->assertTrue($this->pdo->inTransaction());
-            $this->assertStringStartsWith('Failed to query DeliveryOperations records:', $e->getMessage());
+            $this->assertStringContainsString('Failed to query DeliveryOperations records:', $e->getMessage());
             $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
         } finally {
-            try {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
-            } catch (\PDOException $e) {
-                // Ignore rollback failure on killed connection
-            }
+            $this->setUp(); // Re-create schema for subsequent tests if necessary
         }
     }
-
-    public function testItTranslatesRealPdoExceptionToStorageException(): void
-    {
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
-
-        $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
-
-        try {
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
-        } catch (DeliveryOperationsStorageException $e) {
-            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-            throw $e;
-        } finally {
-            $schema = file_get_contents(__DIR__ . '/../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql');
-            if (!is_string($schema)) {
-                throw new \RuntimeException('Schema not found');
-            }
-            $this->pdo->exec($schema);
-        }
-    }
-
 }

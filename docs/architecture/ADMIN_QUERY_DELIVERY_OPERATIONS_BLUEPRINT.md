@@ -7,7 +7,7 @@
 - Owner approval completed on July 24, 2026.
 - The approved blueprint was merged through PR #124.
 - Merge commit: `f5ff025c9a539162c7e8dd42c0d7b43044894a6f`.
-- Runtime implemented.
+- Runtime must be implemented in a subsequent PR from the latest `main`.
 - The implementation is strictly bound to the contracts documented in this blueprint, including covering all persisted fields with package-owned, safe filter contracts.
 - No authorization to modify the protected `v1.0.0` primitive Runtime.
 - No schema, Composer, CI, host, reporting, dashboard, tag, or release work is authorized.
@@ -392,7 +392,7 @@ final class DeliveryOperationsAdminQueryRequestDTO implements \JsonSerializable
 - **Retry Bounds**: `attemptNoMin` and `attemptNoMax` must be unsigned (>= 0). If both are set, `attemptNoMin <= attemptNoMax`.
 - **Text Search**: `errorMessageLike` uses safe exact contains search with escaping (`LIKE :error_message_like ESCAPE '\\'`). Escaping must natively escape `\`, `%`, and `_`. Case insensitivity depends on the table's collation.
 - **Null-State Tri-State**: `nullStateFilters` accepts an associative array mapping exactly to these allowed property names: `actorType`, `actorId`, `targetType`, `targetId`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`. Values must be strictly `bool` (`true` -> `IS NULL`, `false` -> `IS NOT NULL`). An exception is thrown for invalid properties or non-bool values. Duplicate semantic conditions (e.g., both equality and null-state) naturally translate into SQL `WHERE column = X AND column IS NULL`, producing 0 rows as intended.
-- **Metadata JSON Search**: `metadataFilters` must be an exact associative array mapping `['stringPath' => scalarValue]`. No arbitrary JSON path evaluation. Maximum 5 filters per request. The path format must strictly enforce leading `$.`, exactly 1 to 5 non-empty ASCII `[A-Za-z0-9_]+` segments, dot separators only, no repeated dots, and maximum total length 64 bytes/characters. Allowed scalar value types: `string|int|float|bool|null`. Values must be successfully encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. A JSON `null` filter explicitly searches for null values stored in the document, whereas missing a path returns NULL which requires `JSON_CONTAINS_PATH(metadata, 'one', :meta_path_exists_N) = 1 AND JSON_CONTAINS(metadata, :meta_value_N, :meta_path_value_N) = 1` checks to differentiate. Null vs missing must be handled correctly in SQL.
+- **Metadata JSON Search**: `metadataFilters` must be an exact associative array mapping `['stringPath' => scalarValue]`. No arbitrary JSON path evaluation. Maximum 5 filters per request. The path format must strictly enforce leading `$.`, exactly 1 to 5 non-empty ASCII `[A-Za-z0-9_]+` segments, dot separators only, no repeated dots, and maximum total length 64 bytes/characters. Allowed scalar value types: `string|int|float|bool|null`. Values must be successfully encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. A JSON `null` filter explicitly searches for `CAST(NULL AS JSON)` value stored in the document, whereas missing a path returns NULL which requires `JSON_CONTAINS_PATH(metadata, 'one', :path) = 1` checks to differentiate. Null vs missing must be handled correctly in SQL.
 
 ### 3.5 Result DTO
 `DeliveryOperationsAdminPageResultDTO`
@@ -500,7 +500,7 @@ For `errorMessageLike`, the parameter value must be escaped using:
 This matches the explicit `ESCAPE '\\'` SQL clause.
 
 ### Metadata Paths
-Path format strictly matches `/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/`. Callers must supply the leading `$.`. Maximum 5 keys. Maximum path length 64 bytes/characters. Deterministic placeholders (e.g., `meta_path_exists_N`, `meta_path_value_N`, `meta_value_N`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match a json null string if the path exists, enforced via `JSON_CONTAINS_PATH` and `JSON_CONTAINS`.
+Path format strictly matches `/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/`. Callers must supply the leading `$.`. Maximum 5 keys. Maximum path length 64 bytes/characters. Deterministic placeholders (e.g., `meta_path_0`, `meta_val_0`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match `CAST('null' AS JSON)` if the path exists, enforced via `JSON_CONTAINS_PATH`.
 
 ### SQL Semantics
 - **Empty filters:** generates empty `whereSql` (no `WHERE` string added to data/count SQL).
@@ -619,7 +619,7 @@ final class DeliveryOperationsAdminQueryMysqlRepository implements DeliveryOpera
 
 ### 5.2 Exception Mapping Details
 - Mapper failures are caught as `\Throwable` within the `mapRow` callback, wrapped as `DeliveryOperationsStorageException` with `Failed to map DeliveryOperations row:` prefix.
-- Mapper `\Throwable` is wrapped once with `Failed to map DeliveryOperations row:` and the original previous throwable.
+- `DeliveryOperationsStorageException` caught explicitly avoids double-wrapping (e.g. if the mapper natively throws it).
 - PDO execution fails wrap into `Failed to query DeliveryOperations records:`.
 - Invalid configuration routes to execution exception.
 - No transaction state mutation (`BEGIN/COMMIT/ROLLBACK`).
