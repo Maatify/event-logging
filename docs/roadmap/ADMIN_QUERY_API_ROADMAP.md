@@ -93,7 +93,7 @@ Implement the Admin Query API for domains that never received the incorrect post
 
 These are new post-v1.0 features, not corrections to the first-release Runtime.
 
-- **Status:** Phase 4 is active. DiagnosticsTelemetry Runtime is complete and merged.
+- **Status:** Phase 4 is complete. DiagnosticsTelemetry and DeliveryOperations Runtimes are complete and merged.
   - `DiagnosticsTelemetry`: [Owner Approved / Runtime Implemented / Complete](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
   - `DeliveryOperations`: Owner Approved / Runtime Implemented / Complete
 
