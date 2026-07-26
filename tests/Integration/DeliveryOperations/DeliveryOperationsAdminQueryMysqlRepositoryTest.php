@@ -312,14 +312,14 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
     {
         $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
 
-        $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Failed to query DeliveryOperations records:');
-
         try {
             $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringContainsString('Failed to query DeliveryOperations records:', $e->getMessage());
             $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-            throw $e;
+        } finally {
+            $this->setUp(); // Re-create schema for subsequent tests if necessary
         }
     }
 }

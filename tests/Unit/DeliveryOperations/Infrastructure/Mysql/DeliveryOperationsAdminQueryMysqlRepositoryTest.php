@@ -36,6 +36,10 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->pdo->expects($this->exactly(3))
             ->method('prepare')
             ->willReturnCallback(function (string $sql) {
+                if (!str_contains($sql, 'COUNT(*)')) {
+                    // verify order by
+                    $this->assertStringContainsString('ORDER BY `occurred_at` DESC, `id` DESC', $sql);
+                }
                 if (str_contains($sql, 'COUNT(*)')) {
                     return $this->countStatement;
                 }
@@ -111,14 +115,35 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
         $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
 
-        $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Failed to query DeliveryOperations records: Connection failed');
+        try {
+            $this->repository->paginate($request);
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringContainsString('Failed to query DeliveryOperations records: Connection failed', $e->getMessage());
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+        }
+    }
+
+    public function testItTranslatesPaginationExecutionException(): void
+    {
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                // Return a statement that fails column count, causing PdoPaginator to throw PaginationExecutionException
+                $stmt = $this->createMock(\PDOStatement::class);
+                $stmt->method('execute')->willReturn(true);
+                $stmt->method('columnCount')->willReturn(0); // 0 columns forces exception in pagination total
+                return $stmt;
+            });
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
 
         try {
             $this->repository->paginate($request);
+            $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
-            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
-            throw $e;
+            $this->assertStringContainsString('Failed to query DeliveryOperations records: Pagination count query must return exactly one column.', $e->getMessage());
+            $this->assertInstanceOf(\Maatify\Persistence\Exception\PaginationExecutionException::class, $e->getPrevious());
         }
     }
 

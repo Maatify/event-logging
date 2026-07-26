@@ -227,8 +227,8 @@ The approved implementation sequence is:
 Phase 3 Remediation Complete.
 Phase 4 Active.
 DiagnosticsTelemetry Runtime complete
-DeliveryOperations Blueprint Approved
-DeliveryOperations Runtime Next
+DeliveryOperations Runtime Implemented
+Phase 4 Complete
 Reporting/dashboard blocked
 No release or tag authorized
 
@@ -237,6 +237,6 @@ No release or tag authorized
 - `SecuritySignals`: Runtime implemented.
 - `AuthoritativeAudit`: Runtime implemented.
 - `DiagnosticsTelemetry`: Runtime implemented
-- `DeliveryOperations`: Blueprint Approved / Runtime Next. The implementation must strictly follow the merged Blueprint.
+- `DeliveryOperations`: Runtime implemented.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.

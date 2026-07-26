@@ -207,4 +207,47 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
             throw $e;
         }
     }
+
+    public function testDtoPreservesPrimitiveSignatureAndDefaults(): void
+    {
+        $ref = new \ReflectionClass(DeliveryOperationsQueryDTO::class);
+        $constructor = $ref->getConstructor();
+
+        $this->assertNotNull($constructor);
+
+        $params = $constructor->getParameters();
+        $paramNames = array_map(fn(\ReflectionParameter $p) => $p->getName(), $params);
+
+        $expected = [
+            'after',
+            'before',
+            'actorType',
+            'actorId',
+            'targetType',
+            'targetId',
+            'channel',
+            'operationType',
+            'status',
+            'requestId',
+            'correlationId',
+            'cursorOccurredAt',
+            'cursorId',
+            'limit',
+        ];
+
+        $this->assertSame($expected, $paramNames);
+
+        // Assert all but limit are nullable
+        foreach ($params as $param) {
+            if ($param->getName() === 'limit') {
+                $this->assertFalse($param->getType()->allowsNull());
+                $this->assertTrue($param->isDefaultValueAvailable());
+                $this->assertSame(50, $param->getDefaultValue());
+            } else {
+                $this->assertTrue($param->getType()->allowsNull());
+                $this->assertTrue($param->isDefaultValueAvailable());
+                $this->assertNull($param->getDefaultValue());
+            }
+        }
+    }
 }
