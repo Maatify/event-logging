@@ -291,23 +291,50 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(2, $res->filtered); // e1 and e5
     }
 
-    public function testItFiltersMetadataWithNullVersusMissingPath(): void
+        public function testItFiltersMetadataWithNullVersusMissingPath(): void
     {
         $this->insertLog(eventId: 'e1', metadata: '{"a": 1, "b": null}');
         $this->insertLog(eventId: 'e2', metadata: '{"a": 1}');
 
         // Exists and is null
-        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: [
-            '$.b' => null
-        ]));
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.b' => null]));
         $this->assertSame(1, $res->filtered);
         $this->assertSame('e1', $res->items[0]->eventId);
 
-        // Missing path -> not matched by null search
-        $res2 = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: [
-            '$.c' => null
-        ]));
-        $this->assertSame(0, $res2->filtered);
+        // Missing path does not match JSON null
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.c' => null]));
+        $this->assertSame(0, $res->filtered);
+
+        // Test metadata scalar types: string, int, float, bool
+        $this->insertLog(eventId: 'e3', metadata: '{"str": "hello", "int": 42, "float": 3.14, "bool_true": true, "bool_false": false}');
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.str' => 'hello']));
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('e3', $res->items[0]->eventId);
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.int' => 42]));
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('e3', $res->items[0]->eventId);
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.float' => 3.14]));
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('e3', $res->items[0]->eventId);
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.bool_true' => true]));
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('e3', $res->items[0]->eventId);
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.bool_false' => false]));
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('e3', $res->items[0]->eventId);
+
+        // Distinction between string "42" and int 42
+        $this->insertLog(eventId: 'e4', metadata: '{"int_str": "42"}');
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.int_str' => 42]));
+        $this->assertSame(0, $res->filtered); // because type distinction must be preserved
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(metadataFilters: ['$.int' => "42"]));
+        $this->assertSame(0, $res->filtered);
     }
 
     public function testItFiltersMultipleMetadataWithDistinctPlaceholders(): void
@@ -356,29 +383,43 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(0, $res2->filtered);
     }
 
-                public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
+    public function testItPreservesCallerOwnedTransactionStateOnFailure(): void
     {
-        // Drop table BEFORE starting the transaction to avoid implicit DDL commit.
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
-
         $this->pdo->beginTransaction();
         $this->assertTrue($this->pdo->inTransaction());
+
+        // Get the connection ID
+        $stmt = $this->pdo->query('SELECT CONNECTION_ID()');
+        if ($stmt === false) {
+            throw new \RuntimeException('Failed to query connection id');
+        }
+        $connectionId = $stmt->fetchColumn();
+
+        // Kill the connection using a separate PDO instance
+        $dsn = getenv('EVENT_LOGGING_TEST_MYSQL_DSN');
+        if (!is_string($dsn)) {
+            throw new \RuntimeException('DSN not found');
+        }
+        $user = getenv('EVENT_LOGGING_TEST_MYSQL_USER') ?: 'root';
+        $pass = getenv('EVENT_LOGGING_TEST_MYSQL_PASSWORD') ?: '';
+        $pdo2 = new \PDO($dsn, $user, $pass);
+        $pdo2->exec("KILL $connectionId");
 
         try {
             $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
             $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
-            // Transaction must still be active
             $this->assertTrue($this->pdo->inTransaction());
             $this->assertStringStartsWith('Failed to query DeliveryOperations records:', $e->getMessage());
             $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
         } finally {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
+            try {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+            } catch (\PDOException $e) {
+                // Ignore rollback failure on killed connection
             }
-            $schema = file_get_contents(__DIR__ . '/../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql');
-        if (!is_string($schema)) throw new \RuntimeException('Schema not found');
-            $this->pdo->exec($schema);
         }
     }
 
@@ -396,7 +437,9 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             throw $e;
         } finally {
             $schema = file_get_contents(__DIR__ . '/../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql');
-        if (!is_string($schema)) throw new \RuntimeException('Schema not found');
+            if (!is_string($schema)) {
+                throw new \RuntimeException('Schema not found');
+            }
             $this->pdo->exec($schema);
         }
     }
