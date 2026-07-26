@@ -310,39 +310,41 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testItTranslatesRealMappingFailureToStorageException(): void
     {
-        $ref = new \ReflectionClass($this->repository);
-        $method = $ref->getMethod('mapRow');
+        $this->insertLog(eventId: 'e1');
+
+        $this->pdo->exec("RENAME TABLE maa_event_logging_delivery_operations TO maa_event_logging_delivery_operations_real");
+        $this->pdo->exec("CREATE VIEW maa_event_logging_delivery_operations AS SELECT id, event_id, channel, operation_type, actor_type, actor_id, target_type, target_id, status, attempt_no, scheduled_at, completed_at, correlation_id, request_id, provider, provider_message_id, error_code, error_message, metadata, 'invalid-date' as occurred_at FROM maa_event_logging_delivery_operations_real");
 
         try {
-            try {
-                // Pass an invalid occurred_at string which DateValue will throw on
-                $method->invoke($this->repository, [
-                    'id' => '1',
-                    'event_id' => 'evt-1',
-                    'channel' => 'ch',
-                    'operation_type' => 'op',
-                    'status' => 'st',
-                    'occurred_at' => 'invalid-date',
-                ]);
-                $this->fail('Expected Exception');
-            } catch (\ReflectionException $e) {
-                // Ignore ReflectionException, we want to catch the underlying target exception
-                throw $e;
-            } catch (\Throwable $e) {
-                // Reflection API in PHP 8.x throws the actual exception or wraps it depending on usage.
-                throw $e;
-            }
-        } catch (\ReflectionException $e) {
-            $this->fail('Should not throw ReflectionException');
-        } catch (\TypeError $e) {
-            $this->fail('Should not throw TypeError');
-        } catch (\Exception $e) {
-            // If it's a generic Exception or Error from reflection wrapper
-            if ($e->getPrevious() instanceof DeliveryOperationsStorageException) {
-                $e = $e->getPrevious();
-            }
-            $this->assertInstanceOf(DeliveryOperationsStorageException::class, $e);
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
             $this->assertStringContainsString('Failed to map DeliveryOperations row', $e->getMessage());
+        } finally {
+            $this->pdo->exec("DROP VIEW IF EXISTS maa_event_logging_delivery_operations");
+            $this->pdo->exec("RENAME TABLE maa_event_logging_delivery_operations_real TO maa_event_logging_delivery_operations");
         }
+    }
+
+    public function testItTranslatesRealPdoExceptionToStorageExceptionAndPreservesTransaction(): void
+    {
+        $this->pdo->beginTransaction();
+
+        $this->pdo->exec('SET @@session.max_join_size=1');
+
+        $this->insertLog(eventId: 'e1');
+        $this->insertLog(eventId: 'e2');
+
+        try {
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringContainsString('Failed to query DeliveryOperations records', $e->getMessage());
+        } finally {
+            $this->pdo->exec('SET @@session.max_join_size=DEFAULT');
+        }
+
+        $this->assertTrue($this->pdo->inTransaction());
+        $this->pdo->rollBack();
     }
 }
