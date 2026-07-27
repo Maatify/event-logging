@@ -123,6 +123,55 @@ final class DeliveryOperationsRowMapperTest extends TestCase
         $this->assertNull($dto->metadata);
     }
 
+    public function testItMapsJsonObjectWithNumericKeyToNull(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '{"1": "value"}',
+        ]);
+        $this->assertNull($dto->metadata);
+    }
+
+    public function testItMapsJsonObjectWithMixedKeysToNull(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '{"foo": "bar", "1": "baz"}',
+        ]);
+        $this->assertNull($dto->metadata);
+    }
+
+    public function testItMapsJsonObjectWithAllStringKeysToArray(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '{"foo": "bar", "baz": 42}',
+        ]);
+        $this->assertEquals(['foo' => 'bar', 'baz' => 42], $dto->metadata);
+    }
+
+    public function testItMapsEmptyJsonArrayToEmptyArray(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '[]',
+        ]);
+        $this->assertIsArray($dto->metadata);
+        $this->assertSame([], $dto->metadata);
+    }
+
+    public function testItMapsNonEmptyJsonListToNull(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '[1, 2, 3]',
+        ]);
+        $this->assertNull($dto->metadata);
+    }
+
+    public function testItMapsJsonObjectWithIntegerKeysToNull(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '{"0": "a", "1": "b"}',
+        ]);
+        $this->assertNull($dto->metadata);
+    }
+
     public function testItThrowsOnInvalidOccurredAtDateString(): void
     {
         $this->expectException(\Exception::class);

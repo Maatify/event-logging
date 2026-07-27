@@ -62,12 +62,21 @@ final class DeliveryOperationsRowMapper
         if (isset($row['metadata']) && is_string($row['metadata']) && $row['metadata'] !== '') {
             try {
                 $decoded = json_decode($row['metadata'], true, 512, JSON_THROW_ON_ERROR);
-                if (is_array($decoded) && array_is_list($decoded) === false || $decoded === []) {
-                    /** @var array<string, mixed> $decoded */
-                    $metadata = $decoded;
+                if (is_array($decoded)) {
+                    $allStringKeys = true;
+                    foreach (array_keys($decoded) as $decodedKey) {
+                        if (!is_string($decodedKey)) {
+                            $allStringKeys = false;
+                            break;
+                        }
+                    }
+                    if ($allStringKeys) {
+                        /** @var array<string, mixed> $decoded */
+                        $metadata = $decoded;
+                    }
                 }
             } catch (JsonException) {
-                // Mapping failure or corruption -> fallback to null.
+                $metadata = null;
             }
         }
 
