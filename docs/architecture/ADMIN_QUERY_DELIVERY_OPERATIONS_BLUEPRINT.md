@@ -1,6 +1,6 @@
 # DeliveryOperations Admin Query Blueprint
 
-**Status:** Owner Approved / Runtime Implemented / Complete
+**Status:** Owner Approved / Runtime Implemented / Pending Merge
 
 ## Approval Record
 
@@ -500,7 +500,7 @@ For `errorMessageLike`, the parameter value must be escaped using:
 This matches the explicit `ESCAPE '\\'` SQL clause.
 
 ### Metadata Paths
-Path format strictly matches `/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/`. Callers must supply the leading `$.`. Maximum 5 keys. Maximum path length 64 bytes/characters. Deterministic placeholders (e.g., `meta_path_0`, `meta_val_0`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match `CAST('null' AS JSON)` if the path exists, enforced via `JSON_CONTAINS_PATH`.
+Path format strictly matches `/^\$\.[A-Za-z0-9_]+(\.[A-Za-z0-9_]+){0,4}$/`. Callers must supply the leading `$.`. Maximum 5 keys. Maximum path length 64 bytes/characters. Deterministic placeholders (e.g., `meta_path_exists_N`, `meta_path_value_N`, `meta_value_N`). Parameter values encoded via `json_encode(..., JSON_THROW_ON_ERROR)`. JSON-null searches natively match `CAST('null' AS JSON)` if the path exists, enforced via `JSON_CONTAINS_PATH`.
 
 ### SQL Semantics
 - **Empty filters:** generates empty `whereSql` (no `WHERE` string added to data/count SQL).

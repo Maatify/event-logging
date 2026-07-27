@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 4 Complete / All Six Domains Admin Query Runtime Implemented
+**Phase:** Phase 4 Complete / DeliveryOperations Pending Merge
 
 ## 1. Purpose
 
@@ -228,7 +228,7 @@ Phase 3 Remediation Complete.
 Phase 4 Active.
 DiagnosticsTelemetry Runtime complete
 DeliveryOperations Runtime Implemented
-Phase 4 Complete
+Phase 4 Complete / DeliveryOperations Pending Merge
 Reporting/dashboard blocked
 No release or tag authorized
 

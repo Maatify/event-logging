@@ -34,6 +34,13 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
 
+        $this->recreateTable();
+
+        $this->repository = new DeliveryOperationsAdminQueryMysqlRepository($this->pdo);
+    }
+
+    private function recreateTable(): void
+    {
         $schema = file_get_contents(__DIR__ . '/../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql');
         if (!is_string($schema)) {
             throw new RuntimeException('Failed to load schema.');
@@ -41,8 +48,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
         $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_delivery_operations;');
         $this->pdo->exec($schema);
-
-        $this->repository = new DeliveryOperationsAdminQueryMysqlRepository($this->pdo);
     }
 
     private function insertLog(
@@ -404,48 +409,100 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(2, $res->filtered);
     }
 
-    // ===== Null-State Filters =====
-
-    /** @dataProvider nullStateProvider */
-    public function testNullStateFilter(string $field, bool $isNull, int $expected): void
+    public function testScheduledAtMicrosecondPrecision(): void
     {
-        $this->insertLog(eventId: 'ns-1', errorCode: 'ERR', provider: 'prov');
-        $this->insertLog(eventId: 'ns-2', errorCode: null, provider: null);
+        $utc = new DateTimeZone('UTC');
+        $this->insertLog(eventId: 'sa-mu-1', scheduledAt: '2023-01-01 10:00:00.111111');
+        $this->insertLog(eventId: 'sa-mu-2', scheduledAt: '2023-01-01 10:00:00.999999');
 
         $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(
-            nullStateFilters: [$field => $isNull]
+            scheduledAfter: new DateTimeImmutable('2023-01-01 10:00:00.555555', $utc)
         ));
-        $this->assertSame($expected, $res->filtered);
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('sa-mu-2', $res->items[0]->eventId);
     }
 
-    public static function nullStateProvider(): array
+    public function testCompletedAtMicrosecondPrecision(): void
     {
-        return [
-            'actorType is null true' => ['actorType', true, 2],
-            'actorType is null false' => ['actorType', false, 0],
-            'actorId is null true' => ['actorId', true, 2],
-            'actorId is null false' => ['actorId', false, 0],
-            'targetType is null true' => ['targetType', true, 2],
-            'targetType is null false' => ['targetType', false, 0],
-            'targetId is null true' => ['targetId', true, 2],
-            'targetId is null false' => ['targetId', false, 0],
-            'scheduledAt is null true' => ['scheduledAt', true, 2],
-            'scheduledAt is null false' => ['scheduledAt', false, 0],
-            'completedAt is null true' => ['completedAt', true, 2],
-            'completedAt is null false' => ['completedAt', false, 0],
-            'correlationId is null true' => ['correlationId', true, 2],
-            'correlationId is null false' => ['correlationId', false, 0],
-            'requestId is null true' => ['requestId', true, 2],
-            'requestId is null false' => ['requestId', false, 0],
-            'provider is null true' => ['provider', true, 1],
-            'provider is null false' => ['provider', false, 1],
-            'providerMessageId is null true' => ['providerMessageId', true, 2],
-            'providerMessageId is null false' => ['providerMessageId', false, 0],
-            'errorCode is null true' => ['errorCode', true, 1],
-            'errorCode is null false' => ['errorCode', false, 1],
-            'errorMessage is null true' => ['errorMessage', true, 2],
-            'errorMessage is null false' => ['errorMessage', false, 0],
+        $utc = new DateTimeZone('UTC');
+        $this->insertLog(eventId: 'ca-mu-1', completedAt: '2023-01-01 10:00:00.111111');
+        $this->insertLog(eventId: 'ca-mu-2', completedAt: '2023-01-01 10:00:00.999999');
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+            completedAfter: new DateTimeImmutable('2023-01-01 10:00:00.555555', $utc)
+        ));
+        $this->assertSame(1, $res->filtered);
+        $this->assertSame('ca-mu-2', $res->items[0]->eventId);
+    }
+
+    // ===== Null-State Filters =====
+
+    public function testNullStateIsTrueReturnsNullRows(): void
+    {
+        $this->insertLog(
+            eventId: 'ns-1',
+            actorType: 'SYS',
+            actorId: 10,
+            targetType: 'DOC',
+            targetId: 20,
+            scheduledAt: '2023-06-01 10:00:00',
+            completedAt: '2023-06-01 11:00:00',
+            correlationId: 'corr-1',
+            requestId: 'req-1',
+            provider: 'prov-1',
+            providerMessageId: 'msg-1',
+            errorCode: 'ERR-1',
+            errorMessage: 'err-msg-1',
+        );
+        $this->insertLog(eventId: 'ns-2');
+
+        $fields = [
+            'actorType', 'actorId', 'targetType', 'targetId',
+            'scheduledAt', 'completedAt', 'correlationId', 'requestId',
+            'provider', 'providerMessageId', 'errorCode', 'errorMessage',
         ];
+
+        foreach ($fields as $field) {
+            $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+                nullStateFilters: [$field => true]
+            ));
+            $this->assertSame(1, $res->filtered, "Failed for field: {$field} with nullState=true");
+            $this->assertSame('ns-2', $res->items[0]->eventId, "Failed for field: {$field} with nullState=true");
+        }
+    }
+
+    public function testNullStateIsFalseReturnsNonNullRows(): void
+    {
+        $this->insertLog(
+            eventId: 'ns-1',
+            actorType: 'SYS',
+            actorId: 10,
+            targetType: 'DOC',
+            targetId: 20,
+            scheduledAt: '2023-06-01 10:00:00',
+            completedAt: '2023-06-01 11:00:00',
+            correlationId: 'corr-1',
+            requestId: 'req-1',
+            provider: 'prov-1',
+            providerMessageId: 'msg-1',
+            errorCode: 'ERR-1',
+            errorMessage: 'err-msg-1',
+        );
+        $this->insertLog(eventId: 'ns-2');
+
+        $fields = [
+            'actorType', 'actorId', 'targetType', 'targetId',
+            'scheduledAt', 'completedAt', 'correlationId', 'requestId',
+            'provider', 'providerMessageId', 'errorCode', 'errorMessage',
+        ];
+
+        foreach ($fields as $field) {
+            $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+                nullStateFilters: [$field => false]
+            ));
+            $this->assertSame(1, $res->filtered, "Failed for field: {$field} with nullState=false");
+            $this->assertSame('ns-1', $res->items[0]->eventId, "Failed for field: {$field} with nullState=false");
+        }
     }
 
     public function testNullStateConflictProducesZeroResults(): void
@@ -715,7 +772,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testTransactionPreservedOnSqlFailure(): void
     {
-        $this->pdo->exec('DROP TABLE IF EXISTS maa_event_logging_delivery_operations');
+        $this->pdo->exec('CREATE TEMPORARY TABLE maa_event_logging_delivery_operations (broken_col INT NOT NULL)');
 
         $this->pdo->beginTransaction();
 
@@ -727,13 +784,13 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             $this->assertTrue($this->pdo->inTransaction());
         } finally {
             $this->pdo->rollBack();
-            $this->setUp();
+            $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
+            $this->recreateTable();
         }
     }
 
     public function testTransactionPreservedOnMappingFailure(): void
     {
-        $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
         $this->pdo->exec('CREATE TEMPORARY TABLE maa_event_logging_delivery_operations (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             event_id VARCHAR(36) NOT NULL,
@@ -768,7 +825,8 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             $this->assertTrue($this->pdo->inTransaction());
         } finally {
             $this->pdo->rollBack();
-            $this->setUp();
+            $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
+            $this->recreateTable();
         }
     }
 
@@ -776,7 +834,8 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testRealPdoExceptionTranslation(): void
     {
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
+        $this->pdo->exec('CREATE TEMPORARY TABLE maa_event_logging_delivery_operations (broken_col INT NOT NULL)');
+
         try {
             $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
             $this->fail('Expected DeliveryOperationsStorageException');
@@ -784,7 +843,8 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             $this->assertStringContainsString('Failed to query DeliveryOperations records:', $e->getMessage());
             $this->assertInstanceOf(PDOException::class, $e->getPrevious());
         } finally {
-            $this->setUp();
+            $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
+            $this->recreateTable();
         }
     }
 }

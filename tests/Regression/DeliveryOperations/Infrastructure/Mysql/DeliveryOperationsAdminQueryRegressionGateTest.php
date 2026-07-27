@@ -7,6 +7,7 @@ namespace Maatify\EventLogging\Tests\Regression\DeliveryOperations\Infrastructur
 use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
+use Maatify\EventLogging\Common\SystemClock;
 use Maatify\EventLogging\DeliveryOperations\Command\RecordDeliveryOperationCommand;
 use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsAdminQueryInterface;
 use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsLoggerInterface;
@@ -18,17 +19,26 @@ use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequ
 use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsQueryDTO;
 use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsViewDTO;
 use Maatify\EventLogging\DeliveryOperations\Exception\DeliveryOperationsStorageException;
+use Maatify\EventLogging\DeliveryOperations\Enum\DeliveryChannelEnum;
+use Maatify\EventLogging\DeliveryOperations\Enum\DeliveryOperationTypeEnum;
+use Maatify\EventLogging\DeliveryOperations\Enum\DeliveryStatusEnum;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsLoggerMysqlRepository;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsQueryMysqlRepository;
 use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsRowMapper;
 use Maatify\EventLogging\DeliveryOperations\Recorder\DeliveryOperationsDefaultPolicy;
 use Maatify\EventLogging\DeliveryOperations\Recorder\DeliveryOperationsRecorder;
+use Maatify\EventLogging\Factory\DeliveryOperationsFactory;
+use Maatify\EventLogging\Bootstrap\EventLoggingBindings;
+use Maatify\EventLogging\Provider\EventLoggingProvider;
+use Maatify\EventLogging\Provider\EventLoggingProviderFactory;
 use PDO;
 use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
 {
@@ -74,8 +84,29 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
             'cursorOccurredAt', 'cursorId', 'limit',
         ], $paramNames);
 
+        $expectedTypes = [
+            'after' => 'DateTimeImmutable',
+            'before' => 'DateTimeImmutable',
+            'actorType' => 'string',
+            'actorId' => 'int',
+            'targetType' => 'string',
+            'targetId' => 'int',
+            'channel' => 'string',
+            'operationType' => 'string',
+            'status' => 'string',
+            'requestId' => 'string',
+            'correlationId' => 'string',
+            'cursorOccurredAt' => 'DateTimeImmutable',
+            'cursorId' => 'int',
+            'limit' => 'int',
+        ];
+
         foreach ($params as $param) {
-            if ($param->getName() === 'limit') {
+            $name = $param->getName();
+            $this->assertArrayHasKey($name, $expectedTypes);
+            $this->assertSame($expectedTypes[$name], $param->getType()->getName(), "Type mismatch for parameter: {$name}");
+
+            if ($name === 'limit') {
                 $this->assertFalse($param->getType()->allowsNull());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertSame(50, $param->getDefaultValue());
@@ -495,28 +526,118 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
 
     // --- Protected DeliveryOperations Boundary ---
 
-    public function testRecorderFailOpenBoundary(): void
+    public function testRecorderSuccessCallsWriterWithDto(): void
     {
-        $this->assertInstanceOf(DeliveryOperationsLoggerInterface::class, $this->createMock(DeliveryOperationsLoggerInterface::class));
-
         $writer = $this->createMock(DeliveryOperationsLoggerInterface::class);
-        $writer->method('log')->willThrowException(new PDOException('storage failure'));
-
-        $clock = new \Maatify\EventLogging\Common\SystemClock();
+        $clock = new SystemClock();
         $policy = new DeliveryOperationsDefaultPolicy();
         $recorder = new DeliveryOperationsRecorder($writer, $clock, null, $policy);
 
+        $capturedDto = null;
+        $writer->expects($this->once())
+            ->method('log')
+            ->willReturnCallback(function (DeliveryOperationRecordDTO $dto) use (&$capturedDto) {
+                $capturedDto = $dto;
+            });
+
         $recorder->record(
-            channel: \Maatify\EventLogging\DeliveryOperations\Enum\DeliveryChannelEnum::EMAIL,
-            operationType: \Maatify\EventLogging\DeliveryOperations\Enum\DeliveryOperationTypeEnum::NOTIFICATION,
-            status: \Maatify\EventLogging\DeliveryOperations\Enum\DeliveryStatusEnum::SENT,
+            channel: DeliveryChannelEnum::EMAIL,
+            operationType: DeliveryOperationTypeEnum::NOTIFICATION,
+            status: DeliveryStatusEnum::SENT,
             attemptNo: 1,
             actorType: 'SYSTEM',
             targetType: 'USER',
             targetId: 1
         );
 
-        $this->assertTrue(true);
+        $this->assertInstanceOf(DeliveryOperationRecordDTO::class, $capturedDto);
+        $this->assertSame('EMAIL', $capturedDto->channel);
+        $this->assertSame('NOTIFICATION', $capturedDto->operationType);
+        $this->assertSame('SENT', $capturedDto->status);
+        $this->assertSame(1, $capturedDto->attemptNo);
+        $this->assertSame('SYSTEM', $capturedDto->actorType);
+        $this->assertSame('USER', $capturedDto->targetType);
+        $this->assertSame(1, $capturedDto->targetId);
+        $this->assertInstanceOf(DateTimeImmutable::class, $capturedDto->occurredAt);
+    }
+
+    public function testRecorderFailOpenBoundary(): void
+    {
+        $writer = $this->createMock(DeliveryOperationsLoggerInterface::class);
+        $writer->method('log')->willThrowException(new PDOException('storage failure'));
+
+        $clock = new SystemClock();
+        $policy = new DeliveryOperationsDefaultPolicy();
+        $recorder = new DeliveryOperationsRecorder($writer, $clock, null, $policy);
+
+        $recorder->record(
+            channel: DeliveryChannelEnum::EMAIL,
+            operationType: DeliveryOperationTypeEnum::NOTIFICATION,
+            status: DeliveryStatusEnum::SENT,
+            attemptNo: 1,
+            actorType: 'SYSTEM',
+            targetType: 'USER',
+            targetId: 1
+        );
+
+        // If we reach this line, no exception escaped — fail-open is working
+        $this->addToAssertionCount(1);
+    }
+
+    public function testRecorderFailOpenWithFallbackLoggerReceivesError(): void
+    {
+        $writer = $this->createMock(DeliveryOperationsLoggerInterface::class);
+        $writer->method('log')->willThrowException(new PDOException('storage failure'));
+
+        $fallbackLogger = $this->createMock(LoggerInterface::class);
+        $fallbackLogger->expects($this->once())
+            ->method('error')
+            ->with(
+                'DeliveryOperations logging failed',
+                $this->callback(function (array $context) {
+                    return str_contains($context['exception'], 'storage failure');
+                })
+            );
+
+        $clock = new SystemClock();
+        $policy = new DeliveryOperationsDefaultPolicy();
+        $recorder = new DeliveryOperationsRecorder($writer, $clock, $fallbackLogger, $policy);
+
+        $recorder->record(
+            channel: DeliveryChannelEnum::EMAIL,
+            operationType: DeliveryOperationTypeEnum::NOTIFICATION,
+            status: DeliveryStatusEnum::SENT,
+            attemptNo: 1,
+            actorType: 'SYSTEM',
+            targetType: 'USER',
+            targetId: 1
+        );
+    }
+
+    public function testRecorderFallbackLoggerFailureDoesNotEscape(): void
+    {
+        $writer = $this->createMock(DeliveryOperationsLoggerInterface::class);
+        $writer->method('log')->willThrowException(new PDOException('storage failure'));
+
+        $fallbackLogger = $this->createMock(LoggerInterface::class);
+        $fallbackLogger->method('error')->willThrowException(new \RuntimeException('logger also broken'));
+
+        $clock = new SystemClock();
+        $policy = new DeliveryOperationsDefaultPolicy();
+        $recorder = new DeliveryOperationsRecorder($writer, $clock, $fallbackLogger, $policy);
+
+        $recorder->record(
+            channel: DeliveryChannelEnum::EMAIL,
+            operationType: DeliveryOperationTypeEnum::NOTIFICATION,
+            status: DeliveryStatusEnum::SENT,
+            attemptNo: 1,
+            actorType: 'SYSTEM',
+            targetType: 'USER',
+            targetId: 1
+        );
+
+        // If we reach this line, neither writer failure nor fallback logger failure escaped
+        $this->addToAssertionCount(1);
     }
 
     public function testPolicyNormalizationKnownType(): void
@@ -539,30 +660,71 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
         $this->assertTrue($result);
     }
 
-    public function testFactoryConstruction(): void
+    public function testFactoryCreatesRecorderWithRealDependencies(): void
     {
-        $factory = new \Maatify\EventLogging\Factory\DeliveryOperationsFactory();
-        $this->assertInstanceOf(\Maatify\EventLogging\Factory\DeliveryOperationsFactory::class, $factory);
+        $factory = new DeliveryOperationsFactory();
+        $this->assertInstanceOf(DeliveryOperationsFactory::class, $factory);
+
+        $pdo = $this->createMock(PDO::class);
+        $clock = new SystemClock();
+
+        $recorder = DeliveryOperationsFactory::create($pdo, $clock);
+        $this->assertInstanceOf(DeliveryOperationsRecorder::class, $recorder);
     }
 
-    public function testProviderAccess(): void
+    public function testProviderReturnsRecorderInstance(): void
     {
-        $providerClass = new \ReflectionClass(\Maatify\EventLogging\Provider\EventLoggingProvider::class);
-        $this->assertTrue($providerClass->hasMethod('deliveryOperations'));
+        $pdo = $this->createMock(PDO::class);
+        $clock = new SystemClock();
+        $provider = EventLoggingProviderFactory::createDefault($pdo, $clock);
+
+        $this->assertInstanceOf(EventLoggingProvider::class, $provider);
+        $this->assertInstanceOf(DeliveryOperationsRecorder::class, $provider->deliveryOperations());
     }
 
-    public function testOptionalBindingsExist(): void
+    public function testBindingsDefinitionsIncludeDeliveryOperations(): void
     {
-        $bindingsClass = new \ReflectionClass(\Maatify\EventLogging\Bootstrap\EventLoggingBindings::class);
-        $this->assertTrue($bindingsClass->hasMethod('definitions'));
+        $definitions = EventLoggingBindings::definitions();
+
+        $this->assertArrayHasKey(DeliveryOperationsRecorder::class, $definitions);
+        $this->assertArrayHasKey(DeliveryOperationsQueryInterface::class, $definitions);
+
+        $recorderFactory = $definitions[DeliveryOperationsRecorder::class];
+        $this->assertInstanceOf(\Closure::class, $recorderFactory);
+
+        $queryFactory = $definitions[DeliveryOperationsQueryInterface::class];
+        $this->assertInstanceOf(\Closure::class, $queryFactory);
     }
 
-    public function testSchemaContractExists(): void
+    public function testSchemaContractExistsWithColumnsAndIndexes(): void
     {
         $schemaPath = __DIR__ . '/../../../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql';
         $this->assertFileExists($schemaPath);
         $schema = file_get_contents($schemaPath);
+
         $this->assertStringContainsString('maa_event_logging_delivery_operations', $schema);
+
+        // Validate required columns exist
+        $requiredColumns = [
+            'id', 'event_id', 'channel', 'operation_type', 'actor_type', 'actor_id',
+            'target_type', 'target_id', 'status', 'attempt_no', 'scheduled_at',
+            'completed_at', 'correlation_id', 'request_id', 'provider', 'provider_message_id',
+            'error_code', 'error_message', 'metadata', 'occurred_at',
+        ];
+        foreach ($requiredColumns as $col) {
+            $this->assertStringContainsString($col, $schema, "Schema missing column: {$col}");
+        }
+
+        // Validate PK
+        $this->assertStringContainsString('PRIMARY KEY', $schema);
+
+        // Validate unique key on event_id
+        $this->assertStringContainsString('UNIQUE KEY', $schema);
+        $this->assertStringContainsString('event_id', $schema);
+
+        // Validate required indexes exist
+        $this->assertStringContainsString('INDEX', $schema);
+        $this->assertStringContainsString('occurred_at', $schema);
     }
 
     public function testDeliveryOperationsViewDtoHasAllTwentyFields(): void
@@ -589,5 +751,55 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
         $this->assertSame('page', $keys[0]);
         $this->assertSame('perPage', $keys[1]);
         $this->assertSame('sortBy', $keys[2]);
+    }
+
+    public function testWriterRepositorySendsCorrectSqlAndParameters(): void
+    {
+        $writerPdo = $this->createMock(PDO::class);
+        $writerStmt = $this->createMock(PDOStatement::class);
+
+        $writerPdo->expects($this->once())
+            ->method('prepare')
+            ->with($this->callback(function (string $sql) {
+                return str_contains($sql, 'INSERT INTO maa_event_logging_delivery_operations')
+                    && str_contains($sql, ':event_id')
+                    && str_contains($sql, ':channel')
+                    && str_contains($sql, ':metadata')
+                    && str_contains($sql, ':occurred_at');
+            }))
+            ->willReturn($writerStmt);
+
+        $writerStmt->expects($this->once())
+            ->method('execute')
+            ->with($this->callback(function (array $params) {
+                return array_key_exists(':event_id', $params)
+                    && array_key_exists(':channel', $params)
+                    && array_key_exists(':metadata', $params)
+                    && array_key_exists(':occurred_at', $params);
+            }))
+            ->willReturn(true);
+
+        $repository = new DeliveryOperationsLoggerMysqlRepository($writerPdo);
+        $repository->log(new DeliveryOperationRecordDTO(
+            eventId: 'test-event-id',
+            channel: 'EMAIL',
+            operationType: 'NOTIFICATION',
+            actorType: 'SYSTEM',
+            actorId: 1,
+            targetType: 'USER',
+            targetId: 2,
+            status: 'SENT',
+            attemptNo: 1,
+            scheduledAt: null,
+            completedAt: null,
+            correlationId: null,
+            requestId: null,
+            provider: null,
+            providerMessageId: null,
+            errorCode: null,
+            errorMessage: null,
+            metadata: ['key' => 'value'],
+            occurredAt: new DateTimeImmutable('2023-01-01 00:00:00', new DateTimeZone('UTC'))
+        ));
     }
 }
