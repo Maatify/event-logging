@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 3 Remediation Complete / Phase 4 Active / DiagnosticsTelemetry Runtime Complete / DeliveryOperations Blueprint Approved / Runtime Implementation Next
+**Phase:** Phase 4 Active
 
 ## 1. Purpose
 
@@ -88,8 +88,8 @@ These domains already contain incorrect post-v1.0 pagination work and must be re
 
 These domains never received the incorrect post-v1.0 pagination experiment and require a new Admin Query API path:
 
-5. `DiagnosticsTelemetry` — new implementation.
-6. `DeliveryOperations` — new implementation after the simpler domains because of its broader state and provider-related query surface.
+5. `DiagnosticsTelemetry` — new implementation. (Runtime Implemented)
+6. `DeliveryOperations` — new implementation after the simpler domains because of its broader state and provider-related query surface. (Runtime Implemented)
 
 The six domains must not be implemented as one bulk generic repository or one cross-domain query layer.
 
@@ -227,8 +227,7 @@ The approved implementation sequence is:
 Phase 3 Remediation Complete.
 Phase 4 Active.
 DiagnosticsTelemetry Runtime complete
-DeliveryOperations Blueprint Approved
-DeliveryOperations Runtime Next
+DeliveryOperations Runtime Implemented / Pending Merge
 Reporting/dashboard blocked
 No release or tag authorized
 
@@ -237,6 +236,6 @@ No release or tag authorized
 - `SecuritySignals`: Runtime implemented.
 - `AuthoritativeAudit`: Runtime implemented.
 - `DiagnosticsTelemetry`: Runtime implemented
-- `DeliveryOperations`: Blueprint Approved / Runtime Next. The implementation must strictly follow the merged Blueprint.
+- `DeliveryOperations`: Runtime implemented.
 
 Approval of this architecture document alone does not authorize Composer, Runtime, schema, test, tag, or release changes.

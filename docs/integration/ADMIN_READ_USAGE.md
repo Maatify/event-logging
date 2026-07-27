@@ -1,12 +1,12 @@
 # Admin Read Usage
 
-> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DiagnosticsTelemetry Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
+> **Scope Boundary Notice:** This guide covers the protected primitive `v1.0.0` read/query path and the separate AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, DiagnosticsTelemetry, and DeliveryOperations Admin Query APIs. The existing post-v1 pagination wrappers are superseded experiments and must not be used for new integrations. This includes:
 > - `*PaginatedQueryInterface`
 > - `*QueryCursorDTO`
 > - `*QueryPageDTO`
 > - `*PaginatedQueryService`
 >
-> AuthoritativeAudit, AuditTrail, BehaviorTrace, and SecuritySignals use rebuilt/replacement Admin Query paths. DiagnosticsTelemetry uses a new Admin Query implementation. DeliveryOperations blueprint/design and Owner approval are next; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
+> AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DeliveryOperations use rebuilt/new Admin Query paths. DiagnosticsTelemetry uses a new Admin Query implementation. All six domains now have Admin Query Runtime implemented; see the [Admin Query API Architecture](../architecture/ADMIN_QUERY_API_ARCHITECTURE.md) and [Roadmap](../roadmap/ADMIN_QUERY_API_ROADMAP.md).
 
 The `maatify/event-logging` library provides both protected primitive read/query contracts and separate Admin Query offset pagination contracts, strictly scoped to each domain, intended to serve as the foundation for administrative viewing capabilities.
 
@@ -164,6 +164,33 @@ Supported filters are `eventId`, `actorType`, `actorId`, `targetType`, `targetId
 The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
 
 Admin Query validation errors throw `AuthoritativeAuditAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `AuthoritativeAuditAdminQueryExecutionException`. PDO and pagination execution failures throw `AuthoritativeAuditStorageException` using the existing `Failed to query AuthoritativeAudit records: ...` message pattern.
+
+## DeliveryOperations Admin Query Offset Pagination
+
+DeliveryOperations also exposes a separate public Admin Query contract for offset pagination:
+
+```php
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
+use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
+
+$repository = new DeliveryOperationsAdminQueryMysqlRepository($pdo);
+
+$page = $repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+    channel: 'email',
+    operationType: 'notification_send',
+    status: 'success',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters include `id`, `eventId`, `channel`, `operationType`, `actorType`, `actorId`, `targetType`, `targetId`, `status`, `attemptNoMin`, `attemptNoMax`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessageLike`, `metadataFilters`, `scheduledAfter`, `scheduledBefore`, `completedAfter`, `completedBefore`, `after`, `before`, and `nullStateFilters`.
+
+The response serializes with `items`, `page`, `perPage`, `total`, `filtered`, `totalPages`, `hasNext`, `hasPrevious`, `sortBy`, and `sortDirection`. Caller-selectable sorting is limited to `occurred_at`; `id` is reserved as the internal tie-breaker. Pagination mechanics are delegated to `maatify/persistence`, but no persistence classes are exposed through the public EventLogging contract.
+
+Admin Query validation errors throw `DeliveryOperationsAdminQueryInvalidArgumentException`. Pagination descriptor/configuration failures throw `DeliveryOperationsAdminQueryExecutionException`. PDO and pagination execution failures throw `DeliveryOperationsStorageException`.
 
 ## DiagnosticsTelemetry Admin Query Offset Pagination
 

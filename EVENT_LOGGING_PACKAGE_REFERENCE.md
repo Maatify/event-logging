@@ -21,7 +21,7 @@ The package intentionally uses explicit runtime dependencies rather than hiding 
 - PHP `^8.2`.
 - PHP extensions: `ext-json`, `ext-pdo`.
 - `maatify/exceptions`.
-- `maatify/persistence` for AuditTrail, BehaviorTrace, SecuritySignals, AuthoritativeAudit, and DiagnosticsTelemetry Admin Query offset pagination mechanics.
+- `maatify/persistence` for AuditTrail, BehaviorTrace, SecuritySignals, AuthoritativeAudit, DiagnosticsTelemetry, and DeliveryOperations Admin Query offset pagination mechanics.
 - `maatify/shared-common` for shared contracts such as `ClockInterface`.
 - `psr/log` for optional fail-open fallback logging.
 - `ramsey/uuid` for UUID generation; the package does not provide an internal UUID fallback generator.
@@ -180,7 +180,53 @@ The primitive read side is designed for archiving, sequential processing, export
 
 ## 12. Admin Query APIs
 
-AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, and DiagnosticsTelemetry additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+AuthoritativeAudit, AuditTrail, BehaviorTrace, SecuritySignals, DiagnosticsTelemetry, and DeliveryOperations additionally expose separate Admin Query APIs for host-owned administrative screens that need deterministic offset pagination. These APIs are additive and do not replace primitive cursor-based query interfaces.
+
+### DeliveryOperations
+
+Public contract:
+
+```php
+use Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsAdminQueryInterface;
+use Maatify\EventLogging\DeliveryOperations\DTO\DeliveryOperationsAdminQueryRequestDTO;
+use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsAdminQueryMysqlRepository;
+
+$query = new DeliveryOperationsAdminQueryMysqlRepository($pdo);
+
+$page = $query->paginate(new DeliveryOperationsAdminQueryRequestDTO(
+    channel: 'EMAIL',
+    operationType: 'notification_send',
+    status: 'SENT',
+    page: 1,
+    perPage: 20,
+    sortBy: 'occurred_at',
+    sortDirection: 'DESC'
+));
+```
+
+Supported filters are `id`, `eventId`, `channel`, `operationType`, `actorType`, `actorId`, `targetType`, `targetId`, `status`, `attemptNoMin`, `attemptNoMax`, `after`, `before`, `completedAfter`, `completedBefore`, `scheduledAfter`, `scheduledBefore`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessageLike`, plus null-state filters for `actorType`, `actorId`, `targetType`, `targetId`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`, `scheduledAt`, and `completedAt`, and a `metadataFilters` associative array mapping JSON paths to expected values. `id`, `actorId`, and `targetId` must be greater than zero. `attemptNoMin` and `attemptNoMax` accept zero and above. `metadataFilters` maps dot-notation JSON paths (e.g. `$.key`) to `string|int|float|bool|null` values. SQL placeholder names `meta_path_exists_N`, `meta_path_value_N`, and `meta_value_N` are internal implementation details of the descriptor builder, not public DTO properties. Numeric filters accept only positive integers unless stated otherwise. Equal date boundaries are valid; date filters are inclusive.
+
+Result DTO fields:
+
+```text
+items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection
+```
+
+Each item is a `DeliveryOperationsViewDTO` with fields: `id`, `eventId`, `channel`, `operationType`, `actorType`, `actorId`, `targetType`, `targetId`, `status`, `attemptNo`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`, `metadata`, `occurredAt`.
+
+Caller-selectable sorting is limited to `occurred_at`; `id` is used only as the internal deterministic tie-breaker. Pagination normalization, clamping, offset calculation, count execution, and ordering mechanics are delegated to `maatify/persistence`. The public EventLogging API does not expose persistence package classes.
+
+EventLogging is responsible for domain filters, trusted SQL construction, selected columns, parameter binding, mapper behavior, and exception translation. The `maatify/persistence` package owns generic page normalization, per-page clamping, offset calculation, ordering mechanics, count execution, `LIMIT`, `OFFSET`, and pagination metadata.
+
+Invalid-argument boundaries:
+
+- `DeliveryOperationsAdminQueryInvalidArgumentException` for invalid request filters and ranges.
+- `DeliveryOperationsAdminQueryExecutionException` for invalid pagination configuration or descriptor construction.
+- `DeliveryOperationsStorageException` for PDO and pagination execution failures, using the existing `Failed to query DeliveryOperations records: ...` message pattern.
+
+The repository does not manage caller transactions: `beginTransaction`, `commit`, and `rollBack` are never called on the PDO instance. Temporary-table shadowing for integration isolation is the caller's responsibility.
+
+The package does not provide HTTP controllers, routes, authorization, middleware, UI, exports, localization, dashboards, free-text search, arbitrary SQL, joins, caching, or approximate counts for Admin Query. Hosts own those concerns.
 
 ### AuthoritativeAudit
 
@@ -387,7 +433,7 @@ Advanced querying (UI-driven generic search, arbitrary filtering, complex host a
 
 Classes in `Infrastructure\Mysql\*` namespaces are public infrastructure adapters strictly meant for package composition and wiring when they are repository or writer adapters. This includes domain write repositories, outbox writer repositories, logger repositories, and query repositories.
 
-Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, `SecuritySignalsAdminQueryMysqlRepository`, `AuthoritativeAuditAdminQueryMysqlRepository`, and `DiagnosticsTelemetryAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
+Host composition roots or DI containers may instantiate these adapters and bind them to domain contracts. `AuditTrailAdminQueryMysqlRepository`, `BehaviorTraceAdminQueryMysqlRepository`, `SecuritySignalsAdminQueryMysqlRepository`, `AuthoritativeAuditAdminQueryMysqlRepository`, `DiagnosticsTelemetryAdminQueryMysqlRepository`, and `DeliveryOperationsAdminQueryMysqlRepository` remain the public MySQL adapters for their Admin Query APIs. Application and business code should prefer Admin Query interfaces and other `Contract\*` interfaces rather than concrete MySQL classes. Public adapter status does not make these classes the preferred application-layer API.
 
 Classes marked `@internal` under infrastructure namespaces are package implementation details, not stable public API. Hosts must not construct, type against, extend, or depend on them, and their signatures are not part of the stable compatibility contract. The Admin Query implementations explicitly exclude these internal classes from the stable public API:
 
@@ -401,6 +447,8 @@ Classes marked `@internal` under infrastructure namespaces are package implement
 - `Maatify\EventLogging\DiagnosticsTelemetry\Infrastructure\Mysql\Pagination\DiagnosticsTelemetryAdminQueryDescriptorBuilder`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\SecuritySignalsRowMapper`
 - `Maatify\EventLogging\SecuritySignals\Infrastructure\Mysql\Pagination\SecuritySignalsAdminQueryDescriptorBuilder`
+- `Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsRowMapper`
+- `Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\Pagination\DeliveryOperationsAdminQueryDescriptorBuilder`
 
 ## 14. Failure and exception behavior
 

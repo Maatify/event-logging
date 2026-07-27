@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the separate DeliveryOperations Admin Query public API with package-owned request/result DTOs and MySQL repository.
+- Added Unit, Regression, and strict real-MySQL Integration coverage for DeliveryOperations Admin Query API.
 - Added the separate DiagnosticsTelemetry Admin Query public API with package-owned request/result DTOs and MySQL repository.
 - Added Unit, Regression, and strict real-MySQL Integration coverage for DiagnosticsTelemetry Admin Query pagination and primitive find()/read() compatibility.
 - Added the separate AuthoritativeAudit Admin Query public API with package-owned request/result DTOs and MySQL repository.
