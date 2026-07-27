@@ -838,14 +838,16 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testRealPdoExceptionTranslation(): void
     {
-        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
+        $this->pdo->exec('CREATE TEMPORARY TABLE maa_event_logging_delivery_operations (broken_col INT NOT NULL)');
 
         try {
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(eventId: 'trigger-column-error'));
             $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
             $this->assertStringContainsString('Failed to query DeliveryOperations records:', $e->getMessage());
             $this->assertInstanceOf(PDOException::class, $e->getPrevious());
+        } finally {
+            $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
         }
     }
 
