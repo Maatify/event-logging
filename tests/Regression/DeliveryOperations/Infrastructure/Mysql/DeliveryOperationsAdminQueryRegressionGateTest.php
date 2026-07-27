@@ -65,8 +65,14 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
 
         $this->assertCount(1, $methods);
         $this->assertSame('find', $methods[0]->getName());
-        $this->assertSame(DeliveryOperationsQueryDTO::class, $methods[0]->getParameters()[0]->getType()->getName());
-        $this->assertTrue($methods[0]->getReturnType()->getName() === 'array');
+
+        $firstParamType = $methods[0]->getParameters()[0]->getType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $firstParamType);
+        $this->assertSame(DeliveryOperationsQueryDTO::class, $firstParamType->getName());
+
+        $returnType = $methods[0]->getReturnType();
+        $this->assertInstanceOf(\ReflectionNamedType::class, $returnType);
+        $this->assertTrue($returnType->getName() === 'array');
     }
 
     public function testPrimitiveQueryDtoConstructorOrderAndTypes(): void
@@ -104,14 +110,16 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
         foreach ($params as $param) {
             $name = $param->getName();
             $this->assertArrayHasKey($name, $expectedTypes);
-            $this->assertSame($expectedTypes[$name], $param->getType()->getName(), "Type mismatch for parameter: {$name}");
+            $paramType = $param->getType();
+            $this->assertInstanceOf(\ReflectionNamedType::class, $paramType);
+            $this->assertSame($expectedTypes[$name], $paramType->getName(), "Type mismatch for parameter: {$name}");
 
             if ($name === 'limit') {
-                $this->assertFalse($param->getType()->allowsNull());
+                $this->assertFalse($paramType->allowsNull());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertSame(50, $param->getDefaultValue());
             } else {
-                $this->assertTrue($param->getType()->allowsNull());
+                $this->assertTrue($paramType->allowsNull());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertNull($param->getDefaultValue());
             }
@@ -595,7 +603,9 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
             ->with(
                 'DeliveryOperations logging failed',
                 $this->callback(function (array $context) {
-                    return str_contains($context['exception'], 'storage failure');
+                    $exception = $context['exception'];
+                    $this->assertIsString($exception);
+                    return str_contains($exception, 'storage failure');
                 })
             );
 
@@ -655,7 +665,7 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
     public function testPolicyMetadataSizeValidation(): void
     {
         $policy = new DeliveryOperationsDefaultPolicy();
-        $validMeta = json_encode(['key' => 'value']);
+        $validMeta = (string) json_encode(['key' => 'value']);
         $result = $policy->validateMetadataSize($validMeta);
         $this->assertTrue($result);
     }
@@ -694,6 +704,49 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
 
         $queryFactory = $definitions[DeliveryOperationsQueryInterface::class];
         $this->assertInstanceOf(\Closure::class, $queryFactory);
+
+        $pdo = $this->createMock(PDO::class);
+        $clock = new SystemClock();
+
+        $provider = EventLoggingProviderFactory::createDefault($pdo, $clock);
+
+        $recorderResult = $recorderFactory(new class ($provider) {
+            public function __construct(private readonly EventLoggingProvider $provider) {}
+
+            public function get(string $id): object
+            {
+                return match ($id) {
+                    EventLoggingProvider::class => $this->provider,
+                    default => throw new \RuntimeException("Unknown dependency: {$id}"),
+                };
+            }
+
+            public function has(string $id): bool
+            {
+                return $id === EventLoggingProvider::class;
+            }
+        });
+
+        $this->assertInstanceOf(DeliveryOperationsRecorder::class, $recorderResult);
+
+        $query = $queryFactory(new class ($pdo) {
+            public function __construct(private readonly PDO $pdo) {}
+
+            public function get(string $id): object
+            {
+                return match ($id) {
+                    PDO::class => $this->pdo,
+                    default => throw new \RuntimeException("Unknown dependency: {$id}"),
+                };
+            }
+
+            public function has(string $id): bool
+            {
+                return $id === PDO::class;
+            }
+        });
+
+        $this->assertInstanceOf(DeliveryOperationsQueryInterface::class, $query);
     }
 
     public function testSchemaContractExistsWithColumnsAndIndexes(): void
@@ -701,6 +754,7 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
         $schemaPath = __DIR__ . '/../../../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql';
         $this->assertFileExists($schemaPath);
         $schema = file_get_contents($schemaPath);
+        $this->assertIsString($schema);
 
         $this->assertStringContainsString('maa_event_logging_delivery_operations', $schema);
 
@@ -801,5 +855,51 @@ final class DeliveryOperationsAdminQueryRegressionGateTest extends TestCase
             metadata: ['key' => 'value'],
             occurredAt: new DateTimeImmutable('2023-01-01 00:00:00', new DateTimeZone('UTC'))
         ));
+    }
+
+    public function testWriterRepositoryFailureWrapsPdoException(): void
+    {
+        $pdoException = new PDOException('Connection lost');
+
+        $writerPdo = $this->createMock(PDO::class);
+        $writerStmt = $this->createMock(PDOStatement::class);
+
+        $writerPdo->expects($this->once())
+            ->method('prepare')
+            ->willReturn($writerStmt);
+
+        $writerStmt->expects($this->once())
+            ->method('execute')
+            ->willThrowException($pdoException);
+
+        $repository = new DeliveryOperationsLoggerMysqlRepository($writerPdo);
+
+        try {
+            $repository->log(new DeliveryOperationRecordDTO(
+                eventId: 'fail-event',
+                channel: 'EMAIL',
+                operationType: 'NOTIFICATION',
+                actorType: null,
+                actorId: null,
+                targetType: null,
+                targetId: null,
+                status: 'SENT',
+                attemptNo: 1,
+                scheduledAt: null,
+                completedAt: null,
+                correlationId: null,
+                requestId: null,
+                provider: null,
+                providerMessageId: null,
+                errorCode: null,
+                errorMessage: null,
+                metadata: null,
+                occurredAt: new DateTimeImmutable('2023-01-01 00:00:00', new DateTimeZone('UTC'))
+            ));
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringContainsString('Database write failed:', $e->getMessage());
+            $this->assertSame($pdoException, $e->getPrevious());
+        }
     }
 }

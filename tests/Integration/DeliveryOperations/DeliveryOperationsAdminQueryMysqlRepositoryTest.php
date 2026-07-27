@@ -97,6 +97,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame(1, $res->items[0]->id);
     }
 
+    /** @return array<string, array{int}> */
     public static function idFilterProvider(): array
     {
         return [
@@ -193,6 +194,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame($expected, $res->filtered);
     }
 
+    /** @return array<string, array{string, int|null, int}> */
     public static function actorFilterProvider(): array
     {
         return [
@@ -218,6 +220,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame($expected, $res->filtered);
     }
 
+    /** @return array<string, array{string, int|null, int}> */
     public static function targetFilterProvider(): array
     {
         return [
@@ -244,6 +247,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame($expected, $res->filtered);
     }
 
+    /** @return array<string, array{int|null, int|null, int}> */
     public static function attemptFilterProvider(): array
     {
         return [
@@ -526,6 +530,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->assertSame($expected, $res->filtered);
     }
 
+    /** @return array<string, array{string, string, int}> */
     public static function likeEscapeProvider(): array
     {
         return [
@@ -777,7 +782,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         $this->pdo->beginTransaction();
 
         try {
-            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(eventId: 'test'));
             $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
             $this->assertInstanceOf(PDOException::class, $e->getPrevious());
@@ -785,7 +790,6 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         } finally {
             $this->pdo->rollBack();
             $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
-            $this->recreateTable();
         }
     }
 
@@ -822,11 +826,11 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
             $this->fail('Expected DeliveryOperationsStorageException');
         } catch (DeliveryOperationsStorageException $e) {
             $this->assertStringContainsString('Failed to map DeliveryOperations row:', $e->getMessage());
+            $this->assertInstanceOf(\Exception::class, $e->getPrevious());
             $this->assertTrue($this->pdo->inTransaction());
         } finally {
             $this->pdo->rollBack();
             $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
-            $this->recreateTable();
         }
     }
 
@@ -834,7 +838,7 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
     public function testRealPdoExceptionTranslation(): void
     {
-        $this->pdo->exec('CREATE TEMPORARY TABLE maa_event_logging_delivery_operations (broken_col INT NOT NULL)');
+        $this->pdo->exec('DROP TABLE maa_event_logging_delivery_operations');
 
         try {
             $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
@@ -842,9 +846,24 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         } catch (DeliveryOperationsStorageException $e) {
             $this->assertStringContainsString('Failed to query DeliveryOperations records:', $e->getMessage());
             $this->assertInstanceOf(PDOException::class, $e->getPrevious());
-        } finally {
-            $this->pdo->exec('DROP TEMPORARY TABLE IF EXISTS maa_event_logging_delivery_operations');
-            $this->recreateTable();
         }
+    }
+
+    // ===== Repository Does Not Manage Transactions =====
+
+    public function testRepositoryDoesNotCommitOrRollbackCallerTransaction(): void
+    {
+        $this->pdo->beginTransaction();
+
+        $this->insertLog(eventId: 'tx-caller');
+
+        $res = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(eventId: 'tx-caller'));
+        $this->assertSame(1, $res->filtered);
+        $this->assertTrue($this->pdo->inTransaction());
+
+        $this->pdo->rollBack();
+
+        $res2 = $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO(eventId: 'tx-caller'));
+        $this->assertSame(0, $res2->filtered);
     }
 }

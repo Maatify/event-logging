@@ -1,7 +1,7 @@
 # Admin Query API Architecture
 
 **Status:** Approved Architecture
-**Phase:** Phase 4 Complete / DeliveryOperations Pending Merge
+**Phase:** Phase 4 Active
 
 ## 1. Purpose
 
@@ -227,8 +227,7 @@ The approved implementation sequence is:
 Phase 3 Remediation Complete.
 Phase 4 Active.
 DiagnosticsTelemetry Runtime complete
-DeliveryOperations Runtime Implemented
-Phase 4 Complete / DeliveryOperations Pending Merge
+DeliveryOperations Runtime Implemented / Pending Merge
 Reporting/dashboard blocked
 No release or tag authorized
 

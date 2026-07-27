@@ -194,20 +194,39 @@ use Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperati
 $query = new DeliveryOperationsAdminQueryMysqlRepository($pdo);
 
 $page = $query->paginate(new DeliveryOperationsAdminQueryRequestDTO(
-    channel: 'email',
+    channel: 'EMAIL',
     operationType: 'notification_send',
-    status: 'success',
+    status: 'SENT',
     page: 1,
     perPage: 20,
     sortBy: 'occurred_at',
     sortDirection: 'DESC'
 ));
-
-$items = $page->items; // list<DeliveryOperationsViewDTO>
-$total = $page->total; // total rows ignoring filters
-$filtered = $page->filtered; // total rows matching filters
-$totalPages = $page->totalPages;
 ```
+
+Supported filters are `id`, `eventId`, `channel`, `operationType`, `actorType`, `actorId`, `targetType`, `targetId`, `status`, `attemptNo`, `after`, `before`, `completedAfter`, `completedBefore`, `scheduledAfter`, `scheduledBefore`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`, plus null-state filters for `actorType`, `actorId`, `targetType`, `targetId`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`, `scheduledAt`, and `completedAt`, and metadata JSON path/value filters (`metaPathExists`, `metaPathValue`, `metaValue`). Numeric filters accept only positive integers. Equal date boundaries are valid; date filters are inclusive. Metadata filters use dot-notation JSON path matching.
+
+Result DTO fields:
+
+```text
+items, page, perPage, total, filtered, totalPages, hasNext, hasPrevious, sortBy, sortDirection
+```
+
+Each item is a `DeliveryOperationsViewDTO` with fields: `id`, `eventId`, `channel`, `operationType`, `actorType`, `actorId`, `targetType`, `targetId`, `status`, `attemptNo`, `scheduledAt`, `completedAt`, `correlationId`, `requestId`, `provider`, `providerMessageId`, `errorCode`, `errorMessage`, `metadata`, `occurredAt`.
+
+Caller-selectable sorting is limited to `occurred_at`; `id` is used only as the internal deterministic tie-breaker. Pagination normalization, clamping, offset calculation, count execution, and ordering mechanics are delegated to `maatify/persistence`. The public EventLogging API does not expose persistence package classes.
+
+EventLogging is responsible for domain filters, trusted SQL construction, selected columns, parameter binding, mapper behavior, and exception translation. The `maatify/persistence` package owns generic page normalization, per-page clamping, offset calculation, ordering mechanics, count execution, `LIMIT`, `OFFSET`, and pagination metadata.
+
+Invalid-argument boundaries:
+
+- `DeliveryOperationsAdminQueryInvalidArgumentException` for invalid request filters and ranges.
+- `DeliveryOperationsAdminQueryExecutionException` for invalid pagination configuration or descriptor construction.
+- `DeliveryOperationsStorageException` for PDO and pagination execution failures, using the existing `Failed to query DeliveryOperations records: ...` message pattern.
+
+The repository does not manage caller transactions: `beginTransaction`, `commit`, and `rollBack` are never called on the PDO instance. Temporary-table shadowing for integration isolation is the caller's responsibility.
+
+The package does not provide HTTP controllers, routes, authorization, middleware, UI, exports, localization, dashboards, free-text search, arbitrary SQL, joins, caching, or approximate counts for Admin Query. Hosts own those concerns.
 
 ### AuthoritativeAudit
 

@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 4 Complete / DeliveryOperations Runtime Implemented / Pending Merge
+**Status:** Phase 4 Active
 
 ## 1. Scope Boundary
 
@@ -140,7 +140,7 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-- Phase 4 is complete;
-- DeliveryOperations Runtime is complete;
+- Phase 4 is active;
+- DeliveryOperations Runtime is pending merge;
 - reporting/dashboard does not start until Admin pagination is released and verified for all six domains;
 - no release/tag authorized.
