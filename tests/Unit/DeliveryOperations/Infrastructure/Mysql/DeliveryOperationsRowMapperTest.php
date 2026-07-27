@@ -99,6 +99,22 @@ final class DeliveryOperationsRowMapperTest extends TestCase
         $this->assertNull($dto->metadata);
     }
 
+    public function testItMapsNumericKeyJsonToNull(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '{"1": "x"}'
+        ]);
+        $this->assertNull($dto->metadata);
+    }
+
+    public function testItMapsMixedKeyJsonToNull(): void
+    {
+        $dto = $this->mapper->map([
+            'metadata' => '{"a": "x", "1": "y"}'
+        ]);
+        $this->assertNull($dto->metadata);
+    }
+
     public function testItMapsEmptyJsonToNull(): void
     {
         $dto = $this->mapper->map([

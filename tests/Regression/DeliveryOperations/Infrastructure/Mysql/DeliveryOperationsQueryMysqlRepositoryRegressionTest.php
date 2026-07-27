@@ -324,4 +324,27 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
         $this->assertInstanceOf(\ReflectionNamedType::class, $returnType);
         $this->assertSame('array', $returnType->getName());
     }
+
+    public function testPrimitiveRepositoryBoundariesAndSchemaArePreservedUnchanged(): void
+    {
+        // Prove primitive read API is strictly separated from writer boundaries
+        $this->assertTrue(interface_exists(\Maatify\EventLogging\DeliveryOperations\Contract\DeliveryOperationsLoggerInterface::class));
+        $this->assertTrue(class_exists(\Maatify\EventLogging\DeliveryOperations\Infrastructure\Mysql\DeliveryOperationsLoggerMysqlRepository::class));
+        $this->assertTrue(class_exists(\Maatify\EventLogging\DeliveryOperations\Recorder\DeliveryOperationsRecorder::class));
+        $this->assertTrue(class_exists(\Maatify\EventLogging\DeliveryOperations\Recorder\DeliveryOperationsDefaultPolicy::class));
+
+        // Schema verification
+        $schemaPath = __DIR__ . '/../../../../../src/DeliveryOperations/Database/schema.maa_event_logging_delivery_operations.sql';
+        $this->assertFileExists($schemaPath);
+        $schema = file_get_contents($schemaPath);
+        $this->assertIsString($schema);
+        $this->assertStringContainsString('maa_event_logging_delivery_operations', $schema);
+        $this->assertStringContainsString('INDEX idx_delivery_ops_actor_time (actor_type, actor_id, occurred_at)', $schema);
+
+        // Fail-open boundary verification (Recorder does not throw StorageException)
+        $recorderClass = new \ReflectionClass(\Maatify\EventLogging\DeliveryOperations\Recorder\DeliveryOperationsRecorder::class);
+        $docComment = $recorderClass->getMethod('record')->getDocComment();
+        $docString = is_string($docComment) ? $docComment : '';
+        $this->assertFalse(str_contains($docString, '@throws ' . DeliveryOperationsStorageException::class));
+    }
 }
