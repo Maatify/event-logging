@@ -239,12 +239,15 @@ final class DeliveryOperationsQueryMysqlRepositoryRegressionTest extends TestCas
 
         // Assert all but limit are nullable
         foreach ($params as $param) {
+            $paramType = $param->getType();
+            $this->assertNotNull($paramType);
+
             if ($param->getName() === 'limit') {
-                $this->assertFalse($param->getType()->allowsNull());
+                $this->assertFalse($paramType->allowsNull());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertSame(50, $param->getDefaultValue());
             } else {
-                $this->assertTrue($param->getType()->allowsNull());
+                $this->assertTrue($paramType->allowsNull());
                 $this->assertTrue($param->isDefaultValueAvailable());
                 $this->assertNull($param->getDefaultValue());
             }

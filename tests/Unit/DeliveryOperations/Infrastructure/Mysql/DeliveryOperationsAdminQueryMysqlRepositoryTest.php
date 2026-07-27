@@ -147,6 +147,166 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
         }
     }
 
+    public function testItClampsPerPageDefaultToTwenty(): void
+    {
+        $this->pdo->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                return str_contains($sql, 'COUNT(*)') ? $this->countStatement : $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->countStatement->method('columnCount')->willReturn(1);
+        $this->countStatement->method('fetch')
+            ->willReturnOnConsecutiveCalls(['COUNT(*)' => 0], false, ['COUNT(*)' => 0], false);
+        $this->countStatement->method('errorCode')->willReturn('00000');
+        $this->statement->method('errorCode')->willReturn('00000');
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1);
+        $result = $this->repository->paginate($request);
+        $this->assertSame(20, $result->perPage);
+    }
+
+    public function testItClampsPerPageMinToOne(): void
+    {
+        $this->pdo->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                return str_contains($sql, 'COUNT(*)') ? $this->countStatement : $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->countStatement->method('columnCount')->willReturn(1);
+        $this->countStatement->method('fetch')
+            ->willReturnOnConsecutiveCalls(['COUNT(*)' => 0], false, ['COUNT(*)' => 0], false);
+        $this->countStatement->method('errorCode')->willReturn('00000');
+        $this->statement->method('errorCode')->willReturn('00000');
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 0);
+        $result = $this->repository->paginate($request);
+        $this->assertSame(1, $result->perPage);
+    }
+
+    public function testItClampsPerPageMaxToTwoHundred(): void
+    {
+        $this->pdo->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                return str_contains($sql, 'COUNT(*)') ? $this->countStatement : $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->countStatement->method('columnCount')->willReturn(1);
+        $this->countStatement->method('fetch')
+            ->willReturnOnConsecutiveCalls(['COUNT(*)' => 0], false, ['COUNT(*)' => 0], false);
+        $this->countStatement->method('errorCode')->willReturn('00000');
+        $this->statement->method('errorCode')->willReturn('00000');
+
+        $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 500);
+        $result = $this->repository->paginate($request);
+        $this->assertSame(200, $result->perPage);
+    }
+
+    public function testItDoesNotStartTransactionOnSuccess(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                return str_contains($sql, 'COUNT(*)') ? $this->countStatement : $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->countStatement->method('columnCount')->willReturn(1);
+        $this->countStatement->method('fetch')
+            ->willReturnOnConsecutiveCalls(['COUNT(*)' => 0], false, ['COUNT(*)' => 0], false);
+        $this->countStatement->method('errorCode')->willReturn('00000');
+        $this->statement->method('errorCode')->willReturn('00000');
+
+        $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+    }
+
+    public function testItDoesNotStartTransactionOnPDOException(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willThrowException(new \PDOException('Connection failed'));
+
+        try {
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertInstanceOf(\PDOException::class, $e->getPrevious());
+        }
+    }
+
+    public function testItDoesNotStartTransactionOnPaginationExecutionException(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->expects($this->once())
+            ->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                $stmt = $this->createMock(\PDOStatement::class);
+                $stmt->method('execute')->willReturn(true);
+                $stmt->method('columnCount')->willReturn(0);
+                return $stmt;
+            });
+
+        try {
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertInstanceOf(\Maatify\Persistence\Exception\PaginationExecutionException::class, $e->getPrevious());
+        }
+    }
+
+    public function testItDoesNotStartTransactionOnMappingFailure(): void
+    {
+        $this->pdo->expects($this->never())->method('beginTransaction');
+        $this->pdo->expects($this->never())->method('commit');
+        $this->pdo->expects($this->never())->method('rollBack');
+
+        $this->pdo->method('prepare')
+            ->willReturnCallback(function (string $sql) {
+                return str_contains($sql, 'COUNT(*)') ? $this->countStatement : $this->statement;
+            });
+
+        $this->countStatement->method('execute')->willReturn(true);
+        $this->countStatement->method('bindValue')->willReturn(true);
+        $this->countStatement->method('columnCount')->willReturn(1);
+        $this->countStatement->method('fetch')
+            ->willReturnOnConsecutiveCalls(['COUNT(*)' => 1], false, ['COUNT(*)' => 1], false);
+        $this->countStatement->method('errorCode')->willReturn('00000');
+
+        $this->statement->method('execute')->willReturn(true);
+        $this->statement->method('bindValue')->willReturn(true);
+        $this->statement->method('errorCode')->willReturn('00000');
+        $this->statement->expects($this->once())
+            ->method('fetch')
+            ->willReturn([
+                'id' => '1',
+                'occurred_at' => 'invalid-date-string'
+            ]);
+
+        try {
+            $this->repository->paginate(new DeliveryOperationsAdminQueryRequestDTO());
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringContainsString('Failed to map DeliveryOperations row:', $e->getMessage());
+            $this->assertInstanceOf(\Throwable::class, $e->getPrevious());
+        }
+    }
+
     public function testItWrapsMapperFailure(): void
     {
         $this->pdo->expects($this->exactly(3))
@@ -183,9 +343,12 @@ final class DeliveryOperationsAdminQueryMysqlRepositoryTest extends TestCase
 
         $request = new DeliveryOperationsAdminQueryRequestDTO(page: 1, perPage: 20);
 
-        $this->expectException(DeliveryOperationsStorageException::class);
-        $this->expectExceptionMessage('Failed to map DeliveryOperations row:');
-
-        $this->repository->paginate($request);
+        try {
+            $this->repository->paginate($request);
+            $this->fail('Expected DeliveryOperationsStorageException');
+        } catch (DeliveryOperationsStorageException $e) {
+            $this->assertStringContainsString('Failed to map DeliveryOperations row:', $e->getMessage());
+            $this->assertInstanceOf(\Throwable::class, $e->getPrevious());
+        }
     }
 }

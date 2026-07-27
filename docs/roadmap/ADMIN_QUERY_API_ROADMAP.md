@@ -1,6 +1,6 @@
 # Admin Query API Roadmap
 
-**Status:** Phase 4 Complete / DeliveryOperations Runtime Implemented / Pending Release
+**Status:** Phase 4 Active
 
 ## 1. Scope Boundary
 
@@ -95,7 +95,7 @@ These are new post-v1.0 features, not corrections to the first-release Runtime.
 
 - **Status:** Phase 4 is active. DiagnosticsTelemetry Runtime is complete and merged.
   - `DiagnosticsTelemetry`: [Owner Approved / Runtime Implemented / Complete](../architecture/ADMIN_QUERY_DIAGNOSTICS_TELEMETRY_BLUEPRINT.md)
-  - `DeliveryOperations`: Owner Approved / Runtime Implemented / Complete
+  - `DeliveryOperations`: Owner Approved / Runtime Implemented / Pending Merge
 
 ### Phase 5 — Reporting and Dashboard Summary Contracts
 
@@ -140,7 +140,7 @@ Every implementation phase must prove all of the following:
 
 ## 6. Current Gate
 
-- Phase 4 is complete;
-- DeliveryOperations Runtime is complete;
+- Phase 4 is active;
+- DeliveryOperations Runtime is pending merge;
 - reporting/dashboard does not start until Admin pagination is released and verified for all six domains;
 - no release/tag authorized.
